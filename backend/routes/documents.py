@@ -218,8 +218,14 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
         "amount":        "amount",
     }
 
-    # Frontend defaults that aren't real user input — treat as empty
-    PLACEHOLDER_NAMES = {"ממתין לניתוח AI", "מסמך חדש", ""}
+    # Frontend defaults that aren't real user input — treat as empty.
+    # Match both with and without the hourglass emoji prefix.
+    PLACEHOLDER_NAMES = {
+        "⏳ ממתין לניתוח AI",
+        "ממתין לניתוח AI",
+        "מסמך חדש",
+        "",
+    }
 
     # First-time analysis (no prior ai_data) → trust AI for everything that
     # might have been a form default. On re-analysis, keep user's edits.
