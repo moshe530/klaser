@@ -64,7 +64,9 @@ function makeCard(d) {
   const st = status(d.exp);
   const cls = st?.urgent ? 'urgent' : st?.expiring ? 'expiring' : '';
   const tag = st ? `<span class="tag ${st.cls}">${st.label}</span>` : '';
-  const dt = d.exp ? `<div class="doc-date">עד ${d.exp}</div>` : '';
+  const dt = d.exp
+    ? `<div class="doc-date">עד ${d.exp}</div>`
+    : (d.buy ? `<div class="doc-date">${d.buy}</div>` : '');
   return `<div class="doc-card ${cls}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
     <div class="doc-icon" style="background:${ic.bg}">${ic.e}</div>
     <div class="doc-info"><div class="doc-name">${d.name}</div><div class="doc-meta">${d.cat}${d.note ? ' · ' + d.note : ''}</div></div>
