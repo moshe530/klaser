@@ -39,8 +39,8 @@ def _lazy_import():
     return _groq, _fitz
 
 
-# Vision-capable model on Groq. Maverick = stronger than Scout, still free.
-MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct"
+# Vision-capable model on Groq.
+MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 # Max PDF pages we send per analysis (multi-page invoices etc.)
 MAX_PAGES = 5
