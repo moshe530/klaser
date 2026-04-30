@@ -204,7 +204,7 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
         ).eq("user_id", str(auth.user_id)).execute()
         raise HTTPException(500, f"AI analysis failed: {type(e).__name__}: {e}")
 
-    # Build update — only fill empty fields, but always store full ai_data + summary
+    # Build update — fill fields intelligently
     patch: dict = {
         "ai_data": result,
         "ocr_status": "done",
@@ -217,9 +217,25 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
         "warranty_end":  "warranty_end",
         "amount":        "amount",
     }
+
+    # Frontend defaults that aren't real user input — treat as empty
+    PLACEHOLDER_NAMES = {"ממתין לניתוח AI", "מסמך חדש", ""}
+
+    # First-time analysis (no prior ai_data) → trust AI for everything that
+    # might have been a form default. On re-analysis, keep user's edits.
+    is_first_analysis = not doc.get("ai_data")
+
     for ai_key, db_key in field_map.items():
         val = result.get(ai_key)
-        if val and not doc.get(db_key):
+        if val in (None, "", []):
+            continue
+        existing = doc.get(db_key)
+        is_placeholder_name = db_key == "name" and existing in PLACEHOLDER_NAMES
+        # On first analysis, also override category/dates that look like defaults
+        first_run_override = is_first_analysis and db_key in {
+            "category", "sub_category", "purchase_date", "warranty_end"
+        }
+        if not existing or is_placeholder_name or first_run_override:
             patch[db_key] = val
 
     res = (
