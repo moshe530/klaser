@@ -24,6 +24,24 @@ const CAT_ICON = {
   'אשראי':          { bg: '#FDF4FF', e: '💳' },
 };
 
+// ─── Invoice branches (sub-categories under "חשבוניות" page) ───
+// Built-ins + user-added (saved to localStorage).
+const INVOICE_BUILTIN = ['חשמל', 'מים', 'גז'];
+const INVOICE_BRANCHES_KEY = 'klaser_invoice_branches';
+function getInvoiceBranches() {
+  try { return JSON.parse(localStorage.getItem(INVOICE_BRANCHES_KEY) || '[]'); }
+  catch { return []; }
+}
+function setInvoiceBranches(arr) {
+  localStorage.setItem(INVOICE_BRANCHES_KEY, JSON.stringify(arr));
+}
+function allInvoiceCats() {
+  return [...INVOICE_BUILTIN, ...getInvoiceBranches()];
+}
+
+// Currently active invoice filter (chip) — used by openAddForBranch
+let activeInvoiceFilter = 'הכל';
+
 // ─── BACKEND <-> UI MAPPING ───
 // Backend uses snake_case English keys; UI uses short hebrew-ish keys.
 function fromApi(d) {
@@ -71,6 +89,10 @@ function makeCard(d) {
     <div class="doc-icon" style="background:${ic.bg}">${ic.e}</div>
     <div class="doc-info"><div class="doc-name">${d.name}</div><div class="doc-meta">${d.cat}${d.note ? ' · ' + d.note : ''}</div></div>
     <div class="doc-right">${tag}${dt}</div>
+    <div class="doc-actions">
+      <button class="ico-btn" data-act="edit" title="עריכה">✏️</button>
+      <button class="ico-btn danger" data-act="del" title="מחיקה">🗑️</button>
+    </div>
   </div>`;
 }
 
@@ -79,11 +101,30 @@ function fillList(id, arr) {
   if (el) el.innerHTML = arr.map(makeCard).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין פריטים</p>';
 }
 
+function renderInvoiceChips() {
+  const row = document.getElementById('utilFilter');
+  if (!row) return;
+  const branches = allInvoiceCats();
+  const chips = [
+    `<button class="chip ${activeInvoiceFilter==='הכל'?'active':''}" onclick="filterInvoice('הכל',this)">הכל</button>`,
+    ...branches.map(b => {
+      const ic = CAT_ICON[b] || { e: '📄' };
+      const isActive = activeInvoiceFilter === b ? 'active' : '';
+      return `<button class="chip ${isActive}" onclick="filterInvoice('${b}',this)">${ic.e} ${b}</button>`;
+    }),
+    `<button class="chip add-branch" onclick="addBranch()">+ ענף חדש</button>`,
+  ];
+  row.innerHTML = chips.join('');
+}
+
 function renderAll() {
   fillList('docList', docs);
   fillList('alertList', docs.filter(d => { const s = status(d.exp); return s?.urgent || s?.expiring; }));
   fillList('productsList',  docs.filter(d => d.cat === 'מוצרים'));
-  fillList('utilitiesList', docs.filter(d => ['חשמל', 'מים', 'גז'].includes(d.cat)));
+  const invCats = allInvoiceCats();
+  fillList('utilitiesList', docs.filter(d => invCats.includes(d.cat)));
+  renderInvoiceChips();
+  applyInvoiceFilter();
   fillList('apartmentList', docs.filter(d => d.cat === 'דירה'));
   fillList('payslipsList',  docs.filter(d => d.cat === 'תלוש שכר'));
   fillList('approvalsList', docs.filter(d => d.cat === 'אישורים'));
@@ -92,6 +133,71 @@ function renderAll() {
   fillList('carList',       docs.filter(d => d.cat === 'רכב'));
   renderReminders('all');
   renderCal();
+}
+
+// ─── Invoice page filter ───
+function filterInvoice(cat, el) {
+  activeInvoiceFilter = cat;
+  if (el) {
+    el.closest('.filter-row').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  applyInvoiceFilter();
+}
+function applyInvoiceFilter() {
+  const list = document.getElementById('utilitiesList');
+  if (!list) return;
+  list.querySelectorAll('.doc-card').forEach(c => {
+    c.style.display = (activeInvoiceFilter === 'הכל' || c.dataset.cat === activeInvoiceFilter) ? '' : 'none';
+  });
+}
+
+// ─── Add a new invoice branch (sub-category) ───
+function addBranch() {
+  const name = prompt('שם הענף החדש (למשל: ארנונה, אינטרנט):');
+  if (!name) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  const branches = getInvoiceBranches();
+  if (branches.includes(trimmed) || INVOICE_BUILTIN.includes(trimmed)) {
+    alert('הענף כבר קיים');
+    return;
+  }
+  branches.push(trimmed);
+  setInvoiceBranches(branches);
+  // Auto-register icon if missing
+  if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '🧾' };
+  renderInvoiceChips();
+  refreshCategoryDropdowns();
+}
+
+// Open add-doc modal pre-filled with the current invoice branch
+function openAddForBranch() {
+  const sel = document.getElementById('fm-cat');
+  if (sel && activeInvoiceFilter !== 'הכל') {
+    // Make sure the option exists (custom branches need to be added)
+    refreshCategoryDropdowns();
+    sel.value = activeInvoiceFilter;
+  }
+  openModal('add');
+}
+
+// Re-build category <select> options to include custom invoice branches
+function refreshCategoryDropdowns() {
+  const customBranches = getInvoiceBranches();
+  const builtIn = [
+    ['מוצרים', '🛍️'], ['ביטוח', '🛡️'], ['דירה', '🏠'], ['רכב', '🚗'],
+    ['מסמכים אישיים', '🪪'], ['חשמל', '⚡'], ['גז', '🔥'], ['מים', '💧'],
+    ['תלוש שכר', '💼'], ['רפואי', '🏥'], ['בנק', '🏦'], ['אשראי', '💳'],
+  ];
+  const all = [...builtIn, ...customBranches.map(b => [b, (CAT_ICON[b]?.e || '🧾')])];
+  ['fm-cat', 'ed-cat'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = all.map(([v, e]) => `<option value="${v}">${e} ${v}</option>`).join('');
+    if (prev) sel.value = prev;
+  });
 }
 
 // ─── DATA LOAD FROM BACKEND ───
@@ -362,12 +468,61 @@ async function delDoc(id) {
   }
 }
 
-// Click on a doc card: shift-click deletes; regular click opens the file (if any)
+// ─── EDIT MODAL ───
+function openEdit(id) {
+  const d = docs.find(x => String(x.id) === String(id));
+  if (!d) return;
+  refreshCategoryDropdowns();
+  document.getElementById('ed-id').value = d.id;
+  document.getElementById('ed-name').value = d.name || '';
+  document.getElementById('ed-cat').value = d.cat || '';
+  document.getElementById('ed-sub').value = d.sub || '';
+  document.getElementById('ed-buy').value = d.buy || '';
+  document.getElementById('ed-exp').value = d.exp || '';
+  const amt = d._raw && d._raw.amount != null ? d._raw.amount : '';
+  document.getElementById('ed-amount').value = amt;
+  openModal('edit');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('ed-id').value;
+  if (!id) return;
+  const name = document.getElementById('ed-name').value.trim();
+  if (!name) { alert('נא להזין שם'); return; }
+  const amountStr = document.getElementById('ed-amount').value;
+  const patch = {
+    name,
+    category:      document.getElementById('ed-cat').value || null,
+    sub_category:  document.getElementById('ed-sub').value.trim() || null,
+    purchase_date: document.getElementById('ed-buy').value || null,
+    warranty_end:  document.getElementById('ed-exp').value || null,
+    amount: amountStr === '' ? null : Number(amountStr),
+  };
+  try {
+    const updated = await KlaserAPI.updateDocument(id, patch);
+    const idx = docs.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) docs[idx] = fromApi(updated);
+    renderAll();
+    closeModal('edit');
+  } catch (e) {
+    alert('שגיאה בשמירה:\n' + e.message);
+  }
+}
+
+// Click on a doc card: action button (edit/del) → handle; otherwise opens file
 document.addEventListener('click', (e) => {
+  const actBtn = e.target.closest('.doc-actions .ico-btn');
   const card = e.target.closest('.doc-card');
   if (!card) return;
   const id = card.dataset.id;
   if (!id) return;
+  if (actBtn) {
+    e.stopPropagation();
+    const act = actBtn.dataset.act;
+    if (act === 'edit') openEdit(id);
+    else if (act === 'del') delDoc(id);
+    return;
+  }
   if (e.shiftKey) { delDoc(id); return; }
   openDocFile(id);
 });
@@ -384,6 +539,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (fmBuy) fmBuy.valueAsDate = new Date();
 
   showTab('docs', document.querySelector('.topnav-tab'));
+
+  // Build category dropdowns (built-in + custom invoice branches)
+  refreshCategoryDropdowns();
 
   // health check
   try {

@@ -152,6 +152,16 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-
 .tag.expired{background:var(--red-bg);color:#991B1B;}
 .tag.neutral{background:var(--surface2);color:var(--text2);}
 .doc-date{font-size:11px;color:var(--text3);margin-top:3px;}
+.doc-actions{display:flex;gap:4px;flex-shrink:0;}
+.doc-actions .ico-btn{
+  width:30px;height:30px;border:1px solid var(--border);border-radius:8px;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);
+  transition:all .15s;padding:0;font-size:13px;
+}
+.doc-actions .ico-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border2);}
+.doc-actions .ico-btn.danger:hover{background:var(--red-bg);color:var(--red);border-color:#FECACA;}
+.chip.add-branch{border-style:dashed;color:var(--accent);border-color:var(--accent);}
+.chip.add-branch:hover{background:var(--accent2);}
 
 /* ─── CALENDAR ─── */
 .cal-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
@@ -353,7 +363,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-
     <div class="sb-divider"></div>
     <div class="sb-label">קטגוריות</div>
     <button class="sb-item sub" onclick="sbNav('products',this,'docs')">🛍️ מוצרים</button>
-    <button class="sb-item sub" onclick="sbNav('utilities',this,'docs')">⚡ גז · מים · חשמל</button>
+    <button class="sb-item sub" onclick="sbNav('utilities',this,'docs')">🧾 חשבוניות</button>
     <button class="sb-item sub" onclick="sbNav('apartment',this,'docs')">🏠 דירה</button>
     <button class="sb-item sub" onclick="sbNav('payslips',this,'docs')">💼 תלושי שכר</button>
     <button class="sb-item sub" onclick="sbNav('approvals',this,'docs')">📋 אישורים</button>
@@ -430,13 +440,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-
   </div>
 
   <div id="docpage-utilities" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>⚡ גז · מים · חשמל</h1><p>חשבוניות שירותים</p></div></div>
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-      <div class="stat c-red"><div class="sv">₪487</div><div class="sl">חשמל — ינואר</div></div>
-      <div class="stat"><div class="sv">₪182</div><div class="sl">מים — ינואר</div></div>
-      <div class="stat"><div class="sv">₪95</div><div class="sl">גז — ינואר</div></div>
+    <div class="ph">
+      <div class="ph-left"><h1>🧾 חשבוניות</h1><p>חשבונות שירותים תקופתיים</p></div>
+      <div class="ph-actions">
+        <button class="btn-sm" onclick="addBranch()">+ ענף חדש</button>
+        <button class="btn-primary" onclick="openAddForBranch()">+ הוסף</button>
+      </div>
     </div>
-    <div class="alert-bar danger">⚡ חריגה של <strong style="margin:0 3px">53%</strong> בחשמל מהממוצע החודשי</div>
+    <div class="filter-row" id="utilFilter"></div>
     <div class="doc-list" id="utilitiesList"></div>
   </div>
 
@@ -695,6 +706,28 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-
     הגדרות
   </button>
 </nav>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-head"><h2>עריכת מסמך</h2><button class="close-btn" onclick="closeModal('edit')">×</button></div>
+    <input type="hidden" id="ed-id" />
+    <div class="form-group"><label>שם המסמך</label><input class="form-input" id="ed-name" /></div>
+    <div class="form-row2">
+      <div class="form-group">
+        <label>קטגוריה</label>
+        <select class="form-input" id="ed-cat"></select>
+      </div>
+      <div class="form-group"><label>תת-קטגוריה</label><input class="form-input" id="ed-sub" /></div>
+    </div>
+    <div class="form-row2">
+      <div class="form-group"><label>תאריך רכישה / הוצאה</label><input class="form-input" type="date" id="ed-buy" /></div>
+      <div class="form-group"><label>תפוגת אחריות / תוקף</label><input class="form-input" type="date" id="ed-exp" /></div>
+    </div>
+    <div class="form-group"><label>סכום (₪)</label><input class="form-input" type="number" step="0.01" id="ed-amount" /></div>
+    <button class="btn-full" onclick="saveEdit()">שמור שינויים</button>
+  </div>
+</div>
 
 <!-- ADD MODAL -->
 <div class="overlay" id="modal-add">
