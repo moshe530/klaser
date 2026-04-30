@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: klaser-backend
+    runtime: python
+    region: frankfurt  # קרוב לישראל - latency נמוך יותר
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: APP_ENV
+        value: development  # נשאר ב-dev mode כדי שה-X-Dev-User-Id יעבוד
+      - key: CORS_ORIGINS
+        value: http://localhost:5500,http://127.0.0.1:5500
+      # הסודות הבאים יוגדרו דרך ה-UI (לא מעלים ל-Git):
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

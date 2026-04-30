@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>קלסר</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F0EDE6;
+  --surface: #FAFAF8;
+  --surface2: #EFEDE7;
+  --surface3: #E8E4DC;
+  --border: #E0DBD1;
+  --border2: #CCC8BE;
+  --text: #1A1814;
+  --text2: #6A6660;
+  --text3: #A8A49C;
+  --accent: #1A56DB;
+  --accent2: #EBF1FD;
+  --accent3: #DBEAFE;
+  --green: #059669; --green-bg: #D1FAE5;
+  --orange: #D97706; --orange-bg: #FEF3C7;
+  --red: #DC2626; --red-bg: #FEE2E2;
+  --purple: #7C3AED; --purple-bg: #EDE9FE;
+  --teal: #0D9488; --teal-bg: #CCFBF1;
+  --radius: 14px; --radius-sm: 9px; --radius-xs: 6px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --nav-h: 64px;
+  --bottom-h: 68px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;}
+
+/* ─── TOP NAV ─── */
+.topnav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;z-index:200;
+}
+.logo{font-size:21px;font-weight:800;letter-spacing:-0.8px;color:var(--text);display:flex;align-items:center;gap:7px;}
+.logo-mark{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.topnav-tabs{display:flex;gap:2px;margin-right:8px;flex:1;}
+.topnav-tab{
+  padding:7px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;
+  color:var(--text2);cursor:pointer;border:none;background:none;font-family:'Heebo',sans-serif;
+  display:flex;align-items:center;gap:7px;white-space:nowrap;transition:all .15s;
+}
+.topnav-tab:hover{background:var(--surface2);color:var(--text);}
+.topnav-tab.active{background:var(--accent);color:#fff;}
+.topnav-tab .tab-badge{background:var(--red);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:700;}
+.topnav-tab.active .tab-badge{background:rgba(255,255,255,0.35);}
+.topnav-right{display:flex;align-items:center;gap:8px;margin-right:auto;}
+.icon-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:all .15s;}
+.icon-btn:hover{background:var(--surface2);color:var(--text);}
+.search-wrap{position:relative;}
+.search-input{
+  background:var(--surface2);border:1px solid var(--border);border-radius:24px;
+  padding:7px 14px 7px 36px;font-family:'Heebo',sans-serif;font-size:14px;
+  color:var(--text);outline:none;width:200px;transition:all .2s;
+}
+.search-input:focus{width:250px;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent2);}
+.search-input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);}
+.btn-primary{
+  background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);
+  padding:8px 16px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:opacity .15s;
+}
+.btn-primary:hover{opacity:.88;}
+.conn-badge{font-size:11px;font-weight:600;padding:4px 9px;border-radius:12px;background:var(--surface2);color:var(--text2);white-space:nowrap;}
+.conn-badge[data-state="ok"]{background:var(--green-bg);color:var(--green);}
+.conn-badge[data-state="err"]{background:var(--red-bg);color:var(--red);}
+.conn-badge[data-state="loading"]{background:var(--accent2);color:var(--accent);}
+@media(max-width:640px){.conn-badge{display:none;}}
+
+/* ─── LAYOUT ─── */
+.app-body{display:flex;height:100vh;padding-top:var(--nav-h);overflow:hidden;}
+.sidebar{
+  width:230px;background:var(--surface);border-left:1px solid var(--border);
+  padding:16px 0;overflow-y:auto;flex-shrink:0;transition:transform .25s ease;
+}
+.main-area{flex:1;overflow-y:auto;padding:24px;padding-bottom:32px;}
+
+/* ─── SIDEBAR ─── */
+.sb-group{padding:0 10px;margin-bottom:4px;}
+.sb-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;padding:10px 8px 4px;}
+.sb-item{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);
+  cursor:pointer;color:var(--text2);font-size:13.5px;font-weight:500;transition:all .15s;
+  border:none;background:none;font-family:'Heebo',sans-serif;width:100%;text-align:right;
+}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{background:var(--accent2);color:var(--accent);font-weight:600;}
+.sb-item .sb-badge{margin-right:auto;background:var(--red);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;}
+.sb-item .sb-badge.warn{background:var(--orange);}
+.sb-divider{height:1px;background:var(--border);margin:8px 10px;}
+.sb-item.sub{padding-right:26px;font-size:13px;}
+
+/* ─── PAGE SYSTEM ─── */
+.page{display:none;animation:fadeIn .15s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── PAGE HEADER ─── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+.ph-left h1{font-size:22px;font-weight:800;letter-spacing:-.5px;}
+.ph-left p{font-size:13px;color:var(--text2);margin-top:2px;}
+.ph-actions{display:flex;gap:8px;}
+
+/* ─── CARDS ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat .sv{font-size:28px;font-weight:800;line-height:1;}
+.stat .sl{font-size:11px;color:var(--text2);margin-top:3px;font-weight:500;}
+.stat.c-green .sv{color:var(--green);}
+.stat.c-orange .sv{color:var(--orange);}
+.stat.c-red .sv{color:var(--red);}
+.stat.c-accent .sv{color:var(--accent);}
+
+.alert-bar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radius-sm);margin-bottom:14px;font-size:13px;font-weight:500;}
+.alert-bar.warn{background:var(--orange-bg);color:#92400E;border:1px solid #FDE68A;}
+.alert-bar.danger{background:var(--red-bg);color:#991B1B;border:1px solid #FECACA;}
+.alert-bar.info{background:var(--accent2);color:#1E40AF;border:1px solid var(--accent3);}
+
+/* ─── DOC LIST ─── */
+.filter-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:13px;color:var(--text2);cursor:pointer;font-family:'Heebo',sans-serif;transition:all .15s;white-space:nowrap;}
+.chip:hover{border-color:var(--accent);color:var(--accent);}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+.doc-list{display:flex;flex-direction:column;gap:8px;}
+.doc-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:13px 16px;display:flex;align-items:center;gap:13px;cursor:pointer;
+  transition:box-shadow .15s,border-color .15s;
+}
+.doc-card:hover{box-shadow:var(--shadow);border-color:var(--border2);}
+.doc-card.urgent{border-right:3px solid var(--red);}
+.doc-card.expiring{border-right:3px solid var(--orange);}
+.doc-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px;}
+.doc-info{flex:1;min-width:0;}
+.doc-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+.doc-right{text-align:left;flex-shrink:0;}
+.tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:8px;font-weight:600;}
+.tag.ok{background:var(--green-bg);color:#065F46;}
+.tag.warn{background:var(--orange-bg);color:#92400E;}
+.tag.expired{background:var(--red-bg);color:#991B1B;}
+.tag.neutral{background:var(--surface2);color:var(--text2);}
+.doc-date{font-size:11px;color:var(--text3);margin-top:3px;}
+
+/* ─── CALENDAR ─── */
+.cal-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.cal-nav{display:flex;align-items:center;gap:10px;}
+.cal-nav button{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;color:var(--text2);font-family:'Heebo',sans-serif;transition:all .15s;}
+.cal-nav button:hover{background:var(--surface2);}
+.cal-title{font-size:18px;font-weight:700;letter-spacing:-.3px;}
+.view-toggle{display:flex;gap:2px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;}
+.vt-btn{padding:5px 14px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;font-family:'Heebo',sans-serif;color:var(--text2);transition:all .15s;}
+.vt-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+.cal-grid{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface2);}
+.cal-dow{padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);}
+.cal-body{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-day{
+  padding:8px;min-height:80px;border-top:1px solid var(--border);border-right:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+.cal-day:nth-child(7n){border-right:none;}
+.cal-day:hover{background:var(--surface2);}
+.cal-day.today{background:var(--accent2);}
+.cal-day.other-month .day-num{color:var(--text3);}
+.day-num{font-size:13px;font-weight:600;margin-bottom:4px;}
+.cal-day.today .day-num{
+  width:24px;height:24px;background:var(--accent);color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;
+}
+.cal-event{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-event.ev-warn{background:var(--orange-bg);color:#92400E;}
+.cal-event.ev-ok{background:var(--green-bg);color:#065F46;}
+.cal-event.ev-red{background:var(--red-bg);color:#991B1B;}
+.cal-event.ev-accent{background:var(--accent2);color:#1E40AF;}
+
+.cal-export{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;}
+.cal-export label{font-size:13px;font-weight:500;color:var(--text2);}
+.cal-export input{border:1px solid var(--border);border-radius:var(--radius-xs);padding:6px 10px;font-size:13px;font-family:'Heebo',sans-serif;color:var(--text);}
+.btn-sm{padding:7px 14px;font-size:13px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-family:'Heebo',sans-serif;font-weight:500;transition:all .15s;}
+.btn-sm:hover{background:var(--surface3);border-color:var(--border2);}
+.btn-sm.accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-sm.accent:hover{opacity:.88;}
+
+/* ─── REMINDERS ─── */
+.reminder-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.rem-cat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s;}
+.rem-cat:hover{border-color:var(--accent);background:var(--accent2);}
+.rem-cat .rc-icon{font-size:22px;margin-bottom:6px;}
+.rem-cat .rc-name{font-size:13px;font-weight:600;color:var(--text);}
+.rem-cat .rc-count{font-size:12px;color:var(--text2);margin-top:2px;}
+
+.reminder-list{display:flex;flex-direction:column;gap:8px;}
+.rem-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;display:flex;align-items:center;gap:12px;}
+.rem-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.rem-info{flex:1;}
+.rem-name{font-size:14px;font-weight:600;}
+.rem-when{font-size:12px;color:var(--text2);margin-top:2px;}
+.rem-type{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;background:var(--surface2);color:var(--text2);}
+
+/* ─── SETTINGS ─── */
+.settings-tabs{display:flex;gap:2px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;margin-bottom:20px;flex-wrap:wrap;}
+.st-tab{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;font-family:'Heebo',sans-serif;color:var(--text2);transition:all .15s;white-space:nowrap;}
+.st-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+.settings-page{display:none;}
+.settings-page.active{display:block;}
+
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;}
+.sc-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sc-title{font-size:15px;font-weight:700;}
+.sc-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.sc-body{padding:16px 18px;}
+.sc-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.sc-row:last-child{border-bottom:none;}
+.sc-row-left{flex:1;}
+.sc-row-label{font-size:14px;font-weight:500;}
+.sc-row-sub{font-size:12px;color:var(--text2);margin-top:1px;}
+
+.form-input{border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:all .15s;width:100%;}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent2);}
+.form-select{border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text);background:var(--surface);outline:none;cursor:pointer;}
+.form-select:focus{border-color:var(--accent);}
+
+.toggle{width:44px;height:24px;background:var(--border2);border-radius:12px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;right:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle.on::after{transform:translateX(-20px);}
+
+.reminder-rule{background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;}
+.rr-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.rr-desc{font-size:12px;color:var(--text2);}
+
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+.cat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;}
+.cat-card:hover{border-color:var(--accent);box-shadow:var(--shadow);}
+.cat-card .cc-icon{font-size:22px;}
+.cat-card .cc-name{font-size:13px;font-weight:600;}
+.cat-card .cc-count{font-size:12px;color:var(--text2);}
+.cat-card.add-new{border-style:dashed;color:var(--text3);justify-content:center;flex-direction:column;gap:4px;}
+.cat-card.add-new:hover{border-color:var(--accent);color:var(--accent);background:var(--accent2);}
+
+/* ─── MODAL ─── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;align-items:center;justify-content:center;padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:480px;padding:24px;animation:modalIn .2s ease;max-height:90vh;overflow-y:auto;}
+@keyframes modalIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-head h2{font-size:17px;font-weight:800;}
+.close-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:22px;line-height:1;padding:4px;}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent2);}
+.upload-zone .uz-icon{font-size:30px;margin-bottom:8px;}
+.upload-zone p{font-size:14px;color:var(--text2);}
+.upload-zone small{font-size:12px;color:var(--text3);}
+.form-group{margin-bottom:13px;}
+.form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:5px;}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ai-badge{display:inline-flex;align-items:center;gap:5px;background:var(--purple-bg);color:var(--purple);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;margin-bottom:12px;}
+.btn-full{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-full:hover{opacity:.88;}
+.btn-full.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+
+/* ─── BOTTOM NAV (mobile) ─── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-h);background:var(--surface);border-top:1px solid var(--border);padding:0 4px;padding-bottom:max(0px,env(safe-area-inset-bottom));z-index:200;grid-template-columns:repeat(4,1fr);}
+.bn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;background:none;border:none;font-family:'Heebo',sans-serif;transition:color .15s;position:relative;padding-bottom:4px;}
+.bn-item.active{color:var(--accent);}
+.bn-badge{position:absolute;top:8px;left:50%;transform:translateX(8px);width:7px;height:7px;border-radius:50%;background:var(--red);}
+
+/* ─── HAMBURGER ─── */
+.hamburger{display:none;background:none;border:none;cursor:pointer;color:var(--text);padding:4px;}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+  .sidebar{display:none;position:fixed;top:var(--nav-h);right:0;bottom:0;width:270px;z-index:190;box-shadow:var(--shadow-lg);}
+  .sidebar.open{display:block;}
+  .topnav-tabs{display:none;}
+  .hamburger{display:flex;}
+  .bottom-nav{display:grid;}
+  .main-area{padding:16px;padding-bottom:calc(var(--bottom-h) + 16px);}
+  .form-row2{grid-template-columns:1fr;}
+  .search-input{width:150px;}
+  .search-input:focus{width:180px;}
+  .btn-primary span{display:none;}
+  .btn-primary{padding:8px 10px;}
+  .cal-day{min-height:56px;}
+  .cal-event{display:none;}
+  .cal-day.has-events::after{content:'•';font-size:10px;color:var(--accent);display:block;text-align:center;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .reminder-cats{grid-template-columns:repeat(2,1fr);}
+  .cat-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:420px){
+  .cal-dow{font-size:10px;padding:6px 2px;}
+  .cal-day{padding:4px;}
+  .day-num{font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<header class="topnav">
+  <button class="hamburger" onclick="toggleSidebar()">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <div class="logo">
+    <div class="logo-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity=".6"/><rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity=".6"/><rect x="9" y="9" width="5" height="5" rx="1" fill="white" opacity=".3"/></svg></div>
+    קלסר
+  </div>
+  <nav class="topnav-tabs">
+    <button class="topnav-tab active" onclick="showTab('docs',this)">📁 מסמכים</button>
+    <button class="topnav-tab" onclick="showTab('calendar',this)">📅 לוח שנה</button>
+    <button class="topnav-tab" onclick="showTab('reminders',this)">🔔 תזכורות <span class="tab-badge">3</span></button>
+    <button class="topnav-tab" onclick="showTab('settings',this)">⚙️ הגדרות</button>
+  </nav>
+  <div class="topnav-right">
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.4"/><path d="M9.5 9.5l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <input class="search-input" type="text" placeholder="חיפוש..." oninput="doSearch(this.value)">
+    </div>
+    <button class="btn-primary" onclick="openModal('add')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>הוסף</span></button>
+  </div>
+</header>
+
+<div class="app-body">
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <!-- Docs -->
+  <div class="sb-group" id="sb-docs">
+    <div class="sb-label">מסמכים</div>
+    <button class="sb-item active" onclick="sbNav('all',this,'docs')">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/></svg>
+      הכל
+    </button>
+    <button class="sb-item" onclick="sbNav('alerts',this,'docs')">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5a4.5 4.5 0 014.5 4.5v2.5l1 2H2l1-2V6a4.5 4.5 0 014.5-4.5z" stroke="currentColor" stroke-width="1.3"/><path d="M6 12.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.3"/></svg>
+      התראות <span class="sb-badge">3</span>
+    </button>
+    <div class="sb-divider"></div>
+    <div class="sb-label">קטגוריות</div>
+    <button class="sb-item sub" onclick="sbNav('products',this,'docs')">🛍️ מוצרים</button>
+    <button class="sb-item sub" onclick="sbNav('utilities',this,'docs')">⚡ גז · מים · חשמל</button>
+    <button class="sb-item sub" onclick="sbNav('apartment',this,'docs')">🏠 דירה</button>
+    <button class="sb-item sub" onclick="sbNav('payslips',this,'docs')">💼 תלושי שכר</button>
+    <button class="sb-item sub" onclick="sbNav('approvals',this,'docs')">📋 אישורים</button>
+    <button class="sb-item sub" onclick="sbNav('medical',this,'docs')">🏥 תיק רפואי</button>
+    <button class="sb-item sub" onclick="sbNav('reports',this,'docs')">📊 דוחות</button>
+    <button class="sb-item sub" onclick="sbNav('car',this,'docs')">🚗 רכב</button>
+  </div>
+  <!-- Calendar -->
+  <div class="sb-group" id="sb-calendar" style="display:none">
+    <div class="sb-label">תצוגה</div>
+    <button class="sb-item active" onclick="setCalView('month',this)">📅 חודשית</button>
+    <button class="sb-item" onclick="setCalView('week',this)">📆 שבועית</button>
+    <button class="sb-item" onclick="setCalView('day',this)">🗓️ יומית</button>
+  </div>
+  <!-- Reminders -->
+  <div class="sb-group" id="sb-reminders" style="display:none">
+    <div class="sb-label">סוגי תזכורות</div>
+    <button class="sb-item active" onclick="filterRem('all',this)">🔔 הכל</button>
+    <button class="sb-item" onclick="filterRem('birthday',this)">🎂 ימי הולדת</button>
+    <button class="sb-item" onclick="filterRem('anniv',this)">💍 יום שנה</button>
+    <button class="sb-item" onclick="filterRem('appt',this)">🏥 תורים</button>
+    <button class="sb-item" onclick="filterRem('periodic',this)">🔁 תקופתי</button>
+    <button class="sb-item" onclick="filterRem('warranty',this)">🛡️ אחריות</button>
+  </div>
+  <!-- Settings -->
+  <div class="sb-group" id="sb-settings" style="display:none">
+    <div class="sb-label">הגדרות</div>
+    <button class="sb-item active" onclick="setTab('general',this)">⚙️ כללי</button>
+    <button class="sb-item" onclick="setTab('remrules',this)">⏰ תזכורות</button>
+    <button class="sb-item" onclick="setTab('integrations',this)">🔗 חיבורים</button>
+    <button class="sb-item" onclick="setTab('privacy',this)">🔒 פרטיות</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-area" id="mainArea">
+
+<!-- ══ DOCS TAB ══ -->
+<div class="page active" id="tab-docs">
+
+  <div id="docpage-all" class="docpage active">
+    <div class="ph">
+      <div class="ph-left"><h1>כל המסמכים</h1><p id="docsSubtitle">24 מסמכים · 3 דורשים תשומת לב</p></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat"><div class="sv">24</div><div class="sl">סה"כ מסמכים</div></div>
+      <div class="stat c-orange"><div class="sv">2</div><div class="sl">פגים בקרוב</div></div>
+      <div class="stat c-red"><div class="sv">1</div><div class="sl">פג תוקף</div></div>
+      <div class="stat c-green"><div class="sv">21</div><div class="sl">בתוקף</div></div>
+    </div>
+    <div class="alert-bar warn">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="4" width="1.3" height="4" rx=".65" fill="currentColor"/><rect x="7" y="9.5" width="1.3" height="1.3" rx=".65" fill="currentColor"/></svg>
+      אחריות המקרר פגה בעוד <strong style="margin:0 3px">18 יום</strong> — כדאי לבדוק תקינות
+    </div>
+    <div class="filter-row" id="docFilters">
+      <button class="chip active" onclick="filterChip('הכל',this)">הכל</button>
+      <button class="chip" onclick="filterChip('מוצרים',this)">🛍️ מוצרים</button>
+      <button class="chip" onclick="filterChip('ביטוח',this)">🛡️ ביטוח</button>
+      <button class="chip" onclick="filterChip('דירה',this)">🏠 דירה</button>
+      <button class="chip" onclick="filterChip('רכב',this)">🚗 רכב</button>
+      <button class="chip" onclick="filterChip('מסמכים אישיים',this)">🪪 אישי</button>
+    </div>
+    <div class="doc-list" id="docList"></div>
+  </div>
+
+  <div id="docpage-alerts" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>⚠️ התראות</h1><p>מסמכים שדורשים תשומת לב</p></div></div>
+    <div class="doc-list" id="alertList"></div>
+  </div>
+
+  <div id="docpage-products" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>🛍️ מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+ הוסף</button></div></div>
+    <div class="doc-list" id="productsList"></div>
+  </div>
+
+  <div id="docpage-utilities" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>⚡ גז · מים · חשמל</h1><p>חשבוניות שירותים</p></div></div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat c-red"><div class="sv">₪487</div><div class="sl">חשמל — ינואר</div></div>
+      <div class="stat"><div class="sv">₪182</div><div class="sl">מים — ינואר</div></div>
+      <div class="stat"><div class="sv">₪95</div><div class="sl">גז — ינואר</div></div>
+    </div>
+    <div class="alert-bar danger">⚡ חריגה של <strong style="margin:0 3px">53%</strong> בחשמל מהממוצע החודשי</div>
+    <div class="doc-list" id="utilitiesList"></div>
+  </div>
+
+  <div id="docpage-apartment" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>🏠 דירה</h1></div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="filterChip('הכל',this,'aptFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('חוזה',this,'aptFilter')">📄 חוזה</button>
+      <button class="chip" onclick="filterChip('שכר דירה',this,'aptFilter')">💰 שכר דירה</button>
+    </div>
+    <div class="doc-list" id="apartmentList"></div>
+  </div>
+
+  <div id="docpage-payslips" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>💼 תלושי שכר</h1></div></div>
+    <div class="doc-list" id="payslipsList"></div>
+  </div>
+
+  <div id="docpage-approvals" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>📋 אישורים</h1></div></div>
+    <div class="doc-list" id="approvalsList"></div>
+  </div>
+
+  <div id="docpage-medical" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>🏥 תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+ הוסף נפש</button></div></div>
+    <div class="filter-row" id="personFilter">
+      <button class="chip active">כולם</button>
+      <button class="chip">יוסי</button>
+      <button class="chip">מיכל</button>
+      <button class="chip">ילד 1</button>
+    </div>
+    <div class="doc-list" id="medicalList"></div>
+  </div>
+
+  <div id="docpage-reports" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>📊 דוחות</h1></div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="filterChip('הכל',this,'repFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('בנק',this,'repFilter')">🏦 בנק</button>
+      <button class="chip" onclick="filterChip('אשראי',this,'repFilter')">💳 אשראי</button>
+    </div>
+    <div class="doc-list" id="reportsList"></div>
+  </div>
+
+  <div id="docpage-car" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>🚗 רכב</h1></div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="filterChip('הכל',this,'carFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('רישיון',this,'carFilter')">📄 רישיונות</button>
+      <button class="chip" onclick="filterChip('טסט',this,'carFilter')">✅ טסט</button>
+      <button class="chip" onclick="filterChip('רענון נהיגה',this,'carFilter')">🎓 רענון</button>
+      <button class="chip" onclick="filterChip('תיקון',this,'carFilter')">🔧 תיקונים</button>
+    </div>
+    <div class="doc-list" id="carList"></div>
+  </div>
+
+</div><!-- /tab-docs -->
+
+<!-- ══ CALENDAR TAB ══ -->
+<div class="page" id="tab-calendar">
+  <div class="ph">
+    <div class="ph-left"><h1>📅 לוח שנה</h1><p id="calSubtitle">חודשי</p></div>
+    <div class="ph-actions">
+      <div class="view-toggle">
+        <button class="vt-btn" onclick="setCalView('day',null,this)">יום</button>
+        <button class="vt-btn" onclick="setCalView('week',null,this)">שבוע</button>
+        <button class="vt-btn active" onclick="setCalView('month',null,this)">חודש</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cal-controls">
+    <div class="cal-nav">
+      <button onclick="changeMonth(-1)">&#8249;</button>
+      <span class="cal-title" id="calTitle">אפריל 2025</span>
+      <button onclick="changeMonth(1)">&#8250;</button>
+    </div>
+    <button class="btn-sm" onclick="goToday()">היום</button>
+  </div>
+
+  <div class="cal-grid">
+    <div class="cal-header">
+      <div class="cal-dow">ראשון</div><div class="cal-dow">שני</div><div class="cal-dow">שלישי</div>
+      <div class="cal-dow">רביעי</div><div class="cal-dow">חמישי</div><div class="cal-dow">שישי</div><div class="cal-dow">שבת</div>
+    </div>
+    <div class="cal-body" id="calBody"></div>
+  </div>
+
+  <div class="cal-export">
+    <label>📤 יצוא ל-</label>
+    <input type="date" id="expFrom" />
+    <span style="font-size:13px;color:var(--text2)">עד</span>
+    <input type="date" id="expTo" />
+    <button class="btn-sm accent" onclick="exportCal()">יצא</button>
+  </div>
+
+  <div id="calDayView" style="display:none">
+    <div class="doc-list" id="dayEvents"></div>
+  </div>
+</div>
+
+<!-- ══ REMINDERS TAB ══ -->
+<div class="page" id="tab-reminders">
+  <div class="ph">
+    <div class="ph-left"><h1>🔔 תזכורות</h1><p>3 תזכורות קרובות</p></div>
+    <div class="ph-actions"><button class="btn-primary" onclick="openModal('reminder')">+ תזכורת חדשה</button></div>
+  </div>
+
+  <div class="reminder-cats">
+    <div class="rem-cat" onclick="filterRem('birthday',null)"><div class="rc-icon">🎂</div><div class="rc-name">ימי הולדת</div><div class="rc-count">2 קרובים</div></div>
+    <div class="rem-cat" onclick="filterRem('anniv',null)"><div class="rc-icon">💍</div><div class="rc-name">יום שנה</div><div class="rc-count">1 קרוב</div></div>
+    <div class="rem-cat" onclick="filterRem('appt',null)"><div class="rc-icon">🏥</div><div class="rc-name">תורים וזימונים</div><div class="rc-count">3 קרובים</div></div>
+    <div class="rem-cat" onclick="filterRem('periodic',null)"><div class="rc-icon">🔁</div><div class="rc-name">בדיקה תקופתית</div><div class="rc-count">יומי / שבועי / חודשי</div></div>
+    <div class="rem-cat" onclick="filterRem('warranty',null)"><div class="rc-icon">🛡️</div><div class="rc-name">אחריות</div><div class="rc-count">2 פגים בקרוב</div></div>
+    <div class="rem-cat" onclick="filterRem('other',null)"><div class="rc-icon">📌</div><div class="rc-name">אחר</div><div class="rc-count">–</div></div>
+  </div>
+
+  <div class="reminder-list" id="reminderList"></div>
+</div>
+
+<!-- ══ SETTINGS TAB ══ -->
+<div class="page" id="tab-settings">
+  <div class="ph"><div class="ph-left"><h1>⚙️ הגדרות</h1></div></div>
+
+  <div class="settings-tabs" id="settingsTabs">
+    <button class="st-tab active" onclick="setTab('general',this)">⚙️ כללי</button>
+    <button class="st-tab" onclick="setTab('remrules',this)">⏰ תזכורות</button>
+    <button class="st-tab" onclick="setTab('integrations',this)">🔗 חיבורים</button>
+    <button class="st-tab" onclick="setTab('privacy',this)">🔒 פרטיות</button>
+  </div>
+
+  <!-- General -->
+  <div class="settings-page active" id="st-general">
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">פרטי משתמש</div></div></div>
+      <div class="sc-body">
+        <div class="form-group"><label>שם מלא</label><input class="form-input" value="יוסי כהן" /></div>
+        <div class="form-group"><label>אימייל</label><input class="form-input" value="yossi@gmail.com" /></div>
+        <div class="form-group"><label>טלפון</label><input class="form-input" value="050-1234567" /></div>
+        <button class="btn-sm accent">שמור</button>
+      </div>
+    </div>
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">העדפות שפה ותצוגה</div></div></div>
+      <div class="sc-body">
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">שפה</div></div><select class="form-select"><option>עברית</option><option>English</option></select></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">מצב כהה</div><div class="sc-row-sub">תצוגה בגוונים כהים</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">קיצורי מקלדת</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reminder rules -->
+  <div class="settings-page" id="st-remrules">
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">כלל תזכורות לפי אחוז תקופה</div><div class="sc-sub">תזכורת ב-1/14 מתקופת האחריות לפני הסיום</div></div></div>
+      <div class="sc-body">
+        <div class="reminder-rule">
+          <div class="rr-title">אחריות של 14 יום</div>
+          <div class="rr-desc">תזכורת יום אחד לפני (14 ÷ 14 = 1 יום)</div>
+        </div>
+        <div class="reminder-rule">
+          <div class="rr-title">אחריות של חודש (30 יום)</div>
+          <div class="rr-desc">תזכורת 2 ימים לפני (30 ÷ 14 ≈ 2 ימים)</div>
+        </div>
+        <div class="reminder-rule">
+          <div class="rr-title">אחריות של שנה (365 יום)</div>
+          <div class="rr-desc">תזכורת 26 יום לפני (365 ÷ 14 ≈ 26 ימים)</div>
+        </div>
+        <div class="reminder-rule">
+          <div class="rr-title">אחריות של שנתיים (730 יום)</div>
+          <div class="rr-desc">תזכורת חודש וחצי לפני (730 ÷ 14 ≈ 52 ימים)</div>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="form-group"><label>מחלק (ברירת מחדל: 14)</label><input class="form-input" type="number" value="14" style="width:120px"/></div>
+          <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">תזכורת נוספת שבוע לפני</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">תזכורת יום לפני</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <button class="btn-sm accent" style="margin-top:10px">שמור הגדרות</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">ערוצי שליחה</div></div></div>
+      <div class="sc-body">
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">📧 מייל</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">📱 פוש לטלפון</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">💬 וואטסאפ</div><div class="sc-row-sub">דורש הגדרת מספר</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Integrations -->
+  <div class="settings-page" id="st-integrations">
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">📧 חיבור אימייל</div><div class="sc-sub">שלח חשבוניות ישירות לתיבה שלנו</div></div></div>
+      <div class="sc-body">
+        <div class="alert-bar info" style="margin-bottom:12px">כתובת האימייל הייחודית שלך: <strong style="margin-right:6px;font-family:monospace">user_xyz@klaser.app</strong></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">קבלת מסמכים במייל</div><div class="sc-row-sub">תיוק אוטומטי של קבצים</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">ניתוח AI אוטומטי</div><div class="sc-row-sub">זיהוי מוצר, תאריך ואחריות</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">💬 חיבור וואטסאפ</div><div class="sc-sub">שלח תמונה של חשבונית ישירות מהוואטסאפ</div></div></div>
+      <div class="sc-body">
+        <div class="form-group"><label>מספר טלפון</label><input class="form-input" placeholder="05X-XXXXXXX" /></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">קבלת קבצים בוואטסאפ</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <button class="btn-sm accent" style="margin-top:10px">חבר וואטסאפ</button>
+      </div>
+    </div>
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">🤖 סורק AI</div><div class="sc-sub">ניתוח מסמכים אוטומטי</div></div></div>
+      <div class="sc-body">
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">סיווג אוטומטי לקטגוריה</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">חילוץ תאריך אחריות</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">זיהוי שם מוצר ודגם</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">רמת דיוק OCR</div></div><select class="form-select"><option>גבוהה</option><option>רגילה</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy -->
+  <div class="settings-page" id="st-privacy">
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">🔒 אבטחה</div></div></div>
+      <div class="sc-body">
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">נעילה בטביעת אצבע</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">אימות דו-שלבי</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">הצפנת מסמכים</div><div class="sc-row-sub">מוצפן מקצה לקצה</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">גיבוי אוטומטי לענן</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-settings -->
+
+</main>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav">
+  <button class="bn-item active" onclick="showTab('docs',null,this)">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="12" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="12" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="12" y="12" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+    מסמכים
+  </button>
+  <button class="bn-item" onclick="showTab('calendar',null,this)">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 9h16M8 2v4M14 2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    לוח שנה
+  </button>
+  <button class="bn-item" onclick="showTab('reminders',null,this)">
+    <div class="bn-badge"></div>
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2a7 7 0 017 7v3.5l1.5 3H3.5L5 12.5V9a7 7 0 017-7z" stroke="currentColor" stroke-width="1.5"/><path d="M9 19a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/></svg>
+    תזכורות
+  </button>
+  <button class="bn-item" onclick="showTab('settings',null,this)">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M11 2v2M11 18v2M2 11h2M18 11h2M4.93 4.93l1.41 1.41M15.66 15.66l1.41 1.41M4.93 17.07l1.41-1.41M15.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    הגדרות
+  </button>
+</nav>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-head"><h2>הוספת מסמך</h2><button class="close-btn" onclick="closeModal('add')">×</button></div>
+    <div class="ai-badge">✨ AI ינתח ויסווג אוטומטית</div>
+    <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
+      <div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small>
+      <input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">
+    </div>
+    <div class="form-group"><label>שם המסמך</label><input class="form-input" id="fm-name" placeholder="למשל: מקרר בוש KGE36" /></div>
+    <div class="form-row2">
+      <div class="form-group">
+        <label>קטגוריה</label>
+        <select class="form-input" id="fm-cat">
+          <option value="מוצרים">🛍️ מוצרים</option>
+          <option value="ביטוח">🛡️ ביטוח</option>
+          <option value="דירה">🏠 דירה</option>
+          <option value="רכב">🚗 רכב</option>
+          <option value="מסמכים אישיים">🪪 מסמכים אישיים</option>
+          <option value="חשמל">⚡ חשמל</option>
+          <option value="גז">🔥 גז</option>
+          <option value="מים">💧 מים</option>
+          <option value="תלוש שכר">💼 תלוש שכר</option>
+          <option value="רפואי">🏥 רפואי</option>
+          <option value="בנק">🏦 בנק</option>
+          <option value="אשראי">💳 אשראי</option>
+        </select>
+      </div>
+      <div class="form-group"><label>תאריך רכישה / הוצאה</label><input class="form-input" type="date" id="fm-buy" /></div>
+    </div>
+    <div class="form-group"><label>תפוגת אחריות / תוקף</label><input class="form-input" type="date" id="fm-exp" /></div>
+    <div class="form-group"><label>הערות</label><input class="form-input" id="fm-note" placeholder="מספר סידורי, גוון, פרטים נוספים..." /></div>
+    <button class="btn-full" onclick="addDoc()">שמור מסמך</button>
+  </div>
+</div>
+
+<!-- REMINDER MODAL -->
+<div class="overlay" id="modal-reminder">
+  <div class="modal">
+    <div class="modal-head"><h2>תזכורת חדשה</h2><button class="close-btn" onclick="closeModal('reminder')">×</button></div>
+    <div class="form-group"><label>שם / תיאור</label><input class="form-input" placeholder="למשל: יום הולדת אמא" /></div>
+    <div class="form-group">
+      <label>סוג תזכורת</label>
+      <select class="form-input">
+        <option>🎂 יום הולדת</option>
+        <option>💍 יום שנה</option>
+        <option>🏥 תור רפואי</option>
+        <option>🔁 יומי</option>
+        <option>🔁 שבועי</option>
+        <option>🔁 חודשי</option>
+        <option>🛡️ אחריות</option>
+        <option>📌 אחר</option>
+      </select>
+    </div>
+    <div class="form-row2">
+      <div class="form-group"><label>תאריך</label><input class="form-input" type="date" /></div>
+      <div class="form-group"><label>שעה (אופציונלי)</label><input class="form-input" type="time" /></div>
+    </div>
+    <div class="form-group">
+      <label>תזכורת מראש</label>
+      <select class="form-input"><option>יום אחד לפני</option><option>3 ימים לפני</option><option>שבוע לפני</option><option>חודש לפני</option><option>חכם (לפי כלל האחוזים)</option></select>
+    </div>
+    <button class="btn-full" onclick="closeModal('reminder')">שמור תזכורת</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<!-- Original inline script removed — moved to js/app.js. Kept here as reference comment -->
+<script type="text/plain" data-archived="true">
+// ─── DATA (archived) ───
+let docs = [
+  {id:1,name:'מקרר בוש KGE36',cat:'מוצרים',sub:'מוצרי חשמל',buy:'2023-03-12',exp:'2025-03-30',note:'לבן 186 ס"מ'},
+  {id:2,name:'ביטוח רכב — טויוטה',cat:'ביטוח',sub:'ביטוח',buy:'2024-09-01',exp:'2025-09-01',note:'מ. 12-345-67'},
+  {id:3,name:'תעודת זהות',cat:'מסמכים אישיים',sub:'אישי',buy:'2019-06-15',exp:'2029-06-15',note:''},
+  {id:4,name:'מכונת כביסה LG',cat:'מוצרים',sub:'מוצרי חשמל',buy:'2022-11-20',exp:'2024-11-20',note:''},
+  {id:5,name:'דרכון',cat:'מסמכים אישיים',sub:'אישי',buy:'2020-01-10',exp:'2030-01-10',note:''},
+  {id:6,name:'טסט — טויוטה קורולה',cat:'רכב',sub:'טסט',buy:'2024-07-01',exp:'2025-07-01',note:''},
+  {id:7,name:'חשמל — ינואר 2025',cat:'חשמל',sub:'חשמל',buy:'2025-01-05',exp:null,note:'₪487'},
+  {id:8,name:'חשמל — דצמבר 2024',cat:'חשמל',sub:'חשמל',buy:'2024-12-05',exp:null,note:'₪298'},
+  {id:9,name:'מים — ינואר 2025',cat:'מים',sub:'מים',buy:'2025-01-10',exp:null,note:'₪182'},
+  {id:10,name:'חוזה שכירות — דירה',cat:'דירה',sub:'חוזה',buy:'2024-08-01',exp:'2025-08-01',note:'3 חדרים'},
+  {id:11,name:'תלוש שכר — ינואר',cat:'תלוש שכר',sub:'תלוש',buy:'2025-01-31',exp:null,note:''},
+  {id:12,name:'דוח בנק — Q4',cat:'בנק',sub:'בנק',buy:'2025-01-01',exp:null,note:''},
+  {id:13,name:'רישיון נהיגה',cat:'רכב',sub:'רישיון',buy:'2018-04-10',exp:'2028-04-10',note:''},
+  {id:14,name:'בדיקת דם — יוסי',cat:'רפואי',sub:'רפואי',buy:'2025-02-15',exp:null,note:'יוסי'},
+  {id:15,name:'גז — ינואר 2025',cat:'גז',sub:'גז',buy:'2025-01-08',exp:null,note:'₪95'},
+];
+
+const reminders=[
+  {type:'birthday',name:'יום הולדת — אמא',date:'2025-05-12',dot:'#EC4899'},
+  {type:'appt',name:'רופא עיניים',date:'2025-05-03',dot:'#0D9488'},
+  {type:'warranty',name:'אחריות מקרר',date:'2025-03-30',dot:'#D97706'},
+  {type:'anniv',name:'יום נישואין',date:'2025-06-15',dot:'#7C3AED'},
+  {type:'periodic',name:'טיפול רכב',date:'2025-04-20',dot:'#1A56DB'},
+];
+
+const CAT_ICON={
+  'מוצרים':{bg:'#E1F5EE',e:'🛍️'},
+  'ביטוח':{bg:'#EDE9FE',e:'🛡️'},
+  'דירה':{bg:'#FEF3C7',e:'🏠'},
+  'רכב':{bg:'#E6F1FB',e:'🚗'},
+  'מסמכים אישיים':{bg:'#EEEDFE',e:'🪪'},
+  'חשמל':{bg:'#FEF9C3',e:'⚡'},
+  'גז':{bg:'#FFE4E6',e:'🔥'},
+  'מים':{bg:'#E0F2FE',e:'💧'},
+  'תלוש שכר':{bg:'#F0FDF4',e:'💼'},
+  'רפואי':{bg:'#FEF2F2',e:'🏥'},
+  'בנק':{bg:'#FFFBEB',e:'🏦'},
+  'אשראי':{bg:'#FDF4FF',e:'💳'},
+};
+
+function status(exp){
+  if(!exp)return null;
+  const d=Math.round((new Date(exp)-new Date())/86400000);
+  if(d<0)return{label:'פג תוקף',cls:'expired',urgent:true};
+  if(d<30)return{label:d+' ימים',cls:'warn',expiring:true};
+  return{label:'בתוקף',cls:'ok'};
+}
+
+function makeCard(d){
+  const ic=CAT_ICON[d.cat]||{bg:'#F0EDE6',e:'📄'};
+  const st=status(d.exp);
+  const cls=st?.urgent?'urgent':st?.expiring?'expiring':'';
+  const tag=st?`<span class="tag ${st.cls}">${st.label}</span>`:'';
+  const dt=d.exp?`<div class="doc-date">עד ${d.exp}</div>`:'';
+  return`<div class="doc-card ${cls}" data-cat="${d.cat}" data-sub="${d.sub||''}" data-name="${d.name.toLowerCase()}">
+    <div class="doc-icon" style="background:${ic.bg}">${ic.e}</div>
+    <div class="doc-info"><div class="doc-name">${d.name}</div><div class="doc-meta">${d.cat}${d.note?' · '+d.note:''}</div></div>
+    <div class="doc-right">${tag}${dt}</div>
+  </div>`;
+}
+
+function fillList(id,arr){const el=document.getElementById(id);if(el)el.innerHTML=arr.map(makeCard).join('')||'<p style="color:var(--text3);text-align:center;padding:32px 0">אין פריטים</p>';}
+
+function renderAll(){
+  fillList('docList',docs);
+  fillList('alertList',docs.filter(d=>{const s=status(d.exp);return s?.urgent||s?.expiring;}));
+  fillList('productsList',docs.filter(d=>d.cat==='מוצרים'));
+  fillList('utilitiesList',docs.filter(d=>['חשמל','מים','גז'].includes(d.cat)));
+  fillList('apartmentList',docs.filter(d=>d.cat==='דירה'));
+  fillList('payslipsList',docs.filter(d=>d.cat==='תלוש שכר'));
+  fillList('approvalsList',docs.filter(d=>d.cat==='אישורים'));
+  fillList('medicalList',docs.filter(d=>d.cat==='רפואי'));
+  fillList('reportsList',docs.filter(d=>['בנק','אשראי'].includes(d.cat)));
+  fillList('carList',docs.filter(d=>d.cat==='רכב'));
+  renderReminders('all');
+  renderCal();
+}
+
+// ─── TABS ───
+function showTab(tab,el,mobEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.topnav-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  if(mobEl)mobEl.classList.add('active');
+  // toggle sidebar groups
+  ['docs','calendar','reminders','settings'].forEach(t=>{
+    const g=document.getElementById('sb-'+t);
+    if(g)g.style.display=(t===tab)?'block':'none';
+  });
+  if(window.innerWidth<768)document.getElementById('sidebar').classList.remove('open');
+}
+
+// ─── SIDEBAR DOC NAV ───
+function sbNav(page,el,tab){
+  document.querySelectorAll('#sb-'+tab+' .sb-item').forEach(i=>i.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.docpage').forEach(p=>p.style.display='none');
+  const dp=document.getElementById('docpage-'+page);
+  if(dp)dp.style.display='block';
+  if(window.innerWidth<768)document.getElementById('sidebar').classList.remove('open');
+}
+
+// ─── FILTER CHIPS ───
+function filterChip(cat,el,listId){
+  const row=el.closest('.filter-row');
+  row.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  // find nearest doc-list
+  const list=listId?document.getElementById(listId):el.closest('.docpage').querySelector('.doc-list');
+  if(!list)return;
+  list.querySelectorAll('.doc-card').forEach(c=>{
+    c.style.display=(cat==='הכל'||c.dataset.cat===cat||c.dataset.sub===cat)?'':'none';
+  });
+}
+
+function doSearch(q){
+  document.querySelectorAll('.doc-card').forEach(c=>{
+    c.style.display=c.dataset.name.includes(q.toLowerCase())?'':'none';
+  });
+}
+
+// ─── CALENDAR ───
+let calDate=new Date(2025,3,1);
+const HEB_MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+const CAL_EVENTS=[
+  {date:'2025-04-18',text:'אחריות מקרר',cls:'ev-warn'},
+  {date:'2025-04-20',text:'טיפול רכב',cls:'ev-accent'},
+  {date:'2025-04-29',text:'תור רופא',cls:'ev-ok'},
+  {date:'2025-05-03',text:'רופא עיניים',cls:'ev-ok'},
+  {date:'2025-05-12',text:'יום הולדת',cls:'ev-accent'},
+];
+
+function renderCal(){
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  document.getElementById('calTitle').textContent=HEB_MONTHS[m]+' '+y;
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  let html='';
+  for(let i=0;i<first;i++){
+    const d=new Date(y,m,0-(first-1-i));
+    html+=`<div class="cal-day other-month"><div class="day-num">${d.getDate()}</div></div>`;
+  }
+  for(let d=1;d<=days;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs=CAL_EVENTS.filter(e=>e.date===ds);
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    html+=`<div class="cal-day${isToday?' today':''}${evs.length?' has-events':''}" onclick="calDayClick('${ds}')">
+      <div class="day-num">${isToday?`<div style="width:24px;height:24px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px">${d}</div>`:d}</div>
+      ${evs.map(e=>`<div class="cal-event ${e.cls}">${e.text}</div>`).join('')}
+    </div>`;
+  }
+  document.getElementById('calBody').innerHTML=html;
+}
+
+function changeMonth(dir){calDate.setMonth(calDate.getMonth()+dir);renderCal();}
+function goToday(){calDate=new Date();renderCal();}
+function calDayClick(ds){console.log('day',ds);}
+function setCalView(v,sbEl,topEl){
+  document.getElementById('calSubtitle').textContent={month:'חודשי',week:'שבועי',day:'יומי'}[v];
+  if(sbEl){document.querySelectorAll('#sb-calendar .sb-item').forEach(i=>i.classList.remove('active'));sbEl.classList.add('active');}
+  if(topEl){topEl.closest('.view-toggle').querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));topEl.classList.add('active');}
+}
+function exportCal(){
+  const f=document.getElementById('expFrom').value,t=document.getElementById('expTo').value;
+  alert(`יוצא אירועים מ-${f||'תחילה'} עד ${t||'סיום'} (בגרסה המלאה ייוצא לקובץ ICS/PDF)`);
+}
+
+// ─── REMINDERS ───
+function renderReminders(filter){
+  const arr=filter==='all'?reminders:reminders.filter(r=>r.type===filter);
+  const el=document.getElementById('reminderList');
+  if(!el)return;
+  el.innerHTML=arr.map(r=>`
+    <div class="rem-item">
+      <div class="rem-dot" style="background:${r.dot}"></div>
+      <div class="rem-info">
+        <div class="rem-name">${r.name}</div>
+        <div class="rem-when">${r.date}</div>
+      </div>
+      <span class="rem-type">${{birthday:'🎂 יום הולדת',anniv:'💍 יום שנה',appt:'🏥 תור',periodic:'🔁 תקופתי',warranty:'🛡️ אחריות'}[r.type]||'📌'}</span>
+    </div>`).join('')||'<p style="color:var(--text3);text-align:center;padding:32px 0">אין תזכורות</p>';
+}
+function filterRem(type,el){
+  if(el){document.querySelectorAll('#sb-reminders .sb-item').forEach(i=>i.classList.remove('active'));el.classList.add('active');}
+  renderReminders(type);
+}
+
+// ─── SETTINGS TABS ───
+function setTab(t,el){
+  document.querySelectorAll('.settings-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('st-'+t).classList.add('active');
+  document.querySelectorAll('#settingsTabs .st-tab').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(el){
+    const sbItems=document.querySelectorAll('#sb-settings .sb-item');
+    sbItems.forEach(i=>i.classList.remove('active'));
+    // match by text
+    sbItems.forEach(i=>{if(i.onclick&&i.onclick.toString().includes("'"+t+"'"))i.classList.add('active');});
+  }
+}
+
+// ─── MODAL ───
+function openModal(id){document.getElementById('modal-'+id).classList.add('open');}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+
+function handleFile(inp){
+  if(!inp.files[0])return;
+  const z=document.getElementById('uz');
+  z.innerHTML=`<div class="uz-icon">✅</div><p>${inp.files[0].name}</p><small>קובץ נבחר — AI מנתח...</small>`;
+  z.style.borderColor='var(--green)';z.style.background='var(--green-bg)';
+}
+
+function addDoc(){
+  const name=document.getElementById('fm-name').value.trim();
+  if(!name){alert('נא להזין שם');return;}
+  docs.unshift({id:Date.now(),name,cat:document.getElementById('fm-cat').value,buy:document.getElementById('fm-buy').value,exp:document.getElementById('fm-exp').value||null,note:document.getElementById('fm-note').value});
+  renderAll();
+  closeModal('add');
+  document.getElementById('fm-name').value='';
+  document.getElementById('fm-exp').value='';
+  document.getElementById('fm-note').value='';
+  const z=document.getElementById('uz');
+  z.innerHTML=`<div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small><input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">`;
+  z.style.borderColor='';z.style.background='';
+}
+
+// ─── SIDEBAR TOGGLE ───
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+// ─── INIT ───
+document.getElementById('fm-buy').valueAsDate=new Date();
+showTab('docs',document.querySelector('.topnav-tab'));
+renderAll();
+</script>
+</body>
+</html>
+</html>
