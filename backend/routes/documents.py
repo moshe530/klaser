@@ -178,12 +178,13 @@ def get_file_url(doc_id: UUID, auth: AuthContext = AuthDep):
 
 
 # ============================================================
-# AI ANALYSIS (Gemini)
+# AI ANALYSIS (Groq vision pipeline v4.1)
 # ============================================================
 @router.post("/{doc_id}/analyze", response_model=DocumentOut)
 def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
-    """Run Gemini on the attached file and update document fields.
-    Only fills fields that are currently empty (won't overwrite user input)."""
+    """Run the Groq vision pipeline (Classifier + Extractor) on the attached
+    file and update document fields. User-edited fields are preserved on
+    re-analysis; pipeline metadata is always overwritten."""
     doc = _get_owned_doc(auth, doc_id)
     if not doc.get("file_path"):
         raise HTTPException(400, "Document has no attached file to analyze")
@@ -204,22 +205,31 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
         ).eq("user_id", str(auth.user_id)).execute()
         raise HTTPException(500, f"AI analysis failed: {type(e).__name__}: {e}")
 
-    # Build update — fill fields intelligently
+    # Build update — fill fields intelligently.
+    # Two groups:
+    #   (a) USER-EDITABLE extractor fields: respect existing user edits unless
+    #       it's the first analysis or the value is a placeholder.
+    #   (b) PIPELINE METADATA: always overwrite — these describe the AI's own
+    #       understanding of the document and aren't edited by users.
     patch: dict = {
-        "ai_data": result,
+        "ai_data":    result,
         "ocr_status": "done",
     }
+
+    # (a) User-editable extractor fields → fill-if-empty semantics
     field_map = {
-        "name":          "name",
-        "category":      "category",
-        "sub_category":  "sub_category",
-        "purchase_date": "purchase_date",
-        "warranty_end":  "warranty_end",
-        "amount":        "amount",
+        "name":            "name",
+        "category":        "category",
+        "sub_category":    "sub_category",
+        "purchase_date":   "purchase_date",
+        "warranty_end":    "warranty_end",
+        "amount":          "amount",
+        "document_type":   "document_type",
+        "merchant":        "merchant",
+        "document_period": "document_period",
     }
 
     # Frontend defaults that aren't real user input — treat as empty.
-    # Match both with and without the hourglass emoji prefix.
     PLACEHOLDER_NAMES = {
         "⏳ ממתין לניתוח AI",
         "ממתין לניתוח AI",
@@ -227,8 +237,8 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
         "",
     }
 
-    # First-time analysis (no prior ai_data) → trust AI for everything that
-    # might have been a form default. On re-analysis, keep user's edits.
+    # First-time analysis (no prior ai_data) → trust AI for fields that were
+    # form defaults. On re-analysis, preserve user edits.
     is_first_analysis = not doc.get("ai_data")
 
     for ai_key, db_key in field_map.items():
@@ -237,12 +247,23 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
             continue
         existing = doc.get(db_key)
         is_placeholder_name = db_key == "name" and existing in PLACEHOLDER_NAMES
-        # On first analysis, also override category/dates that look like defaults
+        # On first analysis, also override category/dates/type that look like defaults
         first_run_override = is_first_analysis and db_key in {
-            "category", "sub_category", "purchase_date", "warranty_end"
+            "category", "sub_category", "purchase_date", "warranty_end",
+            "document_type", "merchant", "document_period",
         }
         if not existing or is_placeholder_name or first_run_override:
             patch[db_key] = val
+
+    # (b) Pipeline metadata — always overwrite with the latest run.
+    #     These describe this analysis run, not user data.
+    for meta_key in (
+        "doc_type_detected", "confidence", "confidence_reason", "needs_review",
+        "ocr_quality", "language", "structure", "file_hash",
+        "amount_candidates", "amount_labels",
+    ):
+        if meta_key in result:
+            patch[meta_key] = result[meta_key]
 
     res = (
         auth.client.table(TABLE)
