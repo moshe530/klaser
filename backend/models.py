@@ -8,6 +8,13 @@ from pydantic import BaseModel, ConfigDict, Field
 # ============================================================
 # Documents
 # ============================================================
+# AI pipeline enums (free-form in DB via CHECK constraints)
+Confidence = Literal["high", "medium", "low"]
+OcrQuality = Literal["high", "medium", "low"]
+Language   = Literal["he", "en", "mixed", "unknown"]
+Structure  = Literal["table", "form", "free_text", "mixed", "unknown"]
+
+
 class DocumentBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     category: Optional[str] = None
@@ -16,6 +23,13 @@ class DocumentBase(BaseModel):
     warranty_end: Optional[date] = None
     amount: Optional[float] = None
     tags: list[str] = Field(default_factory=list)
+
+    # Extractor output (per-document details)
+    document_type: Optional[str] = None
+    merchant: Optional[str] = None
+    amount_candidates: list[float] = Field(default_factory=list)
+    amount_labels: list[str] = Field(default_factory=list)
+    document_period: Optional[dict[str, Any]] = None
 
 
 class DocumentCreate(DocumentBase):
@@ -30,6 +44,11 @@ class DocumentUpdate(BaseModel):
     warranty_end: Optional[date] = None
     amount: Optional[float] = None
     tags: Optional[list[str]] = None
+    document_type: Optional[str] = None
+    merchant: Optional[str] = None
+    amount_candidates: Optional[list[float]] = None
+    amount_labels: Optional[list[str]] = None
+    document_period: Optional[dict[str, Any]] = None
 
 
 class DocumentOut(DocumentBase):
@@ -43,6 +62,19 @@ class DocumentOut(DocumentBase):
     ocr_text: Optional[str] = None
     ocr_status: str = "pending"
     ai_data: Optional[dict[str, Any]] = None
+
+    # Classifier output
+    doc_type_detected: Optional[str] = None
+    confidence: Optional[Confidence] = None
+    confidence_reason: Optional[str] = None
+    needs_review: bool = False
+    ocr_quality: Optional[OcrQuality] = None
+    language: Optional[Language] = None
+    structure: Optional[Structure] = None
+
+    # Pipeline meta
+    file_hash: Optional[str] = None
+
     created_at: datetime
     updated_at: datetime
 
