@@ -14,6 +14,7 @@ from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, status
 from supabase import Client, create_client
+from supabase.client import ClientOptions
 
 from .config import settings
 from .database import get_supabase
@@ -70,17 +71,18 @@ def get_auth(
     token = authorization.split(" ", 1)[1].strip()
     user_id = _decode_jwt_sub(token)
 
-    # Build a per-request client that forwards the user's JWT,
-    # so RLS sees auth.uid() = the user (for both postgrest AND storage).
-    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY)
-    client.postgrest.auth(token)
-    # Storage uses a separate HTTP session — propagate the JWT there too.
+    # Build a per-request client where the user's JWT is sent on EVERY
+    # subclient (postgrest, storage, functions). This is the only reliable
+    # way to make RLS see auth.uid() across all services.
+    opts = ClientOptions(headers={"Authorization": f"Bearer {token}"})
+    client = create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY,
+        opts,
+    )
+    # Belt-and-suspenders: also explicitly tell postgrest about the token.
     try:
-        client.storage._client.headers["Authorization"] = f"Bearer {token}"
-    except Exception:
-        pass
-    try:
-        client.storage.session.headers["Authorization"] = f"Bearer {token}"
+        client.postgrest.auth(token)
     except Exception:
         pass
     return AuthContext(user_id=user_id, client=client)
