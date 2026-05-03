@@ -594,27 +594,124 @@ document.addEventListener('click', (e) => {
 // ─── SIDEBAR TOGGLE ───
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-// ─── INIT ───
-document.addEventListener('DOMContentLoaded', async () => {
-  // overlay click closes
-  document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); }));
+// ─── AUTH UI ───
+let authMode = 'login'; // 'login' | 'signup'
 
-  const fmBuy = document.getElementById('fm-buy');
-  if (fmBuy) fmBuy.valueAsDate = new Date();
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
 
-  showTab('docs', document.querySelector('.topnav-tab'));
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  document.getElementById('authTitle').textContent = authMode === 'login' ? 'התחברות' : 'הרשמה';
+  document.getElementById('authSubmit').textContent = authMode === 'login' ? 'התחבר' : 'הירשם';
+  document.getElementById('authToggleText').textContent = authMode === 'login' ? 'אין לך חשבון?' : 'כבר רשום?';
+  document.getElementById('authToggleLink').textContent = authMode === 'login' ? 'הירשם' : 'התחבר';
+  document.getElementById('auth-password').setAttribute('autocomplete', authMode === 'login' ? 'current-password' : 'new-password');
+  showAuthError('');
+}
 
-  // Build category dropdowns (built-in + custom invoice branches)
-  refreshCategoryDropdowns();
+async function authSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) { showAuthError('נא למלא אימייל וסיסמה'); return; }
+  if (password.length < 6) { showAuthError('סיסמה חייבת לפחות 6 תווים'); return; }
+  const btn = document.getElementById('authSubmit');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = '...';
+  try {
+    if (authMode === 'signup') {
+      const data = await KlaserAuth.signUp(email, password);
+      if (!data.session) {
+        // Email confirmation required
+        showAuthError('נשלח אימייל אימות. בדוק את תיבת הדואר.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+    } else {
+      await KlaserAuth.signIn(email, password);
+    }
+    // Success — hide modal and start app
+    closeModal('auth');
+    await startApp();
+  } catch (e) {
+    console.error(e);
+    showAuthError(e.message || 'שגיאה בהתחברות');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
 
+async function doLogout() {
+  if (!confirm('להתנתק?')) return;
+  await KlaserAuth.signOut();
+  location.reload();
+}
+
+function updateAuthUI() {
+  const user = KlaserAuth.getUser();
+  const emailEl = document.getElementById('userEmail');
+  const logoutEl = document.getElementById('logoutBtn');
+  if (user) {
+    emailEl.textContent = user.email;
+    emailEl.style.display = '';
+    logoutEl.style.display = '';
+  } else {
+    emailEl.style.display = 'none';
+    logoutEl.style.display = 'none';
+  }
+}
+
+async function startApp() {
+  updateAuthUI();
   // health check
   try {
     const h = await KlaserAPI.health();
     if (!h.supabase_configured) setStatusBadge('שרת רץ אבל DB לא מוגדר', 'err');
   } catch {
-    setStatusBadge('השרת לא רץ (uvicorn)', 'err');
+    setStatusBadge('השרת לא רץ', 'err');
+    return;
+  }
+  await loadDocs();
+}
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', async () => {
+  // overlay click closes (but not for auth modal — must login)
+  document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', function (e) {
+    if (e.target === this && this.id !== 'modal-auth') this.classList.remove('open');
+  }));
+
+  const fmBuy = document.getElementById('fm-buy');
+  if (fmBuy) fmBuy.valueAsDate = new Date();
+
+  showTab('docs', document.querySelector('.topnav-tab'));
+  refreshCategoryDropdowns();
+
+  // Wait for Supabase auth init
+  if (!window.KlaserAuth) {
+    setStatusBadge('שגיאה בטעינת Supabase', 'err');
+    return;
+  }
+  const session = await KlaserAuth.init();
+
+  // Enter key triggers auth submit
+  ['auth-email', 'auth-password'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') authSubmit(); });
+  });
+
+  if (!session) {
+    openModal('auth');
+    document.getElementById('auth-email').focus();
     return;
   }
 
-  await loadDocs();
+  await startApp();
 });

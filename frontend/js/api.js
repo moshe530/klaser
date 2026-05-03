@@ -2,17 +2,23 @@
 (function () {
   const cfg = window.KLASER_CONFIG;
 
-  function headers() {
-    return {
-      'Content-Type': 'application/json',
-      'X-Dev-User-Id': cfg.DEV_USER_ID,
-    };
+  function authHeaders(includeContentType = true) {
+    const h = {};
+    if (includeContentType) h['Content-Type'] = 'application/json';
+    const token = window.KlaserAuth && window.KlaserAuth.getToken();
+    if (token) {
+      h['Authorization'] = 'Bearer ' + token;
+    } else if (cfg.DEV_USER_ID) {
+      // fallback for local dev only — backend ignores this in production
+      h['X-Dev-User-Id'] = cfg.DEV_USER_ID;
+    }
+    return h;
   }
 
   async function request(path, opts = {}) {
     const res = await fetch(cfg.API_URL + path, {
       ...opts,
-      headers: { ...headers(), ...(opts.headers || {}) },
+      headers: { ...authHeaders(true), ...(opts.headers || {}) },
     });
     if (!res.ok) {
       let detail;
@@ -38,7 +44,7 @@
       fd.append('file', file);
       const res = await fetch(cfg.API_URL + `/documents/${id}/file`, {
         method: 'POST',
-        headers: { 'X-Dev-User-Id': cfg.DEV_USER_ID }, // לא לציין Content-Type — דפדפן יוסיף boundary
+        headers: authHeaders(false), // לא Content-Type — דפדפן יוסיף boundary
         body: fd,
       });
       if (!res.ok) {
