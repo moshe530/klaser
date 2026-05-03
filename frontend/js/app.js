@@ -53,6 +53,18 @@ function fromApi(d) {
     buy: d.purchase_date || '',
     exp: d.warranty_end || null,
     note: d.amount != null ? `₪${d.amount}` : '',
+    // New AI fields
+    confidence: d.confidence,
+    needs_review: d.needs_review,
+    amount_candidates: d.amount_candidates || [],
+    amount_labels: d.amount_labels || [],
+    merchant: d.merchant,
+    document_period: d.document_period,
+    document_type: d.document_type,
+    doc_type_detected: d.doc_type_detected,
+    ocr_quality: d.ocr_quality,
+    language: d.language,
+    structure: d.structure,
     _raw: d,
   };
 }
@@ -85,9 +97,49 @@ function makeCard(d) {
   const dt = d.exp
     ? `<div class="doc-date">עד ${d.exp}</div>`
     : (d.buy ? `<div class="doc-date">${d.buy}</div>` : '');
+
+  // AI fields display
+  const aiMeta = [];
+  if (d.needs_review) {
+    aiMeta.push(`<span class="ai-badge ai-review">⚠️ צריך בדיקה</span>`);
+  }
+  if (d.confidence != null) {
+    const confColor = d.confidence >= 80 ? '#10B981' : d.confidence >= 60 ? '#F59E0B' : '#EF4444';
+    aiMeta.push(`<span class="ai-badge ai-confidence" style="color:${confColor}">${d.confidence}%</span>`);
+  }
+  if (d.merchant) {
+    aiMeta.push(`<span class="ai-badge ai-merchant">🏪 ${d.merchant}</span>`);
+  }
+  if (d.document_period) {
+    aiMeta.push(`<span class="ai-badge ai-period">📅 ${d.document_period}</span>`);
+  }
+  if (d.document_type) {
+    aiMeta.push(`<span class="ai-badge ai-type">📄 ${d.document_type}</span>`);
+  }
+
+  // Amount candidates picker (if multiple candidates exist)
+  let amountDisplay = d.note || '';
+  if (d.amount_candidates && d.amount_candidates.length > 1) {
+    const options = d.amount_candidates.map((amt, i) => {
+      const label = d.amount_labels[i] || `סכום ${i + 1}`;
+      return `<option value="${amt}">${label}: ₪${amt}</option>`;
+    }).join('');
+    amountDisplay = `
+      <select class="amount-picker" onchange="selectAmount('${d.id}', this.value)">
+        ${options}
+      </select>
+    `;
+  }
+
+  const aiMetaHtml = aiMeta.length ? `<div class="ai-meta">${aiMeta.join('')}</div>` : '';
+
   return `<div class="doc-card ${cls}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
     <div class="doc-icon" style="background:${ic.bg}">${ic.e}</div>
-    <div class="doc-info"><div class="doc-name">${d.name}</div><div class="doc-meta">${d.cat}${d.note ? ' · ' + d.note : ''}</div></div>
+    <div class="doc-info">
+      <div class="doc-name">${d.name}</div>
+      <div class="doc-meta">${d.cat}${amountDisplay ? ' · ' + amountDisplay : ''}</div>
+      ${aiMetaHtml}
+    </div>
     <div class="doc-right">${tag}${dt}</div>
     <div class="doc-actions">
       <button class="ico-btn" data-act="edit" title="עריכה">✏️</button>
@@ -453,6 +505,18 @@ async function runAnalyze(docId) {
     console.error(e);
     setStatusBadge('ניתוח AI נכשל', 'err');
     setTimeout(() => setStatusBadge(`מחובר · ${docs.length} מסמכים`, 'ok'), 4000);
+  }
+}
+
+async function selectAmount(docId, selectedAmount) {
+  try {
+    const updated = await KlaserAPI.updateDocument(docId, { amount: Number(selectedAmount) });
+    const idx = docs.findIndex(d => String(d.id) === String(docId));
+    if (idx >= 0) docs[idx] = fromApi(updated);
+    renderAll();
+  } catch (e) {
+    console.error(e);
+    alert('שגיאה בעדכון הסכום:\n' + e.message);
   }
 }
 
