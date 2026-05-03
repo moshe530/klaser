@@ -10,7 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.6
       - key: APP_ENV
-        value: development  # נשאר ב-dev mode כדי שה-X-Dev-User-Id יעבוד
+        value: production  # Supabase Auth בלבד — X-Dev-User-Id מושבת
       - key: CORS_ORIGINS
         value: http://localhost:5500,http://127.0.0.1:5500,https://gleaming-selkie-ccb973.netlify.app
       # הסודות הבאים יוגדרו דרך ה-UI (לא מעלים ל-Git):

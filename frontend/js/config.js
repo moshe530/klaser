@@ -1,8 +1,7 @@
 // ─── Klaser Frontend Config ───
 // Supabase Auth עם Email + Password. ה-JWT נשלח ל-backend כ-Bearer token.
 window.KLASER_CONFIG = {
-  // לפיתוח מקומי: 'http://localhost:8000'
-  // פרודקשן (Render): 'https://klaser.onrender.com'
+  // פרודקשן (Render): 'https://klaser.onrender.com' | מקומי: 'http://localhost:8000'
   API_URL: 'https://klaser.onrender.com',
 
   // Supabase Auth (ערכים פומביים — בטוחים ב-frontend)

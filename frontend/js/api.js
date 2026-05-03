@@ -6,12 +6,7 @@
     const h = {};
     if (includeContentType) h['Content-Type'] = 'application/json';
     const token = window.KlaserAuth && window.KlaserAuth.getToken();
-    if (token) {
-      h['Authorization'] = 'Bearer ' + token;
-    } else if (cfg.DEV_USER_ID) {
-      // fallback for local dev only — backend ignores this in production
-      h['X-Dev-User-Id'] = cfg.DEV_USER_ID;
-    }
+    if (token) h['Authorization'] = 'Bearer ' + token;
     return h;
   }
 
