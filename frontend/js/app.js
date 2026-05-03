@@ -638,6 +638,7 @@ async function authSubmit() {
     }
     // Success — hide modal and start app
     closeModal('auth');
+    document.body.classList.remove('locked');
     await startApp();
   } catch (e) {
     console.error(e);
@@ -708,10 +709,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   if (!session) {
+    document.body.classList.add('locked');
     openModal('auth');
     document.getElementById('auth-email').focus();
     return;
   }
 
+  document.body.classList.remove('locked');
   await startApp();
 });

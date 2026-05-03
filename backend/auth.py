@@ -71,9 +71,18 @@ def get_auth(
     user_id = _decode_jwt_sub(token)
 
     # Build a per-request client that forwards the user's JWT,
-    # so RLS sees auth.uid() = the user.
+    # so RLS sees auth.uid() = the user (for both postgrest AND storage).
     client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY)
     client.postgrest.auth(token)
+    # Storage uses a separate HTTP session — propagate the JWT there too.
+    try:
+        client.storage._client.headers["Authorization"] = f"Bearer {token}"
+    except Exception:
+        pass
+    try:
+        client.storage.session.headers["Authorization"] = f"Bearer {token}"
+    except Exception:
+        pass
     return AuthContext(user_id=user_id, client=client)
 
 
