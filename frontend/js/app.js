@@ -82,9 +82,9 @@ function toApi(ui) {
 function status(exp) {
   if (!exp) return null;
   const d = Math.round((new Date(exp) - new Date()) / 86400000);
-  if (d < 0)  return { label: 'פג תוקף', cls: 'expired', urgent: true };
-  if (d < 30) return { label: d + ' ימים', cls: 'warn', expiring: true };
-  return { label: 'בתוקף', cls: 'ok' };
+  if (d < 0)  return { label: 'פג תוקף', cls: 'expired', urgent: true, expired: true, days: d };
+  if (d < 30) return { label: d + ' ימים', cls: 'warn', expiring: true, days: d };
+  return { label: 'בתוקף', cls: 'ok', days: d };
 }
 
 function makeCard(d) {
@@ -183,6 +183,48 @@ function renderAll() {
   fillList('carList',       docs.filter(d => d.cat === 'רכב'));
   renderReminders('all');
   renderCal();
+  updateStats();
+}
+
+function updateStats() {
+  const total = docs.length;
+  let soon = 0, expired = 0, valid = 0;
+  let soonestDoc = null, soonestDays = Infinity;
+  docs.forEach(d => {
+    const s = status(d.exp);
+    if (!s) { valid++; return; }
+    if (s.expired) expired++;
+    else if (s.urgent || s.expiring) {
+      soon++;
+      if (typeof s.days === 'number' && s.days >= 0 && s.days < soonestDays) {
+        soonestDays = s.days;
+        soonestDoc = d;
+      }
+    }
+    else valid++;
+  });
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('stat-total', total);
+  set('stat-soon', soon);
+  set('stat-expired', expired);
+  set('stat-valid', valid);
+  const sub = document.getElementById('docsSubtitle');
+  if (sub) {
+    const need = soon + expired;
+    sub.textContent = total === 0
+      ? 'אין מסמכים — הוסף את הראשון'
+      : (need > 0 ? `${total} מסמכים · ${need} דורשים תשומת לב` : `${total} מסמכים`);
+  }
+  const bar = document.getElementById('docsAlertBar');
+  const barTxt = document.getElementById('docsAlertText');
+  if (bar && barTxt) {
+    if (soonestDoc && soonestDays !== Infinity) {
+      barTxt.innerHTML = `${soonestDoc.name} — פג בעוד <strong style="margin:0 3px">${soonestDays} יום</strong>`;
+      bar.style.display = '';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
 }
 
 // ─── Invoice page filter ───
@@ -402,21 +444,51 @@ async function loadReminders() {
 function renderReminders(filter) {
   const arr = (filter && filter !== 'all') ? reminders.filter(r => r.type === filter) : reminders;
   const el = document.getElementById('reminderList');
-  if (!el) return;
-  el.innerHTML = arr.map(r => {
-    const typeTag = REM_TYPE_LABEL[r.type] || '📌';
-    const statusTag = REM_STATUS_LABEL[r.status] || '';
-    return `
-    <div class="rem-item" data-id="${r.id}">
-      <div class="rem-dot" style="background:${r.dot}"></div>
-      <div class="rem-info">
-        <div class="rem-name">${r.name}${statusTag}</div>
-        <div class="rem-when">${fmtRemindAt(r.remind_at)}</div>
-      </div>
-      <span class="rem-type">${typeTag}</span>
-      <button class="ico-btn danger" onclick="delReminder('${r.id}')" title="מחק" style="margin-right:8px;">�️</button>
-    </div>`;
-  }).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין תזכורות</p>';
+  if (el) {
+    el.innerHTML = arr.map(r => {
+      const typeTag = REM_TYPE_LABEL[r.type] || '📌';
+      const statusTag = REM_STATUS_LABEL[r.status] || '';
+      return `
+      <div class="rem-item" data-id="${r.id}">
+        <div class="rem-dot" style="background:${r.dot}"></div>
+        <div class="rem-info">
+          <div class="rem-name">${r.name}${statusTag}</div>
+          <div class="rem-when">${fmtRemindAt(r.remind_at)}</div>
+        </div>
+        <span class="rem-type">${typeTag}</span>
+        <button class="ico-btn danger" onclick="delReminder('${r.id}')" title="מחק" style="margin-right:8px;">🗑️</button>
+      </div>`;
+    }).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין תזכורות</p>';
+  }
+  updateReminderStats();
+}
+
+function updateReminderStats() {
+  const pending = reminders.filter(r => r.status === 'pending');
+  const badge = document.getElementById('remBadge');
+  if (badge) {
+    if (pending.length > 0) {
+      badge.textContent = pending.length;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  const sub = document.getElementById('remSubtitle');
+  if (sub) {
+    sub.textContent = reminders.length === 0
+      ? 'אין תזכורות'
+      : `${reminders.length} תזכורות · ${pending.length} ממתינות`;
+  }
+  // Per-category counts
+  const types = ['birthday','anniv','appt','periodic','warranty','other'];
+  types.forEach(t => {
+    const el = document.querySelector(`[data-rem-count="${t}"]`);
+    if (el) {
+      const n = reminders.filter(r => r.type === t).length;
+      el.textContent = n;
+    }
+  });
 }
 
 function filterRem(type, el) {
@@ -455,6 +527,11 @@ async function saveReminder() {
     document.getElementById('rem-name').value = '';
     document.getElementById('rem-date').value = '';
     document.getElementById('rem-time').value = '';
+    // Show a one-time spam-check hint (hidden after user sees it once)
+    if (!localStorage.getItem('klaser_spam_hint_seen')) {
+      alert('✅ התזכורת נשמרה\n\n📧 המייל יישלח בסמוך לתאריך שבחרת.\n⚠️ בהתחלה ייתכן שיגיע לתיקיית SPAM — סמן אותו כ"לא ספאם" כדי לקבל את הבאים בתיבה הראשית.');
+      localStorage.setItem('klaser_spam_hint_seen', '1');
+    }
   } catch (e) {
     console.error(e);
     alert('שגיאה בשמירת תזכורת:\n' + e.message);
@@ -765,6 +842,12 @@ async function startApp() {
   }
   await loadDocs();
   await loadReminders();
+  // Deep-link: #reminders / #calendar / #settings opens that tab
+  const hash = (location.hash || '').replace('#', '');
+  if (hash && ['reminders','calendar','settings','docs'].includes(hash)) {
+    const btn = document.querySelector(`.topnav-tab[onclick*="'${hash}'"]`);
+    if (btn) showTab(hash, btn);
+  }
 }
 
 // ─── INIT ───

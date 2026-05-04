@@ -145,7 +145,7 @@ def render_generic_reminder_email(
     name: str,
     reminder_type: str,
     remind_at: str,
-    app_url: str = "https://gleaming-selkie-ccb973.netlify.app",
+    app_url: str = "https://gleaming-selkie-ccb973.netlify.app/#reminders",
 ) -> tuple[str, str, str]:
     """Returns (subject, html, text) for a generic user-created reminder."""
     type_emoji = {

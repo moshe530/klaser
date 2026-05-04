@@ -347,7 +347,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   <nav class="topnav-tabs">
     <button class="topnav-tab active" onclick="showTab('docs',this)">📁 מסמכים</button>
     <button class="topnav-tab" onclick="showTab('calendar',this)">📅 לוח שנה</button>
-    <button class="topnav-tab" onclick="showTab('reminders',this)">🔔 תזכורות <span class="tab-badge">3</span></button>
+    <button class="topnav-tab" onclick="showTab('reminders',this)">🔔 תזכורות <span class="tab-badge" id="remBadge" style="display:none">0</span></button>
     <button class="topnav-tab" onclick="showTab('settings',this)">⚙️ הגדרות</button>
   </nav>
   <div class="topnav-right">
@@ -425,17 +425,17 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 
   <div id="docpage-all" class="docpage active">
     <div class="ph">
-      <div class="ph-left"><h1>כל המסמכים</h1><p id="docsSubtitle">24 מסמכים · 3 דורשים תשומת לב</p></div>
+      <div class="ph-left"><h1>כל המסמכים</h1><p id="docsSubtitle">0 מסמכים</p></div>
     </div>
     <div class="stats-grid">
-      <div class="stat"><div class="sv">24</div><div class="sl">סה"כ מסמכים</div></div>
-      <div class="stat c-orange"><div class="sv">2</div><div class="sl">פגים בקרוב</div></div>
-      <div class="stat c-red"><div class="sv">1</div><div class="sl">פג תוקף</div></div>
-      <div class="stat c-green"><div class="sv">21</div><div class="sl">בתוקף</div></div>
+      <div class="stat"><div class="sv" id="stat-total">0</div><div class="sl">סה"כ מסמכים</div></div>
+      <div class="stat c-orange"><div class="sv" id="stat-soon">0</div><div class="sl">פגים בקרוב</div></div>
+      <div class="stat c-red"><div class="sv" id="stat-expired">0</div><div class="sl">פג תוקף</div></div>
+      <div class="stat c-green"><div class="sv" id="stat-valid">0</div><div class="sl">בתוקף</div></div>
     </div>
-    <div class="alert-bar warn">
+    <div class="alert-bar warn" id="docsAlertBar" style="display:none">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="4" width="1.3" height="4" rx=".65" fill="currentColor"/><rect x="7" y="9.5" width="1.3" height="1.3" rx=".65" fill="currentColor"/></svg>
-      אחריות המקרר פגה בעוד <strong style="margin:0 3px">18 יום</strong> — כדאי לבדוק תקינות
+      <span id="docsAlertText"></span>
     </div>
     <div class="filter-row" id="docFilters">
       <button class="chip active" onclick="filterChip('הכל',this)">הכל</button>
@@ -570,17 +570,17 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 <!-- ══ REMINDERS TAB ══ -->
 <div class="page" id="tab-reminders">
   <div class="ph">
-    <div class="ph-left"><h1>🔔 תזכורות</h1><p>3 תזכורות קרובות</p></div>
+    <div class="ph-left"><h1>🔔 תזכורות</h1><p id="remSubtitle">אין תזכורות</p></div>
     <div class="ph-actions"><button class="btn-primary" onclick="openModal('reminder')">+ תזכורת חדשה</button></div>
   </div>
 
   <div class="reminder-cats">
-    <div class="rem-cat" onclick="filterRem('birthday',null)"><div class="rc-icon">🎂</div><div class="rc-name">ימי הולדת</div><div class="rc-count">2 קרובים</div></div>
-    <div class="rem-cat" onclick="filterRem('anniv',null)"><div class="rc-icon">💍</div><div class="rc-name">יום שנה</div><div class="rc-count">1 קרוב</div></div>
-    <div class="rem-cat" onclick="filterRem('appt',null)"><div class="rc-icon">🏥</div><div class="rc-name">תורים וזימונים</div><div class="rc-count">3 קרובים</div></div>
-    <div class="rem-cat" onclick="filterRem('periodic',null)"><div class="rc-icon">🔁</div><div class="rc-name">בדיקה תקופתית</div><div class="rc-count">יומי / שבועי / חודשי</div></div>
-    <div class="rem-cat" onclick="filterRem('warranty',null)"><div class="rc-icon">🛡️</div><div class="rc-name">אחריות</div><div class="rc-count">2 פגים בקרוב</div></div>
-    <div class="rem-cat" onclick="filterRem('other',null)"><div class="rc-icon">📌</div><div class="rc-name">אחר</div><div class="rc-count">–</div></div>
+    <div class="rem-cat" onclick="filterRem('birthday',null)"><div class="rc-icon">🎂</div><div class="rc-name">ימי הולדת</div><div class="rc-count" data-rem-count="birthday">0</div></div>
+    <div class="rem-cat" onclick="filterRem('anniv',null)"><div class="rc-icon">💍</div><div class="rc-name">יום שנה</div><div class="rc-count" data-rem-count="anniv">0</div></div>
+    <div class="rem-cat" onclick="filterRem('appt',null)"><div class="rc-icon">🏥</div><div class="rc-name">תורים וזימונים</div><div class="rc-count" data-rem-count="appt">0</div></div>
+    <div class="rem-cat" onclick="filterRem('periodic',null)"><div class="rc-icon">🔁</div><div class="rc-name">תזכורת תקופתית</div><div class="rc-count" data-rem-count="periodic">0</div></div>
+    <div class="rem-cat" onclick="filterRem('warranty',null)"><div class="rc-icon">🛡️</div><div class="rc-name">אחריות</div><div class="rc-count" data-rem-count="warranty">0</div></div>
+    <div class="rem-cat" onclick="filterRem('other',null)"><div class="rc-icon">📌</div><div class="rc-name">אחר</div><div class="rc-count" data-rem-count="other">0</div></div>
   </div>
 
   <div class="reminder-list" id="reminderList"></div>
