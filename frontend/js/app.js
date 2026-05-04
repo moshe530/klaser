@@ -165,9 +165,8 @@ function renderInvoiceChips() {
   const chips = [
     `<button class="chip ${activeInvoiceFilter==='הכל'?'active':''}" onclick="filterInvoice('הכל',this)">הכל</button>`,
     ...branches.map(b => {
-      const ic = CAT_ICON[b] || { e: '📄' };
       const isActive = activeInvoiceFilter === b ? 'active' : '';
-      return `<button class="chip ${isActive}" onclick="filterInvoice('${b}',this)">${ic.e} ${b}</button>`;
+      return `<button class="chip ${isActive}" onclick="filterInvoice('${b}',this)">${b}</button>`;
     }),
     `<button class="chip add-branch" onclick="addBranch()">+ ענף חדש</button>`,
   ];
@@ -978,6 +977,125 @@ function setSubnavActive(el) {
   el.classList.add('active');
 }
 
+// ─── CUSTOM TABS STORAGE ───
+const CUSTOM_TABS_KEY = 'klaser_custom_tabs';
+function getCustomTabs() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_TABS_KEY) || '[]');
+  } catch { return []; }
+}
+function setCustomTabs(tabs) {
+  localStorage.setItem(CUSTOM_TABS_KEY, JSON.stringify(tabs));
+}
+
+// ─── ADD NEW TAB (from top subnav) ───
+function addNewTab() {
+  const name = prompt('שם הענף/הלשונית החדשה:');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+
+  // Check if exists
+  const existingTabs = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)')).map(t => t.textContent.replace(/\s*\d+$/, '').trim());
+  if (existingTabs.includes(trimmed)) {
+    alert('לשונית עם שם זה כבר קיימת');
+    return;
+  }
+
+  // Save to custom tabs
+  const customTabs = getCustomTabs();
+  customTabs.push({ id: 'custom-' + Date.now(), name: trimmed });
+  setCustomTabs(customTabs);
+
+  // Create the new tab button
+  const addBtn = document.querySelector('#docsSubnav .add-branch-tab');
+  const newBtn = document.createElement('button');
+  newBtn.className = 'subnav-tab';
+  newBtn.textContent = trimmed;
+  newBtn.setAttribute('data-custom-tab', 'true');
+  newBtn.onclick = function() { sbNav('custom', this, 'docs'); setSubnavActive(this); showCustomTab(trimmed); };
+  newBtn.oncontextmenu = function(e) {
+    e.preventDefault();
+    if (confirm('להסיר את הלשונית "' + trimmed + '"?')) {
+      removeCustomTab(trimmed, newBtn);
+    }
+  };
+
+  // Insert before the + button
+  addBtn.parentNode.insertBefore(newBtn, addBtn);
+
+  // Create the page div for this tab
+  createCustomTabPage(trimmed);
+
+  alert('הלשונית "' + trimmed + '" נוספה בהצלחה!');
+}
+
+function createCustomTabPage(name) {
+  const tabDocs = document.getElementById('tab-docs');
+  const pageId = 'docpage-custom-' + name;
+
+  // Check if already exists
+  if (document.getElementById(pageId)) return;
+
+  const div = document.createElement('div');
+  div.id = pageId;
+  div.className = 'docpage';
+  div.style.display = 'none';
+  div.innerHTML = `
+    <div class="ph"><div class="ph-left"><h1>${name}</h1></div></div>
+    <div class="doc-list" id="list-${name}"></div>
+  `;
+
+  // Insert before the closing of tab-docs
+  tabDocs.appendChild(div);
+}
+
+function showCustomTab(name) {
+  // Hide all docpages
+  document.querySelectorAll('.docpage').forEach(p => p.style.display = 'none');
+  // Show this custom page
+  const page = document.getElementById('docpage-custom-' + name);
+  if (page) page.style.display = 'block';
+}
+
+function removeCustomTab(name, btnElement) {
+  // Remove from storage
+  let customTabs = getCustomTabs();
+  customTabs = customTabs.filter(t => t.name !== name);
+  setCustomTabs(customTabs);
+
+  // Remove button
+  if (btnElement) btnElement.remove();
+
+  // Remove page
+  const page = document.getElementById('docpage-custom-' + name);
+  if (page) page.remove();
+
+  // Go back to 'all' tab
+  sbNav('all', null, 'docs');
+}
+
+// Load custom tabs on init
+function loadCustomTabs() {
+  const customTabs = getCustomTabs();
+  const addBtn = document.querySelector('#docsSubnav .add-branch-tab');
+
+  customTabs.forEach(tab => {
+    const newBtn = document.createElement('button');
+    newBtn.className = 'subnav-tab';
+    newBtn.textContent = tab.name;
+    newBtn.setAttribute('data-custom-tab', 'true');
+    newBtn.onclick = function() { sbNav('custom', this, 'docs'); setSubnavActive(this); showCustomTab(tab.name); };
+    newBtn.oncontextmenu = function(e) {
+      e.preventDefault();
+      if (confirm('להסיר את הלשונית "' + tab.name + '"?')) {
+        removeCustomTab(tab.name, newBtn);
+      }
+    };
+    addBtn.parentNode.insertBefore(newBtn, addBtn);
+    createCustomTabPage(tab.name);
+  });
+}
+
 // ─── ADD PERSON PLACEHOLDER ───
 function addPerson() {
   const name = prompt('שם הנפש החדש:');
@@ -1020,4 +1138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.body.classList.remove('locked');
   await startApp();
+
+  // Load custom tabs after app starts
+  loadCustomTabs();
 });

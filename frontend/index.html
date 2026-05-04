@@ -53,7 +53,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   border-bottom:1px solid rgba(255,255,255,0.1);
 }
 .logo{font-size:16px;font-weight:600;letter-spacing:0.2px;color:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.logo-img{width:28px;height:28px;flex-shrink:0;background:linear-gradient(135deg, #E8EBF0 0%, #C8D8EE 50%, #A8C4E0 100%);border-radius:50%;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.logo-img{width:28px;height:28px;flex-shrink:0;background:linear-gradient(135deg, #E8EBF0 0%, #C8D8EE 50%, #A8C4E0 100%);border-radius:8px;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .logo-sep{font-size:12px;color:rgba(255,255,255,0.4);border-right:1px solid rgba(255,255,255,0.2);padding-right:12px;margin-right:4px;white-space:nowrap;}
 .topnav-tabs{display:flex;gap:0;margin-right:auto;}
 .topnav-tab{
@@ -406,7 +406,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <button class="subnav-tab" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">רפואי</button>
     <button class="subnav-tab" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
     <button class="subnav-tab" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
-    <button class="subnav-tab add-branch-tab" onclick="addBranch();setSubnavActive(this)">+ ענף חדש</button>
+    <button class="subnav-tab add-branch-tab" onclick="addNewTab()">+ ענף חדש</button>
   </div>
   <div class="topnav-subnav" id="calSubnav" style="display:none">
     <button class="subnav-tab active" onclick="setCalView('month',null,this);setSubnavActive(this)">חודשי</button>
@@ -618,12 +618,12 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div class="reminder-cats">
-    <div class="rem-cat" onclick="filterRem('birthday',null)"><div class="rc-icon">🎂</div><div class="rc-name">ימי הולדת</div><div class="rc-count" data-rem-count="birthday">0</div></div>
-    <div class="rem-cat" onclick="filterRem('anniv',null)"><div class="rc-icon">💍</div><div class="rc-name">יום שנה</div><div class="rc-count" data-rem-count="anniv">0</div></div>
-    <div class="rem-cat" onclick="filterRem('appt',null)"><div class="rc-icon">🏥</div><div class="rc-name">תורים וזימונים</div><div class="rc-count" data-rem-count="appt">0</div></div>
-    <div class="rem-cat" onclick="filterRem('periodic',null)"><div class="rc-icon">🔁</div><div class="rc-name">תזכורת תקופתית</div><div class="rc-count" data-rem-count="periodic">0</div></div>
-    <div class="rem-cat" onclick="filterRem('warranty',null)"><div class="rc-icon">🛡️</div><div class="rc-name">אחריות</div><div class="rc-count" data-rem-count="warranty">0</div></div>
-    <div class="rem-cat" onclick="filterRem('other',null)"><div class="rc-icon">📌</div><div class="rc-name">אחר</div><div class="rc-count" data-rem-count="other">0</div></div>
+    <div class="rem-cat" onclick="filterRem('birthday',null)"><div class="rc-name">ימי הולדת</div><div class="rc-count" data-rem-count="birthday">0</div></div>
+    <div class="rem-cat" onclick="filterRem('anniv',null)"><div class="rc-name">יום שנה</div><div class="rc-count" data-rem-count="anniv">0</div></div>
+    <div class="rem-cat" onclick="filterRem('appt',null)"><div class="rc-name">תורים וזימונים</div><div class="rc-count" data-rem-count="appt">0</div></div>
+    <div class="rem-cat" onclick="filterRem('periodic',null)"><div class="rc-name">תזכורת תקופתית</div><div class="rc-count" data-rem-count="periodic">0</div></div>
+    <div class="rem-cat" onclick="filterRem('warranty',null)"><div class="rc-name">אחריות</div><div class="rc-count" data-rem-count="warranty">0</div></div>
+    <div class="rem-cat" onclick="filterRem('other',null)"><div class="rc-name">אחר</div><div class="rc-count" data-rem-count="other">0</div></div>
   </div>
 
   <div class="reminder-list" id="reminderList"></div>
