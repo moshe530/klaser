@@ -406,7 +406,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <button class="subnav-tab" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">רפואי</button>
     <button class="subnav-tab" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
     <button class="subnav-tab" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
-    <button class="subnav-tab add-branch-tab" onclick="addNewTab()">+ ענף חדש</button>
+    <button class="subnav-tab add-branch-tab" onclick="addNewTab()">+</button>
   </div>
   <div class="topnav-subnav" id="calSubnav" style="display:none">
     <button class="subnav-tab active" onclick="setCalView('month',null,this);setSubnavActive(this)">חודשי</button>
@@ -476,7 +476,11 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div id="docpage-products" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+ הוסף</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="productsFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'productsFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('מוצרים')">+</button>
+    </div>
     <div class="doc-list" id="productsList"></div>
   </div>
 
@@ -492,30 +496,39 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div id="docpage-apartment" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>דירה</h1></div></div>
-    <div class="filter-row">
+    <div class="ph"><div class="ph-left"><h1>דירה</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="aptFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'aptFilter')">הכל</button>
       <button class="chip" onclick="filterChip('חוזה',this,'aptFilter')">חוזה</button>
       <button class="chip" onclick="filterChip('שכר דירה',this,'aptFilter')">שכר דירה</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('דירה')">+</button>
     </div>
     <div class="doc-list" id="apartmentList"></div>
   </div>
 
   <div id="docpage-payslips" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>תלושי שכר</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>תלושי שכר</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="payslipsFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'payslipsFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('תלוש שכר')">+</button>
+    </div>
     <div class="doc-list" id="payslipsList"></div>
   </div>
 
   <div id="docpage-approvals" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>אישורים</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>אישורים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="approvalsFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'approvalsFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('אישורים')">+</button>
+    </div>
     <div class="doc-list" id="approvalsList"></div>
   </div>
 
   <div id="docpage-medical" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+ הוסף נפש</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+</button></div></div>
     <div class="filter-row" id="personFilter">
       <button class="chip active">כולם</button>
-      <button class="chip" onclick="addPerson()">+ הוסף נפש</button>
+      <button class="chip" onclick="addPerson()">+</button>
     </div>
     <div class="doc-list" id="medicalList"></div>
   </div>
@@ -531,36 +544,39 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div id="docpage-car" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>רכב</h1></div></div>
-    <div class="filter-row">
+    <div class="ph"><div class="ph-left"><h1>רכב</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="carFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'carFilter')">הכל</button>
       <button class="chip" onclick="filterChip('רישיון',this,'carFilter')">רישיונות</button>
       <button class="chip" onclick="filterChip('טסט',this,'carFilter')">טסט</button>
       <button class="chip" onclick="filterChip('רענון נהיגה',this,'carFilter')">רענון</button>
       <button class="chip" onclick="filterChip('תיקון',this,'carFilter')">תיקונים</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('רכב')">+</button>
     </div>
     <div class="doc-list" id="carList"></div>
   </div>
 
   <div id="docpage-insurance" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>ביטוחים</h1></div></div>
-    <div class="filter-row">
+    <div class="ph"><div class="ph-left"><h1>ביטוחים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="insFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'insFilter')">הכל</button>
       <button class="chip" onclick="filterChip('רכב',this,'insFilter')">רכב</button>
       <button class="chip" onclick="filterChip('דירה',this,'insFilter')">דירה</button>
       <button class="chip" onclick="filterChip('חיים',this,'insFilter')">חיים</button>
       <button class="chip" onclick="filterChip('בריאות',this,'insFilter')">בריאות</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('ביטוח')">+</button>
     </div>
     <div class="doc-list" id="insuranceList"></div>
   </div>
 
   <div id="docpage-personal" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>מסמכים אישיים</h1></div></div>
-    <div class="filter-row">
+    <div class="ph"><div class="ph-left"><h1>מסמכים אישיים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="persFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'persFilter')">הכל</button>
       <button class="chip" onclick="filterChip('תעודת זהות',this,'persFilter')">תעודת זהות</button>
       <button class="chip" onclick="filterChip('דרכון',this,'persFilter')">דרכון</button>
       <button class="chip" onclick="filterChip('רישיון נהיגה',this,'persFilter')">רישיון נהיגה</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('מסמכים אישיים')">+</button>
     </div>
     <div class="doc-list" id="personalList"></div>
   </div>
@@ -1004,9 +1020,9 @@ function showTab(tab,el,mobEl){
   if(el)el.classList.add('active');
   document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
   if(mobEl)mobEl.classList.add('active');
-  // show/hide subnavs
+  // show/hide subnavs - hide ALL first, then show active
+  document.querySelectorAll('.topnav-subnav').forEach(n=>n.style.display='none');
   const subnavMap={docs:'docsSubnav',calendar:'calSubnav',reminders:'remSubnav',settings:'settSubnav'};
-  Object.values(subnavMap).forEach(id=>{const n=document.getElementById(id);if(n)n.style.display='none';});
   const activeSubnav=document.getElementById(subnavMap[tab]);
   if(activeSubnav)activeSubnav.style.display='flex';
 }

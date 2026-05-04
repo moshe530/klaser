@@ -161,16 +161,46 @@ function renderInvoiceChips() {
     return;
   }
   const branches = allInvoiceCats();
+  const customBranches = getInvoiceBranches(); // Only user-added branches can be deleted
   console.log('renderInvoiceChips: rendering', branches.length, 'branches');
-  const chips = [
-    `<button class="chip ${activeInvoiceFilter==='הכל'?'active':''}" onclick="filterInvoice('הכל',this)">הכל</button>`,
-    ...branches.map(b => {
-      const isActive = activeInvoiceFilter === b ? 'active' : '';
-      return `<button class="chip ${isActive}" onclick="filterInvoice('${b}',this)">${b}</button>`;
-    }),
-    `<button class="chip add-branch" onclick="addBranch()">+ ענף חדש</button>`,
-  ];
-  row.innerHTML = chips.join('');
+
+  // Build chips
+  let chipsHtml = `<button class="chip ${activeInvoiceFilter==='הכל'?'active':''}" onclick="filterInvoice('הכל',this)">הכל</button>`;
+
+  branches.forEach(b => {
+    const isActive = activeInvoiceFilter === b ? 'active' : '';
+    const isCustom = customBranches.includes(b);
+    const deleteAttr = isCustom ? ` oncontextmenu="deleteBranch(event, '${b}')"` : '';
+    chipsHtml += `<button class="chip ${isActive}" onclick="filterInvoice('${b}',this)"${deleteAttr}>${b}</button>`;
+  });
+
+  // Add + button at the end
+  chipsHtml += `<button class="chip add-branch" onclick="addBranch()">+</button>`;
+
+  row.innerHTML = chipsHtml;
+}
+
+// Delete a branch with right-click
+function deleteBranch(e, branchName) {
+  e.preventDefault();
+  if (!confirm('להסיר את הענף "' + branchName + '"?')) return;
+
+  // Remove from storage
+  let branches = getInvoiceBranches();
+  branches = branches.filter(b => b !== branchName);
+  setInvoiceBranches(branches);
+
+  // Refresh display
+  renderInvoiceChips();
+
+  // Reset filter to "all" if the deleted branch was active
+  if (activeInvoiceFilter === branchName) {
+    activeInvoiceFilter = 'הכל';
+    const invCats = allInvoiceCats();
+    fillList('utilitiesList', docs.filter(d => invCats.includes(d.cat)));
+  } else {
+    applyInvoiceFilter();
+  }
 }
 
 function renderAll() {
@@ -263,6 +293,22 @@ function applyInvoiceFilter() {
   });
 }
 
+// ─── SUB-BRANCHES STORAGE ───
+const SUB_BRANCHES_KEY = 'klaser_sub_branches';
+function getSubBranches(branchName) {
+  try {
+    const all = JSON.parse(localStorage.getItem(SUB_BRANCHES_KEY) || '{}');
+    return all[branchName] || ['+'];
+  } catch { return ['+']; }
+}
+function setSubBranches(branchName, subBranches) {
+  try {
+    const all = JSON.parse(localStorage.getItem(SUB_BRANCHES_KEY) || '{}');
+    all[branchName] = subBranches;
+    localStorage.setItem(SUB_BRANCHES_KEY, JSON.stringify(all));
+  } catch {}
+}
+
 // ─── Add a new invoice branch (sub-category) ───
 function addBranch() {
   try {
@@ -281,8 +327,10 @@ function addBranch() {
     branches.push(trimmed);
     console.log('addBranch: saving branches:', branches);
     setInvoiceBranches(branches);
+    // Auto-add + sub-branch for this new branch
+    setSubBranches(trimmed, ['+']);
     // Auto-register icon if missing
-    if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '🧾' };
+    if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '' };
     console.log('addBranch: calling renderInvoiceChips and refreshCategoryDropdowns');
     renderInvoiceChips();
     refreshCategoryDropdowns();
@@ -294,9 +342,9 @@ function addBranch() {
     // Check if utilFilter is visible
     const utilFilter = document.getElementById('utilFilter');
     if (!utilFilter || utilFilter.offsetParent === null) {
-      alert(`הענף "${trimmed}" נוסף בהצלחה. הוא יופיע ברשימת הכפתורים כשתעבור לדף "חשבוניות". עכשיו אתה יכול לבחור אותו בטופס "הוסף מסמך".`);
+      alert(`הענף "${trimmed}" נוסף בהצלחה עם תת ענף +. הוא יופיע ברשימת הכפתורים כשתעבור לדף "חשבוניות".`);
     } else {
-      alert(`הענף "${trimmed}" נוסף בהצלחה ומופיע ברשימת הכפתורים. עכשיו אתה יכול לבחור אותו בטופס "הוסף מסמך".`);
+      alert(`הענף "${trimmed}" נוסף בהצלחה עם תת ענף +.`);
     }
   } catch (e) {
     console.error('addBranch error:', e);
@@ -1041,7 +1089,11 @@ function createCustomTabPage(name) {
   div.className = 'docpage';
   div.style.display = 'none';
   div.innerHTML = `
-    <div class="ph"><div class="ph-left"><h1>${name}</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>${name}</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="filter-${name}">
+      <button class="chip active" onclick="filterChip('הכל',this,'filter-${name}')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('${name}')">+</button>
+    </div>
     <div class="doc-list" id="list-${name}"></div>
   `;
 
@@ -1103,6 +1155,88 @@ function addPerson() {
   alert('הנפש "' + name.trim() + '" נוסף בהצלחה. בעתיד יהיה ניתן לסנן מסמכים לפי נפשות.');
 }
 
+// ─── ADD SUB-BRANCH ───
+function addSubBranch(categoryName) {
+  const name = prompt('שם תת הענף החדש:');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+
+  // Get current sub-branches
+  let subBranches = getSubBranches(categoryName);
+
+  // Check if already exists (excluding +)
+  if (subBranches.includes(trimmed)) {
+    alert('תת הענף כבר קיים');
+    return;
+  }
+
+  // Add new sub-branch before the +
+  const plusIndex = subBranches.indexOf('+');
+  if (plusIndex >= 0) {
+    subBranches.splice(plusIndex, 0, trimmed);
+  } else {
+    subBranches.push(trimmed);
+  }
+
+  // Save
+  setSubBranches(categoryName, subBranches);
+
+  // Refresh the filter row
+  refreshSubBranches(categoryName);
+
+  alert('תת הענף "' + trimmed + '" נוסף בהצלחה!');
+}
+
+// Refresh sub-branches display in filter row
+function refreshSubBranches(categoryName) {
+  // Find the filter row for this category
+  const filterRows = document.querySelectorAll('.filter-row');
+  filterRows.forEach(row => {
+    const addBtn = row.querySelector('.add-sub-branch');
+    if (addBtn && addBtn.onclick && addBtn.onclick.toString().includes(categoryName)) {
+      // This is the right row - rebuild it
+      const subBranches = getSubBranches(categoryName);
+      let html = `<button class="chip active" onclick="filterChip('הכל',this,'${row.id}')">הכל</button>`;
+
+      subBranches.forEach(sb => {
+        if (sb === '+') {
+          html += `<button class="chip add-sub-branch" onclick="addSubBranch('${categoryName}')">+</button>`;
+        } else {
+          html += `<button class="chip" onclick="filterChip('${sb}',this,'${row.id}')" oncontextmenu="deleteSubBranch(event, '${categoryName}', '${sb}')">${sb}</button>`;
+        }
+      });
+
+      row.innerHTML = html;
+    }
+  });
+}
+
+// Delete sub-branch with right-click
+function deleteSubBranch(e, categoryName, subBranchName) {
+  e.preventDefault();
+  if (!confirm('להסיר את תת הענף "' + subBranchName + '"?')) return;
+
+  let subBranches = getSubBranches(categoryName);
+  subBranches = subBranches.filter(sb => sb !== subBranchName);
+
+  // Ensure + is always there
+  if (!subBranches.includes('+')) subBranches.push('+');
+
+  setSubBranches(categoryName, subBranches);
+  refreshSubBranches(categoryName);
+}
+
+// Load all sub-branches for existing categories
+function loadAllSubBranches() {
+  const categories = ['מוצרים', 'דירה', 'תלוש שכר', 'אישורים', 'רפואי', 'רכב', 'ביטוח', 'מסמכים אישיים'];
+  categories.forEach(cat => {
+    const subBranches = getSubBranches(cat);
+    if (subBranches.length > 1) { // Has more than just +
+      refreshSubBranches(cat);
+    }
+  });
+}
+
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
   // overlay click closes (but not for auth modal — must login)
@@ -1141,4 +1275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load custom tabs after app starts
   loadCustomTabs();
+
+  // Load sub-branches for all categories
+  loadAllSubBranches();
 });
