@@ -34,7 +34,10 @@ function setInvoiceBranches(arr) {
   localStorage.setItem(INVOICE_BRANCHES_KEY, JSON.stringify(arr));
 }
 function allInvoiceCats() {
-  return [...INVOICE_BUILTIN, ...getInvoiceBranches()];
+  const builtin = INVOICE_BUILTIN;
+  const custom = getInvoiceBranches();
+  console.log('allInvoiceCats: builtin=', builtin, 'custom=', custom);
+  return [...builtin, ...custom];
 }
 
 // Currently active invoice filter (chip) — used by openAddForBranch
@@ -262,22 +265,38 @@ function applyInvoiceFilter() {
 // ─── Add a new invoice branch (sub-category) ───
 function addBranch() {
   try {
+    console.log('addBranch: started');
     const name = prompt('שם הענף החדש (למשל: ארנונה, אינטרנט):');
+    console.log('addBranch: user entered:', name);
     if (!name) return;
     const trimmed = name.trim();
     if (!trimmed) return;
     const branches = getInvoiceBranches();
+    console.log('addBranch: current branches:', branches);
     if (branches.includes(trimmed) || INVOICE_BUILTIN.includes(trimmed)) {
       alert('הענף כבר קיים');
       return;
     }
     branches.push(trimmed);
+    console.log('addBranch: saving branches:', branches);
     setInvoiceBranches(branches);
     // Auto-register icon if missing
     if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '🧾' };
+    console.log('addBranch: calling renderInvoiceChips and refreshCategoryDropdowns');
     renderInvoiceChips();
     refreshCategoryDropdowns();
-    alert(`הענף "${trimmed}" נוסף בהצלחה`);
+    // Also refresh the utilities list to include the new category
+    console.log('addBranch: refreshing utilitiesList');
+    const invCats = allInvoiceCats();
+    fillList('utilitiesList', docs.filter(d => invCats.includes(d.cat)));
+    applyInvoiceFilter();
+    // Check if utilFilter is visible
+    const utilFilter = document.getElementById('utilFilter');
+    if (!utilFilter || utilFilter.offsetParent === null) {
+      alert(`הענף "${trimmed}" נוסף בהצלחה. הוא יופיע ברשימת הכפתורים כשתעבור לדף "חשבוניות". עכשיו אתה יכול לבחור אותו בטופס "הוסף מסמך".`);
+    } else {
+      alert(`הענף "${trimmed}" נוסף בהצלחה ומופיע ברשימת הכפתורים. עכשיו אתה יכול לבחור אותו בטופס "הוסף מסמך".`);
+    }
   } catch (e) {
     console.error('addBranch error:', e);
     alert('שגיאה בהוספת ענף: ' + e.message);
