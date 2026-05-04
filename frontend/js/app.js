@@ -188,6 +188,8 @@ function renderAll() {
   fillList('medicalList',   docs.filter(d => d.cat === 'רפואי'));
   fillList('reportsList',   docs.filter(d => ['בנק', 'אשראי'].includes(d.cat)));
   fillList('carList',       docs.filter(d => d.cat === 'רכב'));
+  fillList('insuranceList', docs.filter(d => d.cat === 'ביטוח'));
+  fillList('personalList',  docs.filter(d => d.cat === 'מסמכים אישיים'));
   renderReminders('all');
   renderCal();
   updateStats();
@@ -965,6 +967,22 @@ async function startApp() {
     const btn = document.querySelector(`.topnav-tab[onclick*="'${hash}'"]`);
     if (btn) showTab(hash, btn);
   }
+}
+
+// ─── SUBNAV ACTIVE STATE ───
+function setSubnavActive(el) {
+  if (!el) return;
+  const parent = el.closest('.topnav-subnav');
+  if (!parent) return;
+  parent.querySelectorAll('.subnav-tab').forEach(tab => tab.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── ADD PERSON PLACEHOLDER ───
+function addPerson() {
+  const name = prompt('שם הנפש החדש:');
+  if (!name || !name.trim()) return;
+  alert('הנפש "' + name.trim() + '" נוסף בהצלחה. בעתיד יהיה ניתן לסנן מסמכים לפי נפשות.');
 }
 
 // ─── INIT ───

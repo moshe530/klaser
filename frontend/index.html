@@ -53,7 +53,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   border-bottom:1px solid rgba(255,255,255,0.1);
 }
 .logo{font-size:16px;font-weight:600;letter-spacing:0.2px;color:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.logo-img{width:28px;height:28px;flex-shrink:0;}
+.logo-img{width:28px;height:28px;flex-shrink:0;background:linear-gradient(135deg, #E8EBF0 0%, #C8D8EE 50%, #A8C4E0 100%);border-radius:50%;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .logo-sep{font-size:12px;color:rgba(255,255,255,0.4);border-right:1px solid rgba(255,255,255,0.2);padding-right:12px;margin-right:4px;white-space:nowrap;}
 .topnav-tabs{display:flex;gap:0;margin-right:auto;}
 .topnav-tab{
@@ -94,12 +94,14 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   border-top:1px solid rgba(255,255,255,0.1);
 }
 .subnav-tab{
-  padding:0 0 10px;margin-left:24px;font-size:13px;color:rgba(255,255,255,0.55);
+  padding:6px 16px;margin-left:8px;font-size:13px;color:rgba(255,255,255,0.7);
   cursor:pointer;border:none;background:none;font-family:'Heebo',sans-serif;
-  border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;
+  border-radius:20px;transition:all .15s;white-space:nowrap;
 }
-.subnav-tab:hover{color:rgba(255,255,255,0.85);}
-.subnav-tab.active{color:#fff;font-weight:500;border-bottom-color:#fff;}
+.subnav-tab:hover{color:#fff;background:rgba(255,255,255,0.1);}
+.subnav-tab.active{color:var(--nav-bg);font-weight:500;background:#fff;}
+.subnav-tab.add-branch-tab{color:#fff;background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);}
+.subnav-tab.add-branch-tab:hover{background:rgba(255,255,255,0.25);}
 .subnav-tab .tab-badge{background:#E2544A;color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-right:4px;font-weight:700;}
 
 /* ─── LAYOUT ─── */
@@ -398,10 +400,13 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <button class="subnav-tab" onclick="sbNav('alerts',this,'docs');setSubnavActive(this)">התראות <span class="tab-badge" id="alertBadge" style="display:none">0</span></button>
     <button class="subnav-tab" onclick="sbNav('products',this,'docs');setSubnavActive(this)">מוצרים</button>
     <button class="subnav-tab" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
+    <button class="subnav-tab" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">ביטוחים</button>
     <button class="subnav-tab" onclick="sbNav('apartment',this,'docs');setSubnavActive(this)">דירה</button>
     <button class="subnav-tab" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">תלושי שכר</button>
     <button class="subnav-tab" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">רפואי</button>
     <button class="subnav-tab" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
+    <button class="subnav-tab" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
+    <button class="subnav-tab add-branch-tab" onclick="addBranch();setSubnavActive(this)">+ ענף חדש</button>
   </div>
   <div class="topnav-subnav" id="calSubnav" style="display:none">
     <button class="subnav-tab active" onclick="setCalView('month',null,this);setSubnavActive(this)">חודשי</button>
@@ -466,18 +471,18 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div id="docpage-alerts" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>⚠️ התראות</h1><p>מסמכים שדורשים תשומת לב</p></div></div>
+    <div class="ph"><div class="ph-left"><h1>התראות</h1><p>מסמכים שדורשים תשומת לב</p></div></div>
     <div class="doc-list" id="alertList"></div>
   </div>
 
   <div id="docpage-products" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>🛍️ מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+ הוסף</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+ הוסף</button></div></div>
     <div class="doc-list" id="productsList"></div>
   </div>
 
   <div id="docpage-utilities" class="docpage" style="display:none">
     <div class="ph">
-      <div class="ph-left"><h1>🧾 חשבוניות</h1><p>חשבונות שירותים תקופתיים</p></div>
+      <div class="ph-left"><h1>חשבוניות</h1><p>חשבונות שירותים תקופתיים</p></div>
       <div class="ph-actions">
         <button class="btn-primary" onclick="openAddForBranch()">+ הוסף</button>
       </div>
@@ -487,56 +492,77 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div id="docpage-apartment" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>🏠 דירה</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>דירה</h1></div></div>
     <div class="filter-row">
       <button class="chip active" onclick="filterChip('הכל',this,'aptFilter')">הכל</button>
-      <button class="chip" onclick="filterChip('חוזה',this,'aptFilter')">📄 חוזה</button>
-      <button class="chip" onclick="filterChip('שכר דירה',this,'aptFilter')">💰 שכר דירה</button>
+      <button class="chip" onclick="filterChip('חוזה',this,'aptFilter')">חוזה</button>
+      <button class="chip" onclick="filterChip('שכר דירה',this,'aptFilter')">שכר דירה</button>
     </div>
     <div class="doc-list" id="apartmentList"></div>
   </div>
 
   <div id="docpage-payslips" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>💼 תלושי שכר</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>תלושי שכר</h1></div></div>
     <div class="doc-list" id="payslipsList"></div>
   </div>
 
   <div id="docpage-approvals" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>📋 אישורים</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>אישורים</h1></div></div>
     <div class="doc-list" id="approvalsList"></div>
   </div>
 
   <div id="docpage-medical" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>🏥 תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+ הוסף נפש</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+ הוסף נפש</button></div></div>
     <div class="filter-row" id="personFilter">
       <button class="chip active">כולם</button>
-      <button class="chip">יוסי</button>
-      <button class="chip">מיכל</button>
-      <button class="chip">ילד 1</button>
+      <button class="chip" onclick="addPerson()">+ הוסף נפש</button>
     </div>
     <div class="doc-list" id="medicalList"></div>
   </div>
 
   <div id="docpage-reports" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>📊 דוחות</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>דוחות</h1></div></div>
     <div class="filter-row">
       <button class="chip active" onclick="filterChip('הכל',this,'repFilter')">הכל</button>
-      <button class="chip" onclick="filterChip('בנק',this,'repFilter')">🏦 בנק</button>
-      <button class="chip" onclick="filterChip('אשראי',this,'repFilter')">💳 אשראי</button>
+      <button class="chip" onclick="filterChip('בנק',this,'repFilter')">בנק</button>
+      <button class="chip" onclick="filterChip('אשראי',this,'repFilter')">אשראי</button>
     </div>
     <div class="doc-list" id="reportsList"></div>
   </div>
 
   <div id="docpage-car" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>🚗 רכב</h1></div></div>
+    <div class="ph"><div class="ph-left"><h1>רכב</h1></div></div>
     <div class="filter-row">
       <button class="chip active" onclick="filterChip('הכל',this,'carFilter')">הכל</button>
-      <button class="chip" onclick="filterChip('רישיון',this,'carFilter')">📄 רישיונות</button>
-      <button class="chip" onclick="filterChip('טסט',this,'carFilter')">✅ טסט</button>
-      <button class="chip" onclick="filterChip('רענון נהיגה',this,'carFilter')">🎓 רענון</button>
-      <button class="chip" onclick="filterChip('תיקון',this,'carFilter')">🔧 תיקונים</button>
+      <button class="chip" onclick="filterChip('רישיון',this,'carFilter')">רישיונות</button>
+      <button class="chip" onclick="filterChip('טסט',this,'carFilter')">טסט</button>
+      <button class="chip" onclick="filterChip('רענון נהיגה',this,'carFilter')">רענון</button>
+      <button class="chip" onclick="filterChip('תיקון',this,'carFilter')">תיקונים</button>
     </div>
     <div class="doc-list" id="carList"></div>
+  </div>
+
+  <div id="docpage-insurance" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>ביטוחים</h1></div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="filterChip('הכל',this,'insFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('רכב',this,'insFilter')">רכב</button>
+      <button class="chip" onclick="filterChip('דירה',this,'insFilter')">דירה</button>
+      <button class="chip" onclick="filterChip('חיים',this,'insFilter')">חיים</button>
+      <button class="chip" onclick="filterChip('בריאות',this,'insFilter')">בריאות</button>
+    </div>
+    <div class="doc-list" id="insuranceList"></div>
+  </div>
+
+  <div id="docpage-personal" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>מסמכים אישיים</h1></div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="filterChip('הכל',this,'persFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('תעודת זהות',this,'persFilter')">תעודת זהות</button>
+      <button class="chip" onclick="filterChip('דרכון',this,'persFilter')">דרכון</button>
+      <button class="chip" onclick="filterChip('רישיון נהיגה',this,'persFilter')">רישיון נהיגה</button>
+    </div>
+    <div class="doc-list" id="personalList"></div>
   </div>
 
 </div><!-- /tab-docs -->
@@ -544,7 +570,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 <!-- ══ CALENDAR TAB ══ -->
 <div class="page" id="tab-calendar">
   <div class="ph">
-    <div class="ph-left"><h1>📅 לוח שנה</h1><p id="calSubtitle">חודשי</p></div>
+    <div class="ph-left"><h1>לוח שנה</h1><p id="calSubtitle">חודשי</p></div>
     <div class="ph-actions">
       <div class="view-toggle">
         <button class="vt-btn" onclick="setCalView('day',null,this)">יום</button>
@@ -572,7 +598,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
   <div class="cal-export">
-    <label>📤 יצוא ל-</label>
+    <label>יצוא ל-</label>
     <input type="date" id="expFrom" />
     <span style="font-size:13px;color:var(--text2)">עד</span>
     <input type="date" id="expTo" />
@@ -587,7 +613,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 <!-- ══ REMINDERS TAB ══ -->
 <div class="page" id="tab-reminders">
   <div class="ph">
-    <div class="ph-left"><h1>🔔 תזכורות</h1><p id="remSubtitle">אין תזכורות</p></div>
+    <div class="ph-left"><h1>תזכורות</h1><p id="remSubtitle">אין תזכורות</p></div>
     <div class="ph-actions"><button class="btn-primary" onclick="openModal('reminder')">+ תזכורת חדשה</button></div>
   </div>
 
@@ -605,13 +631,13 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 
 <!-- ══ SETTINGS TAB ══ -->
 <div class="page" id="tab-settings">
-  <div class="ph"><div class="ph-left"><h1>⚙️ הגדרות</h1></div></div>
+  <div class="ph"><div class="ph-left"><h1>הגדרות</h1></div></div>
 
   <div class="settings-tabs" id="settingsTabs">
-    <button class="st-tab active" onclick="setTab('general',this)">⚙️ כללי</button>
-    <button class="st-tab" onclick="setTab('remrules',this)">⏰ תזכורות</button>
-    <button class="st-tab" onclick="setTab('integrations',this)">🔗 חיבורים</button>
-    <button class="st-tab" onclick="setTab('privacy',this)">🔒 פרטיות</button>
+    <button class="st-tab active" onclick="setTab('general',this)">כללי</button>
+    <button class="st-tab" onclick="setTab('remrules',this)">תזכורות</button>
+    <button class="st-tab" onclick="setTab('integrations',this)">חיבורים</button>
+    <button class="st-tab" onclick="setTab('privacy',this)">פרטיות</button>
   </div>
 
   <!-- General -->
@@ -619,9 +645,9 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="settings-card">
       <div class="sc-header"><div><div class="sc-title">פרטי משתמש</div></div></div>
       <div class="sc-body">
-        <div class="form-group"><label>שם מלא</label><input class="form-input" value="יוסי כהן" /></div>
-        <div class="form-group"><label>אימייל</label><input class="form-input" value="yossi@gmail.com" /></div>
-        <div class="form-group"><label>טלפון</label><input class="form-input" value="050-1234567" /></div>
+        <div class="form-group"><label>שם מלא</label><input class="form-input" id="user-fullname" placeholder="הזן שם מלא" /></div>
+        <div class="form-group"><label>אימייל</label><input class="form-input" id="user-email-display" placeholder="הזן כתובת אימייל" /></div>
+        <div class="form-group"><label>טלפון</label><input class="form-input" id="user-phone" placeholder="הזן מספר טלפון" /></div>
         <button class="btn-sm accent">שמור</button>
       </div>
     </div>
@@ -667,9 +693,9 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="settings-card">
       <div class="sc-header"><div><div class="sc-title">ערוצי שליחה</div></div></div>
       <div class="sc-body">
-        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">📧 מייל</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">📱 פוש לטלפון</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">💬 וואטסאפ</div><div class="sc-row-sub">דורש הגדרת מספר</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">מייל</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">פוש לטלפון</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">וואטסאפ</div><div class="sc-row-sub">דורש הגדרת מספר</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
       </div>
     </div>
   </div>
@@ -677,7 +703,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   <!-- Integrations -->
   <div class="settings-page" id="st-integrations">
     <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">📧 חיבור אימייל</div><div class="sc-sub">שלח חשבוניות ישירות לתיבה שלנו</div></div></div>
+      <div class="sc-header"><div><div class="sc-title">חיבור אימייל</div><div class="sc-sub">שלח חשבוניות ישירות לתיבה שלנו</div></div></div>
       <div class="sc-body">
         <div class="alert-bar info" style="margin-bottom:12px">כתובת האימייל הייחודית שלך: <strong style="margin-right:6px;font-family:monospace">user_xyz@klaser.app</strong></div>
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">קבלת מסמכים במייל</div><div class="sc-row-sub">תיוק אוטומטי של קבצים</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
@@ -685,7 +711,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       </div>
     </div>
     <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">💬 חיבור וואטסאפ</div><div class="sc-sub">שלח תמונה של חשבונית ישירות מהוואטסאפ</div></div></div>
+      <div class="sc-header"><div><div class="sc-title">חיבור וואטסאפ</div><div class="sc-sub">שלח תמונה של חשבונית ישירות מהוואטסאפ</div></div></div>
       <div class="sc-body">
         <div class="form-group"><label>מספר טלפון</label><input class="form-input" placeholder="05X-XXXXXXX" /></div>
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">קבלת קבצים בוואטסאפ</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
@@ -693,7 +719,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       </div>
     </div>
     <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">🤖 סורק AI</div><div class="sc-sub">ניתוח מסמכים אוטומטי</div></div></div>
+      <div class="sc-header"><div><div class="sc-title">סורק AI</div><div class="sc-sub">ניתוח מסמכים אוטומטי</div></div></div>
       <div class="sc-body">
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">סיווג אוטומטי לקטגוריה</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">חילוץ תאריך אחריות</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
@@ -706,7 +732,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   <!-- Privacy -->
   <div class="settings-page" id="st-privacy">
     <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">🔒 אבטחה</div></div></div>
+      <div class="sc-header"><div><div class="sc-title">אבטחה</div></div></div>
       <div class="sc-body">
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">נעילה בטביעת אצבע</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">אימות דו-שלבי</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
@@ -768,9 +794,9 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 <div class="overlay" id="modal-add">
   <div class="modal">
     <div class="modal-head"><h2>הוספת מסמך</h2><button class="close-btn" onclick="closeModal('add')">×</button></div>
-    <div class="ai-badge">✨ AI ינתח ויסווג אוטומטית</div>
+    <div class="ai-badge">AI ינתח ויסווג אוטומטית</div>
     <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
-      <div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small>
+      <div class="uz-icon">�</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small>
       <input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">
     </div>
     <div class="form-group"><label>שם המסמך</label><input class="form-input" id="fm-name" placeholder="למשל: מקרר בוש KGE36" /></div>
@@ -778,18 +804,18 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <div class="form-group">
         <label>קטגוריה</label>
         <select class="form-input" id="fm-cat">
-          <option value="מוצרים">🛍️ מוצרים</option>
-          <option value="ביטוח">🛡️ ביטוח</option>
-          <option value="דירה">🏠 דירה</option>
-          <option value="רכב">🚗 רכב</option>
-          <option value="מסמכים אישיים">🪪 מסמכים אישיים</option>
-          <option value="חשמל">⚡ חשמל</option>
-          <option value="גז">🔥 גז</option>
-          <option value="מים">💧 מים</option>
-          <option value="תלוש שכר">💼 תלוש שכר</option>
-          <option value="רפואי">🏥 רפואי</option>
-          <option value="בנק">🏦 בנק</option>
-          <option value="אשראי">💳 אשראי</option>
+          <option value="מוצרים">מוצרים</option>
+          <option value="ביטוח">ביטוח</option>
+          <option value="דירה">דירה</option>
+          <option value="רכב">רכב</option>
+          <option value="מסמכים אישיים">מסמכים אישיים</option>
+          <option value="חשמל">חשמל</option>
+          <option value="גז">גז</option>
+          <option value="מים">מים</option>
+          <option value="תלוש שכר">תלוש שכר</option>
+          <option value="רפואי">רפואי</option>
+          <option value="בנק">בנק</option>
+          <option value="אשראי">אשראי</option>
         </select>
       </div>
       <div class="form-group"><label>תאריך רכישה / הוצאה</label><input class="form-input" type="date" id="fm-buy" /></div>
@@ -808,14 +834,14 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="form-group">
       <label>סוג תזכורת</label>
       <select class="form-input" id="rem-type">
-        <option>🎂 יום הולדת</option>
-        <option>💍 יום שנה</option>
-        <option>🏥 תור רפואי</option>
-        <option>🔁 יומי</option>
-        <option>🔁 שבועי</option>
-        <option>🔁 חודשי</option>
-        <option>🛡️ אחריות</option>
-        <option>📌 אחר</option>
+        <option>יום הולדת</option>
+        <option>יום שנה</option>
+        <option>תור רפואי</option>
+        <option>יומי</option>
+        <option>שבועי</option>
+        <option>חודשי</option>
+        <option>אחריות</option>
+        <option>אחר</option>
       </select>
     </div>
     <div class="form-row2">
