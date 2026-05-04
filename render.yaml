@@ -22,3 +22,9 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false  # e.g. "Klaser <onboarding@resend.dev>"
+      - key: CRON_SECRET
+        sync: false  # random string, also stored as GitHub secret

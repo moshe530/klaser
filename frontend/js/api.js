@@ -54,6 +54,7 @@
     // Reminders
     listReminders: () => request('/reminders'),
     createReminder: (payload) => request('/reminders', { method: 'POST', body: JSON.stringify(payload) }),
+    updateReminder: (id, patch) => request(`/reminders/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
     deleteReminder: (id) => request(`/reminders/${id}`, { method: 'DELETE' }),
   };
 })();

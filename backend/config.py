@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     MAILGUN_API_KEY: str = ""
     MAILGUN_SIGNING_KEY: str = ""
     RESEND_API_KEY: str = ""
+    RESEND_FROM: str = ""  # e.g. "Klaser <noreply@yourdomain.com>"
+    CRON_SECRET: str = ""  # protects /admin/scan-reminders
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
 

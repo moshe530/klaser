@@ -787,10 +787,10 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 <div class="overlay" id="modal-reminder">
   <div class="modal">
     <div class="modal-head"><h2>תזכורת חדשה</h2><button class="close-btn" onclick="closeModal('reminder')">×</button></div>
-    <div class="form-group"><label>שם / תיאור</label><input class="form-input" placeholder="למשל: יום הולדת אמא" /></div>
+    <div class="form-group"><label>שם / תיאור</label><input class="form-input" type="text" id="rem-name" placeholder="למשל: יום הולדת אמא" /></div>
     <div class="form-group">
       <label>סוג תזכורת</label>
-      <select class="form-input">
+      <select class="form-input" id="rem-type">
         <option>🎂 יום הולדת</option>
         <option>💍 יום שנה</option>
         <option>🏥 תור רפואי</option>
@@ -802,14 +802,10 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       </select>
     </div>
     <div class="form-row2">
-      <div class="form-group"><label>תאריך</label><input class="form-input" type="date" /></div>
-      <div class="form-group"><label>שעה (אופציונלי)</label><input class="form-input" type="time" /></div>
+      <div class="form-group"><label>תאריך</label><input class="form-input" type="date" id="rem-date" /></div>
+      <div class="form-group"><label>שעה (אופציונלי)</label><input class="form-input" type="time" id="rem-time" /></div>
     </div>
-    <div class="form-group">
-      <label>תזכורת מראש</label>
-      <select class="form-input"><option>יום אחד לפני</option><option>3 ימים לפני</option><option>שבוע לפני</option><option>חודש לפני</option><option>חכם (לפי כלל האחוזים)</option></select>
-    </div>
-    <button class="btn-full" onclick="closeModal('reminder')">שמור תזכורת</button>
+    <button class="btn-full" onclick="saveReminder()">שמור תזכורת</button>
   </div>
 </div>
 

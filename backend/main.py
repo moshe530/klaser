@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import ping
-from .routes import documents, reminders
+from .routes import admin, documents, reminders
 
 app = FastAPI(title="Klaser API", version="0.1.0")
 
@@ -32,3 +32,4 @@ def health():
 
 app.include_router(documents.router)
 app.include_router(reminders.router)
+app.include_router(admin.router)

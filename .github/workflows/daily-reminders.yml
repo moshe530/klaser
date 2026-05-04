@@ -1,0 +1,27 @@
+name: Daily Reminders
+
+on:
+  schedule:
+    # 06:00 UTC = 09:00 Asia/Jerusalem (IST winter / IDT summer ±1h)
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # allow manual trigger from GitHub UI
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scan-reminders
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::API_URL or CRON_SECRET secret is missing"
+            exit 1
+          fi
+          response=$(curl -fsS -X POST \
+            -H "X-Cron-Secret: ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            "${API_URL%/}/admin/scan-reminders")
+          echo "Response: $response"

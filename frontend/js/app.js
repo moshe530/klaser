@@ -1,13 +1,11 @@
 // ─── DATA (in-memory cache, populated from backend) ───
 let docs = [];
+let reminders = [];
 
-const reminders = [
-  { type: 'birthday', name: 'יום הולדת — אמא', date: '2025-05-12', dot: '#EC4899' },
-  { type: 'appt',     name: 'רופא עיניים',      date: '2025-05-03', dot: '#0D9488' },
-  { type: 'warranty', name: 'אחריות מקרר',       date: '2025-03-30', dot: '#D97706' },
-  { type: 'anniv',    name: 'יום נישואין',       date: '2025-06-15', dot: '#7C3AED' },
-  { type: 'periodic', name: 'טיפול רכב',         date: '2025-04-20', dot: '#1A56DB' },
-];
+const REM_TYPE_DOT = {
+  birthday: '#EC4899', anniv: '#7C3AED', appt: '#0D9488',
+  periodic: '#1A56DB', warranty: '#D97706', other: '#6B7280',
+};
 
 const CAT_ICON = {
   'מוצרים':         { bg: '#E1F5EE', e: '🛍️' },
@@ -370,23 +368,109 @@ function exportCal() {
 }
 
 // ─── REMINDERS ───
+const REM_TYPE_LABEL = {
+  birthday: '🎂 יום הולדת', anniv: '💍 יום שנה', appt: '🏥 תור',
+  periodic: '🔁 תקופתי', warranty: '🛡️ אחריות', other: '📌 אחר',
+};
+const REM_STATUS_LABEL = {
+  pending: '', sent: ' ✓ נשלח', failed: ' ⚠ נכשל', cancelled: ' • בוטל',
+};
+
+function fmtRemindAt(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+async function loadReminders() {
+  try {
+    const data = await KlaserAPI.listReminders();
+    reminders = (data || []).map(r => ({
+      id: r.id, type: r.type, name: r.name,
+      remind_at: r.remind_at, status: r.status,
+      doc_id: r.doc_id, channel: r.channel,
+      dot: REM_TYPE_DOT[r.type] || '#6B7280',
+    }));
+    renderReminders('all');
+  } catch (e) {
+    console.error('Failed to load reminders', e);
+  }
+}
+
 function renderReminders(filter) {
-  const arr = filter === 'all' ? reminders : reminders.filter(r => r.type === filter);
+  const arr = (filter && filter !== 'all') ? reminders.filter(r => r.type === filter) : reminders;
   const el = document.getElementById('reminderList');
   if (!el) return;
-  el.innerHTML = arr.map(r => `
-    <div class="rem-item">
+  el.innerHTML = arr.map(r => {
+    const typeTag = REM_TYPE_LABEL[r.type] || '📌';
+    const statusTag = REM_STATUS_LABEL[r.status] || '';
+    return `
+    <div class="rem-item" data-id="${r.id}">
       <div class="rem-dot" style="background:${r.dot}"></div>
       <div class="rem-info">
-        <div class="rem-name">${r.name}</div>
-        <div class="rem-when">${r.date}</div>
+        <div class="rem-name">${r.name}${statusTag}</div>
+        <div class="rem-when">${fmtRemindAt(r.remind_at)}</div>
       </div>
-      <span class="rem-type">${{ birthday: '🎂 יום הולדת', anniv: '💍 יום שנה', appt: '🏥 תור', periodic: '🔁 תקופתי', warranty: '🛡️ אחריות' }[r.type] || '📌'}</span>
-    </div>`).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין תזכורות</p>';
+      <span class="rem-type">${typeTag}</span>
+      <button class="ico-btn danger" onclick="delReminder('${r.id}')" title="מחק" style="margin-right:8px;">�️</button>
+    </div>`;
+  }).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין תזכורות</p>';
 }
+
 function filterRem(type, el) {
   if (el) { document.querySelectorAll('#sb-reminders .sb-item').forEach(i => i.classList.remove('active')); el.classList.add('active'); }
   renderReminders(type);
+}
+
+// Map Hebrew label from <option> back to enum value
+const REM_LABEL_TO_TYPE = {
+  '🎂 יום הולדת': 'birthday',
+  '💍 יום שנה': 'anniv',
+  '🏥 תור רפואי': 'appt',
+  '🔁 יומי': 'periodic',
+  '🔁 שבועי': 'periodic',
+  '🔁 חודשי': 'periodic',
+  '🛡️ אחריות': 'warranty',
+  '📌 אחר': 'other',
+};
+
+async function saveReminder() {
+  const name = document.getElementById('rem-name').value.trim();
+  const typeLabel = document.getElementById('rem-type').value;
+  const type = REM_LABEL_TO_TYPE[typeLabel] || 'other';
+  const dateVal = document.getElementById('rem-date').value;
+  const timeVal = document.getElementById('rem-time').value || '09:00';
+
+  if (!name) { alert('יש לציין שם תזכורת'); return; }
+  if (!dateVal) { alert('יש לבחור תאריך'); return; }
+
+  const remind_at = new Date(`${dateVal}T${timeVal}:00`).toISOString();
+
+  try {
+    await KlaserAPI.createReminder({ name, type, remind_at, channel: 'email' });
+    await loadReminders();
+    closeModal('reminder');
+    document.getElementById('rem-name').value = '';
+    document.getElementById('rem-date').value = '';
+    document.getElementById('rem-time').value = '';
+  } catch (e) {
+    console.error(e);
+    alert('שגיאה בשמירת תזכורת:\n' + e.message);
+  }
+}
+
+async function delReminder(id) {
+  if (!confirm('למחוק את התזכורת?')) return;
+  try {
+    await KlaserAPI.deleteReminder(id);
+    reminders = reminders.filter(r => r.id !== id);
+    renderReminders('all');
+  } catch (e) {
+    console.error(e);
+    alert('שגיאה במחיקה:\n' + e.message);
+  }
 }
 
 // ─── SETTINGS TABS ───
@@ -680,6 +764,7 @@ async function startApp() {
     return;
   }
   await loadDocs();
+  await loadReminders();
 }
 
 // ─── INIT ───
