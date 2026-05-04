@@ -153,8 +153,12 @@ function fillList(id, arr) {
 
 function renderInvoiceChips() {
   const row = document.getElementById('utilFilter');
-  if (!row) return;
+  if (!row) {
+    console.log('renderInvoiceChips: utilFilter not found');
+    return;
+  }
   const branches = allInvoiceCats();
+  console.log('renderInvoiceChips: rendering', branches.length, 'branches');
   const chips = [
     `<button class="chip ${activeInvoiceFilter==='הכל'?'active':''}" onclick="filterInvoice('הכל',this)">הכל</button>`,
     ...branches.map(b => {
@@ -225,6 +229,17 @@ function updateStats() {
       bar.style.display = 'none';
     }
   }
+  // Update sidebar alert badge (soon + expired)
+  const alertCount = soon + expired;
+  const alertBadge = document.getElementById('alertBadge');
+  if (alertBadge) {
+    if (alertCount > 0) {
+      alertBadge.textContent = alertCount;
+      alertBadge.style.display = '';
+    } else {
+      alertBadge.style.display = 'none';
+    }
+  }
 }
 
 // ─── Invoice page filter ───
@@ -246,21 +261,27 @@ function applyInvoiceFilter() {
 
 // ─── Add a new invoice branch (sub-category) ───
 function addBranch() {
-  const name = prompt('שם הענף החדש (למשל: ארנונה, אינטרנט):');
-  if (!name) return;
-  const trimmed = name.trim();
-  if (!trimmed) return;
-  const branches = getInvoiceBranches();
-  if (branches.includes(trimmed) || INVOICE_BUILTIN.includes(trimmed)) {
-    alert('הענף כבר קיים');
-    return;
+  try {
+    const name = prompt('שם הענף החדש (למשל: ארנונה, אינטרנט):');
+    if (!name) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const branches = getInvoiceBranches();
+    if (branches.includes(trimmed) || INVOICE_BUILTIN.includes(trimmed)) {
+      alert('הענף כבר קיים');
+      return;
+    }
+    branches.push(trimmed);
+    setInvoiceBranches(branches);
+    // Auto-register icon if missing
+    if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '🧾' };
+    renderInvoiceChips();
+    refreshCategoryDropdowns();
+    alert(`הענף "${trimmed}" נוסף בהצלחה`);
+  } catch (e) {
+    console.error('addBranch error:', e);
+    alert('שגיאה בהוספת ענף: ' + e.message);
   }
-  branches.push(trimmed);
-  setInvoiceBranches(branches);
-  // Auto-register icon if missing
-  if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '🧾' };
-  renderInvoiceChips();
-  refreshCategoryDropdowns();
 }
 
 // Open add-doc modal pre-filled with the current invoice branch
@@ -359,7 +380,9 @@ function doSearch(q) {
 
 // ─── CALENDAR ───
 let calDate = new Date();
+let calViewMode = 'month'; // 'month' | 'week' | 'day'
 const HEB_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+const HEB_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
 function calEvents() {
   // Build calendar events from real docs (warranty_end dates)
@@ -371,6 +394,12 @@ function calEvents() {
 }
 
 function renderCal() {
+  if (calViewMode === 'month') renderCalMonth();
+  else if (calViewMode === 'week') renderCalWeek();
+  else if (calViewMode === 'day') renderCalDay();
+}
+
+function renderCalMonth() {
   const y = calDate.getFullYear(), m = calDate.getMonth();
   const titleEl = document.getElementById('calTitle');
   if (!titleEl) return;
@@ -393,16 +422,85 @@ function renderCal() {
       ${evs.map(e => `<div class="cal-event ${e.cls}">${e.text}</div>`).join('')}
     </div>`;
   }
-  document.getElementById('calBody').innerHTML = html;
+  const body = document.getElementById('calBody');
+  if (body) {
+    body.style.gridTemplateColumns = 'repeat(7, 1fr)';
+    body.innerHTML = html;
+  }
 }
 
-function changeMonth(dir) { calDate.setMonth(calDate.getMonth() + dir); renderCal(); }
+function renderCalWeek() {
+  const startOfWeek = new Date(calDate);
+  startOfWeek.setDate(calDate.getDate() - calDate.getDay()); // Sunday
+  const titleEl = document.getElementById('calTitle');
+  if (titleEl) {
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    titleEl.textContent = `${startOfWeek.getDate()}-${endOfWeek.getDate()} ${HEB_MONTHS[startOfWeek.getMonth()]} ${startOfWeek.getFullYear()}`;
+  }
+  const events = calEvents();
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const evs = events.filter(e => e.date === ds);
+    const isToday = new Date().toDateString() === d.toDateString();
+    html += `<div class="cal-day${isToday ? ' today' : ''}${evs.length ? ' has-events' : ''}" onclick="calDayClick('${ds}')">
+      <div class="day-num" style="font-size:14px;font-weight:700;margin-bottom:4px">${HEB_DAYS[i]} ${d.getDate()}</div>
+      ${evs.map(e => `<div class="cal-event ${e.cls}">${e.text}</div>`).join('')}
+    </div>`;
+  }
+  const body = document.getElementById('calBody');
+  if (body) {
+    body.style.gridTemplateColumns = 'repeat(7, 1fr)';
+    body.innerHTML = html;
+  }
+}
+
+function renderCalDay() {
+  const titleEl = document.getElementById('calTitle');
+  if (titleEl) {
+    titleEl.textContent = `${HEB_DAYS[calDate.getDay()]} ${calDate.getDate()} ${HEB_MONTHS[calDate.getMonth()]} ${calDate.getFullYear()}`;
+  }
+  const y = calDate.getFullYear(), m = calDate.getMonth(), d = calDate.getDate();
+  const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const events = calEvents().filter(e => e.date === ds);
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    html += `<div class="day-hour" style="border-bottom:1px solid var(--border);padding:8px;display:flex;gap:12px;align-items:center">
+      <div style="width:50px;color:var(--text3);font-size:12px;font-weight:600">${String(h).padStart(2,'0')}:00</div>
+      <div style="flex:1"></div>
+    </div>`;
+  }
+  const body = document.getElementById('calBody');
+  if (body) {
+    body.style.gridTemplateColumns = '1fr';
+    body.innerHTML = `<div style="padding:16px">
+      <h3 style="margin-bottom:12px">${events.length ? 'אירועים:' : 'אין אירועים'}</h3>
+      ${events.map(e => `<div class="cal-event ${e.cls}" style="margin-bottom:8px;padding:12px">${e.text}</div>`).join('')}
+    </div>${html}`;
+  }
+}
+
+function changeMonth(dir) {
+  if (calViewMode === 'month') {
+    calDate.setMonth(calDate.getMonth() + dir);
+  } else if (calViewMode === 'week') {
+    calDate.setDate(calDate.getDate() + (dir * 7));
+  } else if (calViewMode === 'day') {
+    calDate.setDate(calDate.getDate() + dir);
+  }
+  renderCal();
+}
 function goToday() { calDate = new Date(); renderCal(); }
 function calDayClick(ds) { console.log('day', ds); }
 function setCalView(v, sbEl, topEl) {
+  calViewMode = v;
   document.getElementById('calSubtitle').textContent = { month: 'חודשי', week: 'שבועי', day: 'יומי' }[v];
   if (sbEl) { document.querySelectorAll('#sb-calendar .sb-item').forEach(i => i.classList.remove('active')); sbEl.classList.add('active'); }
   if (topEl) { topEl.closest('.view-toggle').querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active')); topEl.classList.add('active'); }
+  renderCal();
 }
 function exportCal() {
   const f = document.getElementById('expFrom').value, t = document.getElementById('expTo').value;
