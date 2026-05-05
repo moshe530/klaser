@@ -6,6 +6,7 @@ Used by GitHub Actions / external cron to trigger maintenance jobs.
 from __future__ import annotations
 
 import logging
+import secrets
 
 from fastapi import APIRouter, Header, HTTPException, status
 
@@ -23,7 +24,10 @@ def _require_cron_secret(x_cron_secret: str | None) -> None:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="CRON_SECRET not configured on server",
         )
-    if not x_cron_secret or x_cron_secret != settings.CRON_SECRET:
+    # Constant-time comparison to prevent timing attacks against CRON_SECRET.
+    if not x_cron_secret or not secrets.compare_digest(
+        x_cron_secret, settings.CRON_SECRET
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing X-Cron-Secret",

@@ -7,9 +7,15 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
     SUPABASE_ANON_KEY: str = ""
+    # Optional: when set, the backend will VERIFY JWT signatures locally
+    # (HS256). Without it we still extract the `sub` and rely on Supabase
+    # to reject invalid tokens downstream — defense in depth is recommended.
+    SUPABASE_JWT_SECRET: str = ""
 
     APP_ENV: str = "development"
-    CORS_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500"
+    CORS_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500" ,https://klaser.c0583229580.workers.dev
+
+
 
     GROQ_API_KEY: str = ""
     MAILGUN_API_KEY: str = ""

@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, Query, Request, UploadFile
 
 from ..auth import AuthContext, AuthDep
+from ..limiter import limiter
 from ..models import DocumentCreate, DocumentOut, DocumentUpdate
 from ..services import ai_analyzer, storage
 
@@ -18,6 +19,30 @@ ALLOWED_MIME = {
     "image/webp",
     "image/heic",
 }
+
+# Magic-byte signatures for the formats we accept. Validating these prevents
+# clients from disguising arbitrary content as a valid Content-Type.
+# Each entry is a list of (offset, byte-prefix) tuples — ALL must match.
+_MAGIC_BYTES: dict[str, list[tuple[int, bytes]]] = {
+    "application/pdf":  [(0, b"%PDF-")],
+    "image/png":        [(0, b"\x89PNG\r\n\x1a\n")],
+    "image/jpeg":       [(0, b"\xff\xd8\xff")],
+    # WebP: "RIFF????WEBP"
+    "image/webp":       [(0, b"RIFF"), (8, b"WEBP")],
+    # HEIC/HEIF: starts with "????ftyp" followed by a brand like "heic","heix","mif1","msf1","heif"
+    "image/heic":       [(4, b"ftyp")],
+}
+
+
+def _validate_magic_bytes(data: bytes, content_type: str) -> bool:
+    """Verify file content matches its declared MIME type via magic bytes."""
+    sigs = _MAGIC_BYTES.get(content_type)
+    if not sigs:
+        return False
+    for offset, prefix in sigs:
+        if not data[offset:offset + len(prefix)] == prefix:
+            return False
+    return True
 
 
 def _get_owned_doc(auth: AuthContext, doc_id: UUID) -> dict:
@@ -120,7 +145,9 @@ def delete_document(doc_id: UUID, auth: AuthContext = AuthDep):
 # FILE ATTACHMENTS
 # ============================================================
 @router.post("/{doc_id}/file", response_model=DocumentOut)
+@limiter.limit("30/minute")
 async def upload_file(
+    request: Request,
     doc_id: UUID,
     file: UploadFile = File(...),
     auth: AuthContext = AuthDep,
@@ -137,6 +164,15 @@ async def upload_file(
     content_type = file.content_type or "application/octet-stream"
     if content_type not in ALLOWED_MIME:
         raise HTTPException(415, f"Unsupported mime type: {content_type}")
+
+    # Verify file content matches its declared MIME type via magic bytes.
+    # Prevents clients disguising arbitrary executables/scripts as PDFs/images.
+    if not _validate_magic_bytes(data, content_type):
+        raise HTTPException(
+            400,
+            f"File content does not match declared type {content_type} "
+            "(magic-byte mismatch)",
+        )
 
     # If there was a previous file — remove it
     if doc.get("file_path"):
@@ -180,8 +216,12 @@ def get_file_url(doc_id: UUID, auth: AuthContext = AuthDep):
 # ============================================================
 # AI ANALYSIS (Groq vision pipeline v4.1)
 # ============================================================
+# Rate-limited because each call hits Groq's vision API and costs money.
+# 20 analyses/minute per IP is generous for legitimate use, blocks abuse loops.
 @router.post("/{doc_id}/analyze", response_model=DocumentOut)
+@limiter.limit("20/minute")
 def analyze_document(
+    request: Request,
     doc_id: UUID,
     auth: AuthContext = AuthDep,
     payload: dict | None = Body(default=None),

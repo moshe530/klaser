@@ -29,19 +29,39 @@ class AuthContext:
 
 
 def _decode_jwt_sub(token: str) -> UUID:
-    """Extract `sub` claim from a Supabase JWT without verifying signature.
-    Verification is delegated to Supabase itself (the token is forwarded on
-    every request, and PostgREST rejects invalid tokens).
-    """
-    import base64
-    import json
+    """Extract `sub` claim from a Supabase JWT.
 
+    If SUPABASE_JWT_SECRET is configured, the signature & expiry are verified
+    locally (defense in depth). Otherwise we fall back to unverified decode
+    and rely on Supabase to reject invalid tokens downstream.
+    """
     try:
-        parts = token.split(".")
-        if len(parts) != 3:
-            raise ValueError("malformed jwt")
-        payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        if settings.SUPABASE_JWT_SECRET:
+            # Strong path: verify signature, expiry, and audience.
+            import jwt as pyjwt
+            payload = pyjwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"require": ["exp", "sub"]},
+            )
+        else:
+            # Weak path: decode without verifying signature. Still parses
+            # exp/sub. Supabase will reject forged tokens on the actual DB
+            # call, but this is not cryptographically explicit.
+            import base64
+            import json
+            import time
+            parts = token.split(".")
+            if len(parts) != 3:
+                raise ValueError("malformed jwt")
+            payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
+            payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+            # Manual expiry check
+            exp = payload.get("exp")
+            if exp and int(exp) < int(time.time()):
+                raise ValueError("token expired")
         return UUID(payload["sub"])
     except Exception as e:
         raise HTTPException(
@@ -74,10 +94,19 @@ def get_auth(
     # Build a per-request client where the user's JWT is sent on EVERY
     # subclient (postgrest, storage, functions). This is the only reliable
     # way to make RLS see auth.uid() across all services.
+    #
+    # SECURITY: We deliberately use ANON_KEY (not SERVICE_ROLE_KEY) so RLS is
+    # enforced. If anon key isn't configured, fail loudly — falling back to
+    # the service-role key would bypass row-level security.
+    if not settings.SUPABASE_ANON_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SUPABASE_ANON_KEY not configured on server",
+        )
     opts = ClientOptions(headers={"Authorization": f"Bearer {token}"})
     client = create_client(
         settings.SUPABASE_URL,
-        settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY,
+        settings.SUPABASE_ANON_KEY,
         opts,
     )
     # Belt-and-suspenders: also explicitly tell postgrest about the token.
