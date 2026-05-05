@@ -402,10 +402,34 @@ def _normalize_period(value: Any) -> dict[str, str | None] | None:
     return {"from": f, "to": t}
 
 
-def extract(image_urls: list[str], doc_type_detected: str | None) -> dict[str, Any]:
+def extract(
+    image_urls: list[str],
+    doc_type_detected: str | None,
+    categories: list[str] | None = None,
+) -> dict[str, Any]:
     """Run the Extractor vision call. Always returns a full skeleton dict
-    with normalized amounts, dates, and category clamped to CATEGORIES."""
+    with normalized amounts, dates, and category clamped to CATEGORIES.
+
+    `categories` may be passed at call-time (e.g. from the user's current
+    branch list) so newly-added user branches are recognized by the model
+    without changing the prompt manually. If omitted, the built-in CATEGORIES
+    list is used."""
+    # Build the effective category list: built-ins + any user-added branches.
+    effective_categories = list(CATEGORIES)
+    if categories:
+        for c in categories:
+            if c and c not in effective_categories:
+                effective_categories.append(c)
+
     prompt = EXTRACTOR_PROMPT_TEMPLATE
+    # Prepend the dynamic branch list and add Rule #6 about dynamic branches.
+    dynamic_header = (
+        f"ענפים נוכחיים במערכת: {' | '.join(effective_categories)}\n"
+        "כלל #6 (ענפים דינמיים): הרשימה הנוכחית מועברת בתחילת הבקשה. "
+        "בדוק תמיד אם המסמך שייך לאחד מהם, כולל ענפים חדשים שהמשתמש הוסיף "
+        "לאחרונה. אל תניח שהרשימה קבועה. אם אין ענף מתאים — החזר \"אחר\".\n\n"
+    )
+    prompt = dynamic_header + prompt
     if doc_type_detected:
         prompt += f"\n\ndoc_type_detected: {doc_type_detected}\n"
 
@@ -441,7 +465,7 @@ def extract(image_urls: list[str], doc_type_detected: str | None) -> dict[str, A
     out["purchase_date"]   = normalize_date(out.get("purchase_date"))
     out["warranty_end"]    = normalize_date(out.get("warranty_end"))
     out["document_period"] = _normalize_period(out.get("document_period"))
-    out["category"]        = clamp_enum(out.get("category"), CATEGORIES, default="אחר")
+    out["category"]        = clamp_enum(out.get("category"), effective_categories, default="אחר")
 
     # Keep amount_labels aligned with amount_candidates length.
     if len(out["amount_labels"]) != len(out["amount_candidates"]):

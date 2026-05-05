@@ -49,7 +49,13 @@
       return res.json();
     },
     getFileUrl: (id) => request(`/documents/${id}/file-url`),
-    analyzeDocument: (id) => request(`/documents/${id}/analyze`, { method: 'POST' }),
+    analyzeDocument: (id, categories = null) => request(
+      `/documents/${id}/analyze`,
+      {
+        method: 'POST',
+        body: JSON.stringify(categories ? { categories } : {}),
+      },
+    ),
 
     // Reminders
     listReminders: () => request('/reminders'),

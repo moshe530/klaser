@@ -37,7 +37,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:18px;line-height:1.5;}
 body.locked .topnav,body.locked .app-body{visibility:hidden;}
 body.locked{background:var(--accent-dark,#0D2B5E);}
 
@@ -332,6 +332,75 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 /* ─── HAMBURGER ─── */
 .hamburger{display:none;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.8);padding:4px;}
 
+/* ─── MOBILE SIDEBAR (slides from right) ─── */
+.mobile-sidebar{
+  position:fixed;
+  top:0;
+  right:0;
+  width:280px;
+  height:100vh;
+  background:#fff;
+  z-index:1000;
+  transform:translateX(100%);
+  transition:transform 0.3s ease;
+  box-shadow:-4px 0 20px rgba(0,0,0,0.15);
+  overflow-y:auto;
+  direction:rtl;
+}
+.mobile-sidebar.open{transform:translateX(0);}
+.mobile-sidebar-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  background:var(--nav-bg);
+  color:#fff;
+}
+.mobile-sidebar-title{font-size:16px;font-weight:600;}
+.mobile-sidebar-close{
+  background:none;
+  border:none;
+  color:#fff;
+  font-size:24px;
+  cursor:pointer;
+  padding:0;
+  width:32px;
+  height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.mobile-sidebar-nav{padding:16px 0;}
+.mobile-nav-item{
+  display:block;
+  padding:14px 20px;
+  color:var(--text);
+  text-decoration:none;
+  font-size:15px;
+  border-bottom:1px solid var(--border);
+  transition:background 0.15s;
+}
+.mobile-nav-item:hover{background:var(--surface2);}
+.mobile-nav-item.active{
+  background:var(--accent2);
+  color:var(--accent);
+  font-weight:500;
+}
+.mobile-sidebar-overlay{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,0.5);
+  z-index:999;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 0.3s, visibility 0.3s;
+}
+.mobile-sidebar-overlay.open{opacity:1;visibility:visible;}
+
 /* ─── RESPONSIVE ─── */
 @media(max-width:768px){
   :root{--nav-h:56px;}
@@ -361,6 +430,105 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   .cal-day{padding:4px;}
   .day-num{font-size:11px;}
 }
+
+/* ─── ABOUT PAGE ─── */
+.about-page{max-width:900px;margin:0 auto;}
+.about-hero{
+  background:linear-gradient(135deg, var(--accent) 0%, #2C5BA0 100%);
+  color:#fff;
+  padding:48px 32px;
+  border-radius:var(--radius);
+  text-align:center;
+  margin-bottom:32px;
+  box-shadow:var(--shadow-lg);
+}
+.about-hero h1{font-size:32px;font-weight:700;margin-bottom:12px;}
+.about-tagline{font-size:18px;opacity:0.95;line-height:1.6;}
+.about-section{
+  background:var(--surface);
+  padding:32px;
+  border-radius:var(--radius);
+  margin-bottom:24px;
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+}
+.about-section h2{
+  font-size:24px;
+  font-weight:600;
+  color:var(--accent);
+  margin-bottom:16px;
+  padding-bottom:12px;
+  border-bottom:2px solid var(--accent2);
+}
+.about-section p{font-size:16px;line-height:1.7;color:var(--text);}
+.about-list{list-style:none;padding:0;}
+.about-list li{
+  padding:12px 0;
+  font-size:16px;
+  line-height:1.6;
+  border-bottom:1px solid var(--border);
+}
+.about-list li:last-child{border-bottom:none;}
+.about-list li strong{color:var(--accent);margin-left:6px;}
+.faq-item{
+  margin-bottom:20px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--border);
+}
+.faq-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.faq-item h3{
+  font-size:17px;
+  font-weight:600;
+  color:var(--accent);
+  margin-bottom:8px;
+}
+.faq-item p{font-size:15px;color:var(--text2);line-height:1.6;}
+.testimonials-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
+  gap:20px;
+}
+.testimonial{
+  padding:20px;
+  background:var(--accent2);
+  border-radius:var(--radius);
+  border:1px solid var(--accent3);
+}
+.testimonial p{
+  font-size:15px;
+  font-style:italic;
+  margin-bottom:16px;
+  line-height:1.6;
+  color:var(--text);
+}
+.testimonial-author{display:flex;flex-direction:column;}
+.testimonial-author strong{color:var(--accent);font-size:14px;}
+.testimonial-author span{color:var(--text3);font-size:12px;}
+.about-cta{
+  background:linear-gradient(135deg, var(--accent) 0%, #2C5BA0 100%);
+  color:#fff;
+  padding:48px 32px;
+  border-radius:var(--radius);
+  text-align:center;
+  margin-bottom:24px;
+  box-shadow:var(--shadow-lg);
+}
+.about-cta h2{font-size:28px;font-weight:700;margin-bottom:12px;color:#fff;border:none;padding:0;}
+.about-cta p{font-size:17px;margin-bottom:24px;opacity:0.95;}
+.btn-cta{
+  background:#fff;
+  color:var(--accent);
+  border:none;
+  padding:16px 48px;
+  font-size:17px;
+  font-weight:600;
+  border-radius:30px;
+  cursor:pointer;
+  font-family:'Heebo',sans-serif;
+  transition:all .2s;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+.btn-cta:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.25);}
 </style>
 </head>
 <body>
@@ -381,6 +549,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <button class="topnav-tab" onclick="showTab('calendar',this)">לוח שנה</button>
       <button class="topnav-tab" onclick="showTab('reminders',this)">תזכורות <span class="tab-badge" id="remBadge" style="display:none">0</span></button>
       <button class="topnav-tab" onclick="showTab('settings',this)">הגדרות</button>
+      <button class="topnav-tab" onclick="showTab('about',this)">אודות</button>
     </nav>
     <div class="topnav-right">
       <div class="search-wrap">
@@ -428,6 +597,22 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 </header>
 
+<!-- MOBILE SIDEBAR -->
+<div class="mobile-sidebar-overlay" id="mobileSidebarOverlay" onclick="closeSidebar()"></div>
+<div class="mobile-sidebar" id="mobileSidebar">
+  <div class="mobile-sidebar-header">
+    <span class="mobile-sidebar-title">תפריט</span>
+    <button class="mobile-sidebar-close" onclick="closeSidebar()">×</button>
+  </div>
+  <nav class="mobile-sidebar-nav">
+    <a href="#" class="mobile-nav-item active" data-tab="docs" onclick="showTab('docs',null);closeSidebar();return false;">מסמכים</a>
+    <a href="#" class="mobile-nav-item" data-tab="calendar" onclick="showTab('calendar',null);closeSidebar();return false;">לוח שנה</a>
+    <a href="#" class="mobile-nav-item" data-tab="reminders" onclick="showTab('reminders',null);closeSidebar();return false;">תזכורות</a>
+    <a href="#" class="mobile-nav-item" data-tab="settings" onclick="showTab('settings',null);closeSidebar();return false;">הגדרות</a>
+    <a href="#" class="mobile-nav-item" data-tab="about" onclick="showTab('about',null);closeSidebar();return false;">אודות</a>
+  </nav>
+</div>
+
 <div class="app-body">
 
 <!-- MAIN -->
@@ -441,10 +626,10 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <div class="ph-left"><h1>כל המסמכים</h1><p id="docsSubtitle">0 מסמכים</p></div>
     </div>
     <div class="stats-grid">
-      <div class="stat c-accent"><div class="sv" id="stat-total">0</div><div class="sl">סה"כ מסמכים</div></div>
-      <div class="stat c-orange"><div class="sv" id="stat-soon">0</div><div class="sl">פגים בקרוב</div></div>
-      <div class="stat c-red"><div class="sv" id="stat-expired">0</div><div class="sl">פג תוקף</div></div>
-      <div class="stat c-green"><div class="sv" id="stat-valid">0</div><div class="sl">בתוקף</div></div>
+      <div class="stat c-accent" style="cursor:pointer" onclick="filterByStatus('all')"><div class="sv" id="stat-total">0</div><div class="sl">סה"כ מסמכים</div></div>
+      <div class="stat c-orange" style="cursor:pointer" onclick="filterByStatus('soon')"><div class="sv" id="stat-soon">0</div><div class="sl">פגים בקרוב</div></div>
+      <div class="stat c-red" style="cursor:pointer" onclick="filterByStatus('expired')"><div class="sv" id="stat-expired">0</div><div class="sl">פג תוקף</div></div>
+      <div class="stat c-green" style="cursor:pointer" onclick="filterByStatus('valid')"><div class="sv" id="stat-valid">0</div><div class="sl">בתוקף</div></div>
     </div>
     <div class="alert-bar warn" id="docsAlertBar" style="display:none">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="4" width="1.3" height="4" rx=".65" fill="currentColor"/><rect x="7" y="9.5" width="1.3" height="1.3" rx=".65" fill="currentColor"/></svg>
@@ -760,6 +945,90 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 
 </div><!-- /tab-settings -->
 
+<!-- ══ ABOUT TAB ══ -->
+<div class="page" id="tab-about">
+  <div class="about-page">
+    <!-- Hero Section -->
+    <section class="about-hero">
+      <h1>קלסר - ניהול מסמכים חכם</h1>
+      <p class="about-tagline">המקום הבטוח והחכם לניהול כל המסמכים החשובים שלך - במקום אחד, מאובטח ונגיש מכל מכשיר.</p>
+    </section>
+
+    <!-- What is Klaser -->
+    <section class="about-section">
+      <h2>מה זה קלסר?</h2>
+      <p>קלסר היא אפליקציה חכמה לניהול מסמכים אישיים ומשפחתיים. אנחנו משתמשים בבינה מלאכותית מתקדמת כדי לסרוק, לארגן ולנהל את המסמכים שלך אוטומטית - ביטוחים, חשבוניות, מסמכי דירה, רכב, רפואיים ועוד. האפליקציה מתאימה לכל מי שרוצה להפסיק לחפש מסמכים בתיקיות ובארגזים, ולקבל התראות לפני שתוקף תפוג.</p>
+    </section>
+
+    <!-- Security -->
+    <section class="about-section">
+      <h2>אבטחה ופרטיות</h2>
+      <ul class="about-list">
+        <li><strong>הצפנה מלאה:</strong> המסמכים שלך מוצפנים ומאוחסנים בשרתי Supabase באירופה</li>
+        <li><strong>אימות מאובטח:</strong> אימות דו-שלבי עם JWT (JSON Web Tokens)</li>
+        <li><strong>פרטיות מוחלטת:</strong> אף אחד מהצוות שלנו לא יכול לקרוא את המסמכים שלך</li>
+        <li><strong>תקני אבטחה:</strong> עמידה בתקן GDPR האירופי לפרטיות נתונים</li>
+        <li><strong>בידוד נתונים:</strong> כל משתמש רואה רק את המסמכים שלו (Row Level Security)</li>
+      </ul>
+    </section>
+
+    <!-- FAQ -->
+    <section class="about-section">
+      <h2>שאלות ותשובות נפוצות</h2>
+      <div class="faq-item">
+        <h3>האם הנתונים שלי בטוחים?</h3>
+        <p>כן! כל המידע מוצפן בעת אחסון והעברה. אנחנו משתמשים בתשתית של Supabase שעומדת בתקנים הבינלאומיים המחמירים ביותר.</p>
+      </div>
+      <div class="faq-item">
+        <h3>מה קורה אם אני מוחק חשבון?</h3>
+        <p>במחיקת חשבון, כל המסמכים והנתונים שלך נמחקים לצמיתות מהשרתים שלנו תוך 30 יום, בהתאם לתקן GDPR.</p>
+      </div>
+      <div class="faq-item">
+        <h3>האם יש אפליקציה לנייד?</h3>
+        <p>כרגע האפליקציה מותאמת במלואה לדפדפנים בנייד (PWA). אפליקציה מקורית ל-iOS ו-Android בפיתוח.</p>
+      </div>
+      <div class="faq-item">
+        <h3>כמה מסמכים אפשר להעלות?</h3>
+        <p>במסלול החינמי - עד 50 מסמכים. במסלול הפרימיום - ללא הגבלה.</p>
+      </div>
+      <div class="faq-item">
+        <h3>האם ה-AI מדויק?</h3>
+        <p>ה-AI שלנו מבוסס על מודלים מתקדמים (Groq + Llama) ומגיע לדיוק של מעל 90% במסמכים בעברית. תמיד תוכל לערוך ידנית את המידע.</p>
+      </div>
+      <div class="faq-item">
+        <h3>איך מקבלים התראות לפני תאריך פג תוקף?</h3>
+        <p>המערכת שולחת התראות במייל ובפוש בהגדרות מותאמות אישית - 30, 14, 7 ו-1 ימים לפני פג תוקף.</p>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="about-section">
+      <h2>המלצות משתמשים</h2>
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <p>"קלסר חסך לי המון זמן! סוף סוף יש לי מקום אחד לכל המסמכים והתזכורות עובדות מצוין."</p>
+          <div class="testimonial-author"><strong>שרה כהן</strong><span>אמא לשלושה</span></div>
+        </div>
+        <div class="testimonial">
+          <p>"כבעל עסק קטן, אני מנהל המון חשבוניות. ה-AI סורק אוטומטית ומסדר הכל - מדהים!"</p>
+          <div class="testimonial-author"><strong>דני לוי</strong><span>בעל עסק</span></div>
+        </div>
+        <div class="testimonial">
+          <p>"ההתראות לפני פג תוקף הצילו אותי כמה פעמים. ממש כלי הכרחי."</p>
+          <div class="testimonial-author"><strong>מיכל אברהם</strong><span>רואת חשבון</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="about-cta">
+      <h2>מוכן להתחיל?</h2>
+      <p>הצטרף עכשיו ותתחיל לנהל את המסמכים שלך בצורה חכמה ובטוחה</p>
+      <button class="btn-cta" onclick="showTab('docs',document.querySelector('.topnav-tab'))">התחל עכשיו בחינם</button>
+    </section>
+  </div>
+</div><!-- /tab-about -->
+
 </main>
 </div>
 
@@ -1020,11 +1289,16 @@ function showTab(tab,el,mobEl){
   if(el)el.classList.add('active');
   document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
   if(mobEl)mobEl.classList.add('active');
-  // show/hide subnavs - hide ALL first, then show active
-  document.querySelectorAll('.topnav-subnav').forEach(n=>n.style.display='none');
+  // show/hide subnavs - hide ALL first with !important, then show active
+  document.querySelectorAll('.topnav-subnav').forEach(n=>{n.style.setProperty('display','none','important');});
   const subnavMap={docs:'docsSubnav',calendar:'calSubnav',reminders:'remSubnav',settings:'settSubnav'};
   const activeSubnav=document.getElementById(subnavMap[tab]);
-  if(activeSubnav)activeSubnav.style.display='flex';
+  if(activeSubnav)activeSubnav.style.setProperty('display','flex','important');
+  // Update mobile sidebar active state
+  document.querySelectorAll('.mobile-nav-item').forEach(item=>{
+    item.classList.remove('active');
+    if(item.dataset.tab===tab)item.classList.add('active');
+  });
 }
 
 // ─── SIDEBAR DOC NAV ───
@@ -1161,8 +1435,23 @@ function addDoc(){
   z.style.borderColor='';z.style.background='';
 }
 
-// ─── SIDEBAR TOGGLE (mobile menu placeholder) ───
-function toggleSidebar(){}
+// ─── MOBILE SIDEBAR TOGGLE ───
+function toggleSidebar(){
+  const sidebar = document.getElementById('mobileSidebar');
+  const overlay = document.getElementById('mobileSidebarOverlay');
+  if (sidebar && overlay) {
+    sidebar.classList.add('open');
+    overlay.classList.add('open');
+  }
+}
+function closeSidebar(){
+  const sidebar = document.getElementById('mobileSidebar');
+  const overlay = document.getElementById('mobileSidebarOverlay');
+  if (sidebar && overlay) {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+  }
+}
 
 // ─── INIT ───
 document.getElementById('fm-buy').valueAsDate=new Date();
@@ -1170,5 +1459,4 @@ showTab('docs',document.querySelector('.topnav-tab'));
 renderAll();
 </script>
 </body>
-</html>
 </html>

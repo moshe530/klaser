@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, Query, UploadFile
 
 from ..auth import AuthContext, AuthDep
 from ..models import DocumentCreate, DocumentOut, DocumentUpdate
@@ -181,13 +181,28 @@ def get_file_url(doc_id: UUID, auth: AuthContext = AuthDep):
 # AI ANALYSIS (Groq vision pipeline v4.1)
 # ============================================================
 @router.post("/{doc_id}/analyze", response_model=DocumentOut)
-def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
+def analyze_document(
+    doc_id: UUID,
+    auth: AuthContext = AuthDep,
+    payload: dict | None = Body(default=None),
+):
     """Run the Groq vision pipeline (Classifier + Extractor) on the attached
     file and update document fields. User-edited fields are preserved on
-    re-analysis; pipeline metadata is always overwritten."""
+    re-analysis; pipeline metadata is always overwritten.
+
+    Optional request body: {"categories": ["ענף1", "ענף2", ...]}
+    These are merged with the built-in CATEGORIES so the AI recognizes
+    user-added branches without redeploying the prompt."""
     doc = _get_owned_doc(auth, doc_id)
     if not doc.get("file_path"):
         raise HTTPException(400, "Document has no attached file to analyze")
+
+    # Extract user categories from request body (optional)
+    user_categories: list[str] | None = None
+    if isinstance(payload, dict):
+        cats = payload.get("categories")
+        if isinstance(cats, list):
+            user_categories = [str(c) for c in cats if c]
 
     # Mark as processing
     auth.client.table(TABLE).update({"ocr_status": "processing"}).eq(
@@ -196,7 +211,11 @@ def analyze_document(doc_id: UUID, auth: AuthContext = AuthDep):
 
     try:
         data = storage.download_bytes(auth.client, doc["file_path"])
-        result = ai_analyzer.analyze_file(data, doc.get("mime_type") or "application/pdf")
+        result = ai_analyzer.analyze_file(
+            data,
+            doc.get("mime_type") or "application/pdf",
+            categories=user_categories,
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()  # מדפיס את ה-stack trace המלא לטרמינל uvicorn

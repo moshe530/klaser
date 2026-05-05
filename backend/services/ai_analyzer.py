@@ -14,6 +14,13 @@ from typing import Any
 from . import ai_pipeline
 
 
-def analyze_file(data: bytes, mime_type: str) -> dict[str, Any]:
-    """Run the full AI pipeline on a file. Returns the v4.1 unified shape."""
-    return ai_pipeline.run_pipeline(data, mime_type)
+def analyze_file(
+    data: bytes,
+    mime_type: str,
+    categories: list[str] | None = None,
+) -> dict[str, Any]:
+    """Run the full AI pipeline on a file. Returns the v4.1 unified shape.
+
+    `categories` (optional) is the user's current branch list, forwarded to
+    the extractor so newly-added user branches are recognized."""
+    return ai_pipeline.run_pipeline(data, mime_type, categories=categories)

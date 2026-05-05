@@ -8,18 +8,18 @@ const REM_TYPE_DOT = {
 };
 
 const CAT_ICON = {
-  'מוצרים':         { bg: '#E1F5EE', e: '🛍️' },
-  'ביטוח':          { bg: '#EDE9FE', e: '🛡️' },
-  'דירה':           { bg: '#FEF3C7', e: '🏠' },
-  'רכב':            { bg: '#E6F1FB', e: '🚗' },
-  'מסמכים אישיים':  { bg: '#EEEDFE', e: '🪪' },
-  'חשמל':           { bg: '#FEF9C3', e: '⚡' },
-  'גז':             { bg: '#FFE4E6', e: '🔥' },
-  'מים':            { bg: '#E0F2FE', e: '💧' },
-  'תלוש שכר':       { bg: '#F0FDF4', e: '💼' },
-  'רפואי':          { bg: '#FEF2F2', e: '🏥' },
-  'בנק':            { bg: '#FFFBEB', e: '🏦' },
-  'אשראי':          { bg: '#FDF4FF', e: '💳' },
+  'מוצרים':         { bg: '#E1F5EE' },
+  'ביטוח':          { bg: '#EDE9FE' },
+  'דירה':           { bg: '#FEF3C7' },
+  'רכב':            { bg: '#E6F1FB' },
+  'מסמכים אישיים':  { bg: '#EEEDFE' },
+  'חשמל':           { bg: '#FEF9C3' },
+  'גז':             { bg: '#FFE4E6' },
+  'מים':            { bg: '#E0F2FE' },
+  'תלוש שכר':       { bg: '#F0FDF4' },
+  'רפואי':          { bg: '#FEF2F2' },
+  'בנק':            { bg: '#FFFBEB' },
+  'אשראי':          { bg: '#FDF4FF' },
 };
 
 // ─── Invoice branches (sub-categories under "חשבוניות" page) ───
@@ -135,7 +135,7 @@ function makeCard(d) {
   const aiMetaHtml = aiMeta.length ? `<div class="ai-meta">${aiMeta.join('')}</div>` : '';
 
   return `<div class="doc-card ${cls}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
-    <div class="doc-icon" style="background:${ic.bg}">${ic.e}</div>
+    <div class="doc-icon" style="background:${ic.bg}"></div>
     <div class="doc-info">
       <div class="doc-name">${d.name}</div>
       <div class="doc-meta">${d.cat}${amountDisplay ? ' · ' + amountDisplay : ''}</div>
@@ -143,8 +143,9 @@ function makeCard(d) {
     </div>
     <div class="doc-right">${tag}${dt}</div>
     <div class="doc-actions">
-      <button class="ico-btn" data-act="edit" title="עריכה">✏️</button>
-      <button class="ico-btn danger" data-act="del" title="מחיקה">🗑️</button>
+      <button class="ico-btn" data-act="view" title="הצג">👁</button>
+      <button class="ico-btn" data-act="edit" title="עריכה">✎</button>
+      <button class="ico-btn danger" data-act="del" title="מחיקה">✕</button>
     </div>
   </div>`;
 }
@@ -152,6 +153,26 @@ function makeCard(d) {
 function fillList(id, arr) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = arr.map(makeCard).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין פריטים</p>';
+}
+
+// Filter by document status (clicking on stats cards)
+function filterByStatus(statusFilter) {
+  const list = document.getElementById('docList');
+  if (!list) return;
+  // Make sure we're on docs tab and "all" page
+  showTab('docs', document.querySelector('.topnav-tab'));
+  sbNav('all', null, 'docs');
+  // Clear chip filter
+  document.querySelectorAll('#docFilters .chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('#docFilters .chip').classList.add('active');
+  // Filter cards by status
+  list.querySelectorAll('.doc-card').forEach(c => {
+    let show = true;
+    if (statusFilter === 'soon') show = c.classList.contains('expiring');
+    else if (statusFilter === 'expired') show = c.classList.contains('urgent');
+    else if (statusFilter === 'valid') show = !c.classList.contains('expiring') && !c.classList.contains('urgent');
+    c.style.display = show ? '' : 'none';
+  });
 }
 
 function renderInvoiceChips() {
@@ -367,16 +388,16 @@ function openAddForBranch() {
 function refreshCategoryDropdowns() {
   const customBranches = getInvoiceBranches();
   const builtIn = [
-    ['מוצרים', '🛍️'], ['ביטוח', '🛡️'], ['דירה', '🏠'], ['רכב', '🚗'],
-    ['מסמכים אישיים', '🪪'], ['חשמל', '⚡'], ['גז', '🔥'], ['מים', '💧'],
-    ['תלוש שכר', '💼'], ['רפואי', '🏥'], ['בנק', '🏦'], ['אשראי', '💳'],
+    'מוצרים', 'ביטוח', 'דירה', 'רכב',
+    'מסמכים אישיים', 'חשמל', 'גז', 'מים',
+    'תלוש שכר', 'רפואי', 'בנק', 'אשראי',
   ];
-  const all = [...builtIn, ...customBranches.map(b => [b, (CAT_ICON[b]?.e || '🧾')])];
+  const all = [...builtIn, ...customBranches];
   ['fm-cat', 'ed-cat'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = all.map(([v, e]) => `<option value="${v}">${e} ${v}</option>`).join('');
+    sel.innerHTML = all.map(v => `<option value="${v}">${v}</option>`).join('');
     if (prev) sel.value = prev;
   });
 }
@@ -577,8 +598,8 @@ function exportCal() {
 
 // ─── REMINDERS ───
 const REM_TYPE_LABEL = {
-  birthday: '🎂 יום הולדת', anniv: '💍 יום שנה', appt: '🏥 תור',
-  periodic: '🔁 תקופתי', warranty: '🛡️ אחריות', other: '📌 אחר',
+  birthday: ' יום הולדת', anniv: ' יום שנה', appt: ' תור',
+  periodic: ' תקופתי', warranty: ' אחריות', other: ' אחר',
 };
 const REM_STATUS_LABEL = {
   pending: '', sent: ' ✓ נשלח', failed: ' ⚠ נכשל', cancelled: ' • בוטל',
@@ -664,14 +685,14 @@ function filterRem(type, el) {
 
 // Map Hebrew label from <option> back to enum value
 const REM_LABEL_TO_TYPE = {
-  '🎂 יום הולדת': 'birthday',
-  '💍 יום שנה': 'anniv',
-  '🏥 תור רפואי': 'appt',
-  '🔁 יומי': 'periodic',
-  '🔁 שבועי': 'periodic',
-  '🔁 חודשי': 'periodic',
-  '🛡️ אחריות': 'warranty',
-  '📌 אחר': 'other',
+  ' יום הולדת': 'birthday',
+  ' יום שנה': 'anniv',
+  ' תור רפואי': 'appt',
+  ' יומי': 'periodic',
+  ' שבועי': 'periodic',
+  ' חודשי': 'periodic',
+  ' אחריות': 'warranty',
+  ' אחר': 'other',
 };
 
 async function saveReminder() {
@@ -766,7 +787,7 @@ async function openDocFile(id) {
 async function addDoc() {
   // אם המשתמש לא מילא שם — נשתמש בשם זמני; ה-AI ימלא שם אמיתי אחרי הניתוח
   const nameRaw = document.getElementById('fm-name').value.trim();
-  const name = nameRaw || (pendingFile ? '⏳ ממתין לניתוח AI' : 'מסמך חדש');
+  const name = nameRaw || (pendingFile ? ' ממתין לניתוח AI' : 'מסמך חדש');
 
   const payload = toApi({
     name,
@@ -821,7 +842,12 @@ async function addDoc() {
 async function runAnalyze(docId) {
   setStatusBadge('🤖 מנתח מסמך...', 'loading');
   try {
-    const updated = await KlaserAPI.analyzeDocument(docId);
+    // Send current user-added branches and custom tabs so the AI knows them.
+    const userCats = [
+      ...getInvoiceBranches(),
+      ...getCustomTabs().map(t => t.name),
+    ];
+    const updated = await KlaserAPI.analyzeDocument(docId, userCats);
     // החלף את המסמך ברשימה ב-data החדש
     const idx = docs.findIndex(d => d.id === docId);
     if (idx >= 0) docs[idx] = fromApi(updated);
@@ -912,14 +938,12 @@ document.addEventListener('click', (e) => {
     const act = actBtn.dataset.act;
     if (act === 'edit') openEdit(id);
     else if (act === 'del') delDoc(id);
+    else if (act === 'view') openDocFile(id);
     return;
   }
   if (e.shiftKey) { delDoc(id); return; }
   openDocFile(id);
 });
-
-// ─── SIDEBAR TOGGLE ───
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
 // ─── AUTH UI ───
 let authMode = 'login'; // 'login' | 'signup'
@@ -1148,11 +1172,69 @@ function loadCustomTabs() {
   });
 }
 
-// ─── ADD PERSON PLACEHOLDER ───
+// ─── PEOPLE STORAGE ───
+const PEOPLE_KEY = 'klaser_people';
+function getPeople() {
+  try {
+    return JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]');
+  } catch { return []; }
+}
+function setPeople(people) {
+  localStorage.setItem(PEOPLE_KEY, JSON.stringify(people));
+}
+
+let activePerson = 'הכל';
+
+// ─── ADD PERSON ───
 function addPerson() {
   const name = prompt('שם הנפש החדש:');
   if (!name || !name.trim()) return;
-  alert('הנפש "' + name.trim() + '" נוסף בהצלחה. בעתיד יהיה ניתן לסנן מסמכים לפי נפשות.');
+  const trimmed = name.trim();
+  const people = getPeople();
+  if (people.includes(trimmed)) {
+    alert('הנפש כבר קיים');
+    return;
+  }
+  people.push(trimmed);
+  setPeople(people);
+  renderPeople();
+  alert('הנפש "' + trimmed + '" נוסף בהצלחה!');
+}
+
+function deletePerson(e, name) {
+  e.preventDefault();
+  if (!confirm('להסיר את הנפש "' + name + '"?')) return;
+  let people = getPeople();
+  people = people.filter(p => p !== name);
+  setPeople(people);
+  if (activePerson === name) activePerson = 'הכל';
+  renderPeople();
+}
+
+function filterByPerson(name, btn) {
+  activePerson = name;
+  const row = document.getElementById('personFilter');
+  if (row) row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Filter medical docs
+  const list = document.getElementById('medicalList');
+  if (!list) return;
+  list.querySelectorAll('.doc-card').forEach(c => {
+    c.style.display = (name === 'הכל' || c.dataset.person === name) ? '' : 'none';
+  });
+}
+
+function renderPeople() {
+  const row = document.getElementById('personFilter');
+  if (!row) return;
+  const people = getPeople();
+  let html = `<button class="chip ${activePerson==='הכל'?'active':''}" onclick="filterByPerson('הכל',this)">כולם</button>`;
+  people.forEach(p => {
+    const active = activePerson === p ? 'active' : '';
+    html += `<button class="chip ${active}" onclick="filterByPerson('${p}',this)" oncontextmenu="deletePerson(event,'${p}')">${p}</button>`;
+  });
+  html += `<button class="chip add-sub-branch" onclick="addPerson()">+</button>`;
+  row.innerHTML = html;
 }
 
 // ─── ADD SUB-BRANCH ───
@@ -1278,4 +1360,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load sub-branches for all categories
   loadAllSubBranches();
+
+  // Load people
+  renderPeople();
+  // Keep server alive - ping every 10 minutes
+  const BACKEND_URL = window.KlaserConfig?.apiBase || 'https://klaser.onrender.com';
+  setInterval(async () => {
+    try {
+      await fetch(`${BACKEND_URL}/health`);
+    } catch (e) {}
+  }, 10 * 60 * 1000);
 });
