@@ -529,6 +529,9 @@ function calEvents() {
 }
 
 function renderCal() {
+  // Show/hide the weekday header row (Sunday/Monday/...) — only relevant for month/week.
+  const header = document.getElementById('calHeader');
+  if (header) header.style.display = (calViewMode === 'day') ? 'none' : '';
   if (calViewMode === 'month') renderCalMonth();
   else if (calViewMode === 'week') renderCalWeek();
   else if (calViewMode === 'day') renderCalDay();
@@ -612,10 +615,27 @@ function renderCalDay() {
   if (body) {
     body.style.gridTemplateColumns = '1fr';
     body.innerHTML = `<div style="padding:16px">
-      <h3 style="margin-bottom:12px">${events.length ? 'אירועים:' : 'אין אירועים'}</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;">
+        <h3 style="margin:0">${events.length ? 'אירועים:' : 'אין אירועים'}</h3>
+        <button class="btn-sm" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;font-size:14px;"
+                onclick="addReminderForDate('${ds}')"
+                title="הוסף תזכורת ליום זה">+ הוסף תזכורת</button>
+      </div>
       ${events.map(e => `<div class="cal-event ${e.cls}" style="margin-bottom:8px;padding:12px">${e.text}</div>`).join('')}
     </div>${html}`;
   }
+}
+
+// Open the reminder modal pre-filled with the given date.
+function addReminderForDate(ds) {
+  openModal('reminder');
+  // Wait for the modal DOM to be ready, then prefill date.
+  setTimeout(() => {
+    const dateEl = document.getElementById('rem-date');
+    if (dateEl) dateEl.value = ds;
+    const nameEl = document.getElementById('rem-name');
+    if (nameEl) nameEl.focus();
+  }, 50);
 }
 
 function changeMonth(dir) {
@@ -629,7 +649,21 @@ function changeMonth(dir) {
   renderCal();
 }
 function goToday() { calDate = new Date(); renderCal(); }
-function calDayClick(ds) { console.log('day', ds); }
+function calDayClick(ds) {
+  // Switch to day view for the clicked date.
+  const [y, m, d] = ds.split('-').map(Number);
+  calDate = new Date(y, m - 1, d);
+  calViewMode = 'day';
+  // Update subnav active state to match.
+  const subnav = document.getElementById('calSubnav');
+  if (subnav) {
+    subnav.querySelectorAll('.subnav-tab').forEach((b, i) => {
+      b.classList.toggle('active', i === 2); // 0=חודשי, 1=שבועי, 2=יומי
+    });
+  }
+  document.getElementById('calSubtitle').textContent = 'יומי';
+  renderCal();
+}
 function setCalView(v, sbEl, topEl) {
   calViewMode = v;
   document.getElementById('calSubtitle').textContent = { month: 'חודשי', week: 'שבועי', day: 'יומי' }[v];
