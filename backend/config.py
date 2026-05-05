@@ -13,9 +13,7 @@ class Settings(BaseSettings):
     SUPABASE_JWT_SECRET: str = ""
 
     APP_ENV: str = "development"
-    CORS_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500" ,https://klaser.c0583229580.workers.dev
-
-
+    CORS_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500"
 
     GROQ_API_KEY: str = ""
     MAILGUN_API_KEY: str = ""
