@@ -445,6 +445,27 @@ function setStatusBadge(text, cls) {
   el.dataset.state = cls || '';
 }
 
+// ─── MOBILE SIDEBAR ───
+function toggleSidebar() {
+  const sb = document.getElementById('mobileSidebar');
+  const ov = document.getElementById('mobileSidebarOverlay');
+  if (!sb) return;
+  const isOpen = sb.classList.contains('open');
+  if (isOpen) {
+    sb.classList.remove('open');
+    if (ov) ov.classList.remove('open');
+  } else {
+    sb.classList.add('open');
+    if (ov) ov.classList.add('open');
+  }
+}
+function closeSidebar() {
+  const sb = document.getElementById('mobileSidebar');
+  const ov = document.getElementById('mobileSidebarOverlay');
+  if (sb) sb.classList.remove('open');
+  if (ov) ov.classList.remove('open');
+}
+
 // ─── TABS ───
 function showTab(tab, el, mobEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
