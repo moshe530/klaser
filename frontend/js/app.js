@@ -633,8 +633,18 @@ function calDayClick(ds) { console.log('day', ds); }
 function setCalView(v, sbEl, topEl) {
   calViewMode = v;
   document.getElementById('calSubtitle').textContent = { month: 'חודשי', week: 'שבועי', day: 'יומי' }[v];
-  if (sbEl) { document.querySelectorAll('#sb-calendar .sb-item').forEach(i => i.classList.remove('active')); sbEl.classList.add('active'); }
-  if (topEl) { topEl.closest('.view-toggle').querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active')); topEl.classList.add('active'); }
+  if (sbEl) {
+    document.querySelectorAll('#sb-calendar .sb-item').forEach(i => i.classList.remove('active'));
+    sbEl.classList.add('active');
+  }
+  if (topEl) {
+    // Could be either old gray .view-toggle or new blue subnav. Activate within whichever container exists.
+    const container = topEl.closest('.view-toggle') || topEl.closest('.topnav-subnav');
+    if (container) {
+      container.querySelectorAll('.vt-btn, .subnav-tab').forEach(b => b.classList.remove('active'));
+    }
+    topEl.classList.add('active');
+  }
   renderCal();
 }
 function exportCal() {
