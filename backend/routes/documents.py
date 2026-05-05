@@ -197,12 +197,16 @@ def analyze_document(
     if not doc.get("file_path"):
         raise HTTPException(400, "Document has no attached file to analyze")
 
-    # Extract user categories from request body (optional)
+    # Extract user categories and people from request body (optional)
     user_categories: list[str] | None = None
+    user_people: list[dict] | None = None
     if isinstance(payload, dict):
         cats = payload.get("categories")
         if isinstance(cats, list):
             user_categories = [str(c) for c in cats if c]
+        people = payload.get("people")
+        if isinstance(people, list):
+            user_people = [p for p in people if isinstance(p, dict) and p.get("name")]
 
     # Mark as processing
     auth.client.table(TABLE).update({"ocr_status": "processing"}).eq(
@@ -215,6 +219,7 @@ def analyze_document(
             data,
             doc.get("mime_type") or "application/pdf",
             categories=user_categories,
+            people=user_people,
         )
     except Exception as e:
         import traceback
@@ -265,7 +270,11 @@ def analyze_document(
         if val in (None, "", []):
             continue
         existing = doc.get(db_key)
-        is_placeholder_name = db_key == "name" and existing in PLACEHOLDER_NAMES
+        is_placeholder_name = (
+            db_key == "name"
+            and isinstance(existing, str)
+            and existing.strip() in PLACEHOLDER_NAMES
+        )
         # On first analysis, also override category/dates/type that look like defaults
         first_run_override = is_first_analysis and db_key in {
             "category", "sub_category", "purchase_date", "warranty_end",

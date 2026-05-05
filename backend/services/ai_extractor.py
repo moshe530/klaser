@@ -363,6 +363,7 @@ EXTRACTOR_PROMPT_TEMPLATE = f"""אתה מחלץ מידע ממסמך עבור מ�
   "sub_category": "string or null",
   "document_type": "string or null",
   "merchant": "string or null",
+  "person": "string or null (שם הנפש מהרשימה אם המסמך אישי/רפואי)",
   "purchase_date": "YYYY-MM-DD or null",
   "warranty_end": "YYYY-MM-DD or null",
   "amount": number_or_null,
@@ -381,6 +382,7 @@ def _empty_extraction() -> dict[str, Any]:
         "sub_category": None,
         "document_type": None,
         "merchant": None,
+        "person": None,
         "purchase_date": None,
         "warranty_end": None,
         "amount": None,
@@ -406,6 +408,7 @@ def extract(
     image_urls: list[str],
     doc_type_detected: str | None,
     categories: list[str] | None = None,
+    people: list[dict] | None = None,
 ) -> dict[str, Any]:
     """Run the Extractor vision call. Always returns a full skeleton dict
     with normalized amounts, dates, and category clamped to CATEGORIES.
@@ -413,7 +416,10 @@ def extract(
     `categories` may be passed at call-time (e.g. from the user's current
     branch list) so newly-added user branches are recognized by the model
     without changing the prompt manually. If omitted, the built-in CATEGORIES
-    list is used."""
+    list is used.
+    `people` is a list of {name, id_number} dicts. When provided, the model
+    is instructed to identify the person the document belongs to (by name OR
+    by ID number) and return it in the `person` field."""
     # Build the effective category list: built-ins + any user-added branches.
     effective_categories = list(CATEGORIES)
     if categories:
@@ -429,6 +435,32 @@ def extract(
         "בדוק תמיד אם המסמך שייך לאחד מהם, כולל ענפים חדשים שהמשתמש הוסיף "
         "לאחרונה. אל תניח שהרשימה קבועה. אם אין ענף מתאים — החזר \"אחר\".\n\n"
     )
+
+    # If people are provided, append people block + rule #7 (person attribution).
+    if people:
+        people_lines = []
+        for p in people:
+            name = (p.get("name") or "").strip()
+            id_num = (p.get("id_number") or "").strip()
+            if not name:
+                continue
+            if id_num:
+                people_lines.append(f"- {name} (ת.ז. {id_num})")
+            else:
+                people_lines.append(f"- {name}")
+        if people_lines:
+            people_block = (
+                "נפשות במערכת (משפחה/לקוחות):\n"
+                + "\n".join(people_lines)
+                + "\n\n"
+                "כלל #7 (זיהוי נפש): אם המסמך הוא אישי/רפואי, נסה לזהות "
+                "למי מהנפשות הוא שייך, **גם לפי שם המופיע במסמך וגם לפי "
+                "מספר תעודת זהות (ת.ז. / מס' זהות / ת.ז.)**. "
+                "החזר את שם הנפש המדויק כפי שמופיע ברשימה למעלה בשדה `person`. "
+                "אם לא ניתן לזהות בוודאות — החזר null.\n\n"
+            )
+            dynamic_header = dynamic_header + people_block
+
     prompt = dynamic_header + prompt
     if doc_type_detected:
         prompt += f"\n\ndoc_type_detected: {doc_type_detected}\n"

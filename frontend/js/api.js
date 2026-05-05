@@ -49,13 +49,15 @@
       return res.json();
     },
     getFileUrl: (id) => request(`/documents/${id}/file-url`),
-    analyzeDocument: (id, categories = null) => request(
-      `/documents/${id}/analyze`,
-      {
+    analyzeDocument: (id, categories = null, people = null) => {
+      const body = {};
+      if (categories) body.categories = categories;
+      if (people && people.length) body.people = people;
+      return request(`/documents/${id}/analyze`, {
         method: 'POST',
-        body: JSON.stringify(categories ? { categories } : {}),
-      },
-    ),
+        body: JSON.stringify(body),
+      });
+    },
 
     // Reminders
     listReminders: () => request('/reminders'),

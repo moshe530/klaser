@@ -32,12 +32,12 @@
   --radius: 6px; --radius-sm: 5px; --radius-xs: 4px;
   --shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
-  --nav-h: 96px;
+  --nav-h: 108px;
   --bottom-h: 60px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:18px;line-height:1.5;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:18px;line-height:1.5;zoom:1.15;}
 body.locked .topnav,body.locked .app-body{visibility:hidden;}
 body.locked{background:var(--accent-dark,#0D2B5E);}
 
@@ -90,7 +90,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 
 /* ─── SUBNAV (tabs under main nav) ─── */
 .topnav-subnav{
-  display:flex;gap:0;padding:0 20px;height:40px;align-items:flex-end;
+  display:flex;gap:0;padding:0 20px;height:52px;align-items:center;
   border-top:1px solid rgba(255,255,255,0.1);
 }
 .subnav-tab{
@@ -459,7 +459,38 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   margin-bottom:16px;
   padding-bottom:12px;
   border-bottom:2px solid var(--accent2);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
+/* Accordion */
+.about-section.accordion{cursor:pointer;}
+.about-section.accordion h2{margin-bottom:0;border-bottom:none;padding-bottom:0;}
+.about-section.accordion.open h2{margin-bottom:16px;border-bottom:2px solid var(--accent2);padding-bottom:12px;}
+.about-section.accordion .accordion-arrow{
+  transition:transform 0.25s;
+  font-size:14px;
+  color:var(--accent);
+}
+.about-section.accordion.open .accordion-arrow{transform:rotate(180deg);}
+.about-section.accordion .accordion-body{
+  max-height:0;overflow:hidden;
+  transition:max-height 0.3s ease;
+}
+.about-section.accordion.open .accordion-body{max-height:2000px;}
+/* FAQ accordion (nested) */
+.faq-item{cursor:pointer;}
+.faq-item h3{display:flex;justify-content:space-between;align-items:center;}
+.faq-item .faq-arrow{
+  font-size:18px;font-weight:300;color:var(--accent);
+  transition:transform 0.2s;
+}
+.faq-item.open .faq-arrow{transform:rotate(45deg);}
+.faq-item .faq-answer{
+  max-height:0;overflow:hidden;
+  transition:max-height 0.25s ease;
+}
+.faq-item.open .faq-answer{max-height:500px;margin-top:8px;}
 .about-section p{font-size:16px;line-height:1.7;color:var(--text);}
 .about-list{list-style:none;padding:0;}
 .about-list li{
@@ -954,50 +985,56 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <p class="about-tagline">המקום הבטוח והחכם לניהול כל המסמכים החשובים שלך - במקום אחד, מאובטח ונגיש מכל מכשיר.</p>
     </section>
 
-    <!-- What is Klaser -->
-    <section class="about-section">
-      <h2>מה זה קלסר?</h2>
-      <p>קלסר היא אפליקציה חכמה לניהול מסמכים אישיים ומשפחתיים. אנחנו משתמשים בבינה מלאכותית מתקדמת כדי לסרוק, לארגן ולנהל את המסמכים שלך אוטומטית - ביטוחים, חשבוניות, מסמכי דירה, רכב, רפואיים ועוד. האפליקציה מתאימה לכל מי שרוצה להפסיק לחפש מסמכים בתיקיות ובארגזים, ולקבל התראות לפני שתוקף תפוג.</p>
+    <!-- What is Klaser - Accordion -->
+    <section class="about-section accordion" onclick="toggleAccordion(this)">
+      <h2>מה זה קלסר? <span class="accordion-arrow">▼</span></h2>
+      <div class="accordion-body">
+        <p>קלסר היא אפליקציה חכמה לניהול מסמכים אישיים ומשפחתיים. אנחנו משתמשים בבינה מלאכותית מתקדמת כדי לסרוק, לארגן ולנהל את המסמכים שלך אוטומטית - ביטוחים, חשבוניות, מסמכי דירה, רכב, רפואיים ועוד. האפליקציה מתאימה לכל מי שרוצה להפסיק לחפש מסמכים בתיקיות ובארגזים, ולקבל התראות לפני שתוקף תפוג.</p>
+      </div>
     </section>
 
-    <!-- Security -->
-    <section class="about-section">
-      <h2>אבטחה ופרטיות</h2>
-      <ul class="about-list">
-        <li><strong>הצפנה מלאה:</strong> המסמכים שלך מוצפנים ומאוחסנים בשרתי Supabase באירופה</li>
-        <li><strong>אימות מאובטח:</strong> אימות דו-שלבי עם JWT (JSON Web Tokens)</li>
-        <li><strong>פרטיות מוחלטת:</strong> אף אחד מהצוות שלנו לא יכול לקרוא את המסמכים שלך</li>
-        <li><strong>תקני אבטחה:</strong> עמידה בתקן GDPR האירופי לפרטיות נתונים</li>
-        <li><strong>בידוד נתונים:</strong> כל משתמש רואה רק את המסמכים שלו (Row Level Security)</li>
-      </ul>
+    <!-- Security - Accordion -->
+    <section class="about-section accordion" onclick="toggleAccordion(this)">
+      <h2>אבטחה ופרטיות <span class="accordion-arrow">▼</span></h2>
+      <div class="accordion-body">
+        <ul class="about-list">
+          <li><strong>הצפנה מלאה:</strong> המסמכים שלך מוצפנים ומאוחסנים בשרתי Supabase באירופה</li>
+          <li><strong>אימות מאובטח:</strong> אימות דו-שלבי עם JWT (JSON Web Tokens)</li>
+          <li><strong>פרטיות מוחלטת:</strong> אף אחד מהצוות שלנו לא יכול לקרוא את המסמכים שלך</li>
+          <li><strong>תקני אבטחה:</strong> עמידה בתקן GDPR האירופי לפרטיות נתונים</li>
+          <li><strong>בידוד נתונים:</strong> כל משתמש רואה רק את המסמכים שלו (Row Level Security)</li>
+        </ul>
+      </div>
     </section>
 
-    <!-- FAQ -->
-    <section class="about-section">
-      <h2>שאלות ותשובות נפוצות</h2>
-      <div class="faq-item">
-        <h3>האם הנתונים שלי בטוחים?</h3>
-        <p>כן! כל המידע מוצפן בעת אחסון והעברה. אנחנו משתמשים בתשתית של Supabase שעומדת בתקנים הבינלאומיים המחמירים ביותר.</p>
-      </div>
-      <div class="faq-item">
-        <h3>מה קורה אם אני מוחק חשבון?</h3>
-        <p>במחיקת חשבון, כל המסמכים והנתונים שלך נמחקים לצמיתות מהשרתים שלנו תוך 30 יום, בהתאם לתקן GDPR.</p>
-      </div>
-      <div class="faq-item">
-        <h3>האם יש אפליקציה לנייד?</h3>
-        <p>כרגע האפליקציה מותאמת במלואה לדפדפנים בנייד (PWA). אפליקציה מקורית ל-iOS ו-Android בפיתוח.</p>
-      </div>
-      <div class="faq-item">
-        <h3>כמה מסמכים אפשר להעלות?</h3>
-        <p>במסלול החינמי - עד 50 מסמכים. במסלול הפרימיום - ללא הגבלה.</p>
-      </div>
-      <div class="faq-item">
-        <h3>האם ה-AI מדויק?</h3>
-        <p>ה-AI שלנו מבוסס על מודלים מתקדמים (Groq + Llama) ומגיע לדיוק של מעל 90% במסמכים בעברית. תמיד תוכל לערוך ידנית את המידע.</p>
-      </div>
-      <div class="faq-item">
-        <h3>איך מקבלים התראות לפני תאריך פג תוקף?</h3>
-        <p>המערכת שולחת התראות במייל ובפוש בהגדרות מותאמות אישית - 30, 14, 7 ו-1 ימים לפני פג תוקף.</p>
+    <!-- FAQ - Accordion with mutual exclusion -->
+    <section class="about-section accordion" onclick="toggleAccordion(this)">
+      <h2>שאלות ותשובות נפוצות <span class="accordion-arrow">▼</span></h2>
+      <div class="accordion-body">
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>האם הנתונים שלי בטוחים? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>כן! כל המידע מוצפן בעת אחסון והעברה. אנחנו משתמשים בתשתית של Supabase שעומדת בתקנים הבינלאומיים המחמירים ביותר.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>מה קורה אם אני מוחק חשבון? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>במחיקת חשבון, כל המסמכים והנתונים שלך נמחקים לצמיתות מהשרתים שלנו תוך 30 יום, בהתאם לתקן GDPR.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>האם יש אפליקציה לנייד? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>כרגע האפליקציה מותאמת במלואה לדפדפנים בנייד (PWA). אפליקציה מקורית ל-iOS ו-Android בפיתוח.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>כמה מסמכים אפשר להעלות? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>במסלול החינמי - עד 50 מסמכים. במסלול הפרימיום - ללא הגבלה.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>האם ה-AI מדויק? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>ה-AI שלנו מבוסס על מודלים מתקדמים (Groq + Llama) ומגיע לדיוק של מעל 90% במסמכים בעברית. תמיד תוכל לערוך ידנית את המידע.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>איך מקבלים התראות לפני תאריך פג תוקף? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>המערכת שולחת התראות במייל ובפוש בהגדרות מותאמות אישית - 30, 14, 7 ו-1 ימים לפני פג תוקף.</p></div>
+        </div>
       </div>
     </section>
 

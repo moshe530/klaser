@@ -155,6 +155,27 @@ function fillList(id, arr) {
   if (el) el.innerHTML = arr.map(makeCard).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין פריטים</p>';
 }
 
+// ─── ACCORDION (About page) ───
+function toggleAccordion(section) {
+  // Don't toggle if click came from inside the body (e.g. a FAQ item)
+  if (event && event.target.closest('.accordion-body') && !event.target.closest('.about-section.accordion > h2')) {
+    return;
+  }
+  section.classList.toggle('open');
+}
+
+function toggleFaq(e, faqItem) {
+  e.stopPropagation();
+  // Close other FAQ items in the same group (mutual exclusion)
+  const parent = faqItem.parentElement;
+  if (parent) {
+    parent.querySelectorAll('.faq-item').forEach(item => {
+      if (item !== faqItem) item.classList.remove('open');
+    });
+  }
+  faqItem.classList.toggle('open');
+}
+
 // Filter by document status (clicking on stats cards)
 function filterByStatus(statusFilter) {
   const list = document.getElementById('docList');
@@ -427,16 +448,41 @@ function setStatusBadge(text, cls) {
 // ─── TABS ───
 function showTab(tab, el, mobEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+  const target = document.getElementById('tab-' + tab);
+  if (target) target.classList.add('active');
   document.querySelectorAll('.topnav-tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
+  // Highlight matching topnav-tab even when called without `el` (e.g. from mobile sidebar)
+  if (!el) {
+    const tabIndexMap = { docs: 0, calendar: 1, reminders: 2, settings: 3, about: 4 };
+    const idx = tabIndexMap[tab];
+    const tabs = document.querySelectorAll('.topnav-tab');
+    if (idx != null && tabs[idx]) tabs[idx].classList.add('active');
+  }
   document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
   if (mobEl) mobEl.classList.add('active');
+  // Old-style sb-* groups (legacy)
   ['docs', 'calendar', 'reminders', 'settings'].forEach(t => {
     const g = document.getElementById('sb-' + t);
     if (g) g.style.display = (t === tab) ? 'block' : 'none';
   });
-  if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
+  // Show/hide topnav-subnav rows — only the matching tab's subnav is visible
+  document.querySelectorAll('.topnav-subnav').forEach(n => {
+    n.style.setProperty('display', 'none', 'important');
+  });
+  const subnavMap = { docs: 'docsSubnav', calendar: 'calSubnav', reminders: 'remSubnav', settings: 'settSubnav' };
+  const activeSubnav = document.getElementById(subnavMap[tab]);
+  if (activeSubnav) activeSubnav.style.setProperty('display', 'flex', 'important');
+  // Update mobile sidebar active state
+  document.querySelectorAll('.mobile-nav-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.dataset.tab === tab) item.classList.add('active');
+  });
+  // Close legacy sidebar (if exists)
+  if (window.innerWidth < 768) {
+    const sb = document.getElementById('sidebar');
+    if (sb) sb.classList.remove('open');
+  }
 }
 
 // ─── SIDEBAR DOC NAV ───
@@ -787,7 +833,7 @@ async function openDocFile(id) {
 async function addDoc() {
   // אם המשתמש לא מילא שם — נשתמש בשם זמני; ה-AI ימלא שם אמיתי אחרי הניתוח
   const nameRaw = document.getElementById('fm-name').value.trim();
-  const name = nameRaw || (pendingFile ? ' ממתין לניתוח AI' : 'מסמך חדש');
+  const name = nameRaw || (pendingFile ? 'ממתין לניתוח AI' : 'מסמך חדש');
 
   const payload = toApi({
     name,
@@ -842,12 +888,14 @@ async function addDoc() {
 async function runAnalyze(docId) {
   setStatusBadge('🤖 מנתח מסמך...', 'loading');
   try {
-    // Send current user-added branches and custom tabs so the AI knows them.
+    // Send current user-added branches, custom tabs, and people (with ID numbers)
+    // so the AI can classify documents and identify medical/personal docs by ID.
     const userCats = [
       ...getInvoiceBranches(),
       ...getCustomTabs().map(t => t.name),
     ];
-    const updated = await KlaserAPI.analyzeDocument(docId, userCats);
+    const people = getPeople();
+    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people);
     // החלף את המסמך ברשימה ב-data החדש
     const idx = docs.findIndex(d => d.id === docId);
     if (idx >= 0) docs[idx] = fromApi(updated);
@@ -1173,10 +1221,13 @@ function loadCustomTabs() {
 }
 
 // ─── PEOPLE STORAGE ───
+// Stored as: [{ name: "X", id_number: "123456789" }, ...]
 const PEOPLE_KEY = 'klaser_people';
 function getPeople() {
   try {
-    return JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]');
+    const raw = JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]');
+    // Migrate legacy string-only entries to {name, id_number} objects
+    return raw.map(p => typeof p === 'string' ? { name: p, id_number: '' } : p);
   } catch { return []; }
 }
 function setPeople(people) {
@@ -1185,27 +1236,29 @@ function setPeople(people) {
 
 let activePerson = 'הכל';
 
-// ─── ADD PERSON ───
+// ─── ADD PERSON (with optional ID) ───
 function addPerson() {
   const name = prompt('שם הנפש החדש:');
   if (!name || !name.trim()) return;
-  const trimmed = name.trim();
+  const trimmedName = name.trim();
+  const idRaw = prompt('מספר תעודת זהות (אופציונלי, מסייע ל-AI לזהות מסמכים):');
+  const idNumber = (idRaw || '').trim();
   const people = getPeople();
-  if (people.includes(trimmed)) {
+  if (people.some(p => p.name === trimmedName)) {
     alert('הנפש כבר קיים');
     return;
   }
-  people.push(trimmed);
+  people.push({ name: trimmedName, id_number: idNumber });
   setPeople(people);
   renderPeople();
-  alert('הנפש "' + trimmed + '" נוסף בהצלחה!');
+  alert('הנפש "' + trimmedName + '" נוסף בהצלחה!' + (idNumber ? '\nת.ז.: ' + idNumber : ''));
 }
 
 function deletePerson(e, name) {
   e.preventDefault();
   if (!confirm('להסיר את הנפש "' + name + '"?')) return;
   let people = getPeople();
-  people = people.filter(p => p !== name);
+  people = people.filter(p => p.name !== name);
   setPeople(people);
   if (activePerson === name) activePerson = 'הכל';
   renderPeople();
@@ -1230,8 +1283,9 @@ function renderPeople() {
   const people = getPeople();
   let html = `<button class="chip ${activePerson==='הכל'?'active':''}" onclick="filterByPerson('הכל',this)">כולם</button>`;
   people.forEach(p => {
-    const active = activePerson === p ? 'active' : '';
-    html += `<button class="chip ${active}" onclick="filterByPerson('${p}',this)" oncontextmenu="deletePerson(event,'${p}')">${p}</button>`;
+    const active = activePerson === p.name ? 'active' : '';
+    const tooltip = p.id_number ? `title="ת.ז.: ${p.id_number}"` : '';
+    html += `<button class="chip ${active}" ${tooltip} onclick="filterByPerson('${p.name}',this)" oncontextmenu="deletePerson(event,'${p.name}')">${p.name}</button>`;
   });
   html += `<button class="chip add-sub-branch" onclick="addPerson()">+</button>`;
   row.innerHTML = html;
