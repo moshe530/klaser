@@ -1068,6 +1068,90 @@ function showAuthError(msg) {
   el.style.display = msg ? 'block' : 'none';
 }
 
+// ─── FORGOT / RESET PASSWORD ───
+function openForgotPassword() {
+  closeModal('auth');
+  // Prefill email from auth modal if available
+  const authEmail = document.getElementById('auth-email');
+  const forgotEmail = document.getElementById('forgot-email');
+  if (authEmail && forgotEmail && authEmail.value) forgotEmail.value = authEmail.value;
+  // Hide previous messages
+  const err = document.getElementById('forgotError');
+  const ok = document.getElementById('forgotSuccess');
+  if (err) err.style.display = 'none';
+  if (ok) ok.style.display = 'none';
+  openModal('forgot');
+}
+
+async function sendPasswordReset() {
+  const email = (document.getElementById('forgot-email').value || '').trim();
+  const errEl = document.getElementById('forgotError');
+  const okEl = document.getElementById('forgotSuccess');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+  if (!email) {
+    errEl.textContent = 'נא להזין אימייל';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('forgotSubmit');
+  const originalText = btn.textContent;
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    await KlaserAuth.sendPasswordResetEmail(email);
+    okEl.textContent = 'נשלח! בדוק את תיבת הדואר שלך לקבלת קישור איפוס.';
+    okEl.style.display = 'block';
+  } catch (e) {
+    errEl.textContent = 'שגיאה בשליחת המייל: ' + (e.message || e);
+    errEl.style.display = 'block';
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function submitPasswordReset() {
+  const pw1 = document.getElementById('reset-pw1').value;
+  const pw2 = document.getElementById('reset-pw2').value;
+  const errEl = document.getElementById('resetError');
+  errEl.style.display = 'none';
+  if (!pw1 || pw1.length < 6) {
+    errEl.textContent = 'הסיסמה חייבת להיות באורך 6 תווים לפחות';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pw1 !== pw2) {
+    errEl.textContent = 'הסיסמאות אינן תואמות';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('resetSubmit');
+  const originalText = btn.textContent;
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    await KlaserAuth.updatePassword(pw1);
+    closeModal('reset');
+    alert('הסיסמה עודכנה בהצלחה!');
+    // Clear URL hash from recovery flow
+    if (window.location.hash) history.replaceState(null, '', window.location.pathname);
+  } catch (e) {
+    errEl.textContent = 'שגיאה בעדכון הסיסמה: ' + (e.message || e);
+    errEl.style.display = 'block';
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+// Called by auth.js when Supabase fires PASSWORD_RECOVERY event
+window.onPasswordRecovery = function (_session) {
+  closeModal('auth');
+  closeModal('forgot');
+  openModal('reset');
+};
+
 function toggleAuthMode() {
   authMode = authMode === 'login' ? 'signup' : 'login';
   document.getElementById('authTitle').textContent = authMode === 'login' ? 'התחברות' : 'הרשמה';
@@ -1075,6 +1159,9 @@ function toggleAuthMode() {
   document.getElementById('authToggleText').textContent = authMode === 'login' ? 'אין לך חשבון?' : 'כבר רשום?';
   document.getElementById('authToggleLink').textContent = authMode === 'login' ? 'הירשם' : 'התחבר';
   document.getElementById('auth-password').setAttribute('autocomplete', authMode === 'login' ? 'current-password' : 'new-password');
+  // Show "forgot password" only in login mode
+  const forgotRow = document.getElementById('authForgotRow');
+  if (forgotRow) forgotRow.style.display = authMode === 'login' ? '' : 'none';
   showAuthError('');
 }
 

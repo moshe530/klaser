@@ -1228,10 +1228,53 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <input class="form-input" type="password" id="auth-password" placeholder="לפחות 6 תווים" autocomplete="current-password">
     </div>
     <button class="btn-full" id="authSubmit" onclick="authSubmit()">התחבר</button>
-    <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--text2);">
+    <p style="text-align:center;margin-top:10px;font-size:13px;" id="authForgotRow">
+      <a href="#" onclick="openForgotPassword();return false;" style="color:var(--text2);text-decoration:none;">שכחתי סיסמה</a>
+    </p>
+    <p style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2);">
       <span id="authToggleText">אין לך חשבון?</span>
       <a href="#" onclick="toggleAuthMode();return false;" id="authToggleLink" style="color:var(--accent);font-weight:600;text-decoration:none;">הירשם</a>
     </p>
+  </div>
+</div>
+
+<!-- ══ FORGOT PASSWORD MODAL ══ -->
+<div class="overlay" id="modal-forgot" style="background:rgba(13,43,94,0.75);">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head" style="justify-content:center;flex-direction:column;gap:8px;text-align:center;">
+      <h2>איפוס סיסמה</h2>
+      <p style="font-size:13px;color:var(--text2);margin:0;">נשלח אליך מייל עם קישור לאיפוס סיסמה</p>
+    </div>
+    <div id="forgotError" style="display:none;background:var(--red-bg);color:#991B1B;padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;"></div>
+    <div id="forgotSuccess" style="display:none;background:var(--green-bg,#E8F5E9);color:#1B5E20;padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;"></div>
+    <div class="form-group">
+      <label>אימייל</label>
+      <input class="form-input" type="email" id="forgot-email" placeholder="name@example.com" autocomplete="email">
+    </div>
+    <button class="btn-full" id="forgotSubmit" onclick="sendPasswordReset()">שלח קישור איפוס</button>
+    <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--text2);">
+      <a href="#" onclick="closeModal('forgot');return false;" style="color:var(--accent);font-weight:600;text-decoration:none;">חזרה להתחברות</a>
+    </p>
+  </div>
+</div>
+
+<!-- ══ RESET PASSWORD MODAL (when arriving from email link) ══ -->
+<div class="overlay" id="modal-reset" style="background:rgba(13,43,94,0.75);">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head" style="justify-content:center;flex-direction:column;gap:8px;text-align:center;">
+      <h2>הגדרת סיסמה חדשה</h2>
+      <p style="font-size:13px;color:var(--text2);margin:0;">בחר סיסמה חדשה לחשבונך</p>
+    </div>
+    <div id="resetError" style="display:none;background:var(--red-bg);color:#991B1B;padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;"></div>
+    <div class="form-group">
+      <label>סיסמה חדשה</label>
+      <input class="form-input" type="password" id="reset-pw1" placeholder="לפחות 6 תווים" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>אימות סיסמה</label>
+      <input class="form-input" type="password" id="reset-pw2" placeholder="הקלד שוב" autocomplete="new-password">
+    </div>
+    <button class="btn-full" id="resetSubmit" onclick="submitPasswordReset()">עדכן סיסמה</button>
   </div>
 </div>
 
