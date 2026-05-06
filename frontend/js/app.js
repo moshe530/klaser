@@ -2005,6 +2005,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load people
   renderPeople();
+
+  // ─── ONBOARDING INIT ───
+  initOnboarding();
+
   // Keep server alive - ping every 10 minutes
   const BACKEND_URL = window.KlaserConfig?.apiBase || 'https://klaser.onrender.com';
   setInterval(async () => {
@@ -2013,3 +2017,286 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {}
   }, 10 * 60 * 1000);
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ═── ONBOARDING WIZARD ─════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ONBOARDING_KEY = 'klaser_onboarding';
+const ONBOARDING_STEP_KEY = 'klaser_onboarding_step';
+const ONBOARDING_SKIPPED_KEY = 'klaser_onboarding_skipped';
+
+const ONBOARDING_STEPS = [
+  {
+    id: 'welcome',
+    title: 'ברוכים הבאים לקלסר',
+    desc: 'המערכת שתעזור לך לנהל את כל המסמכים שלך במקום אחד. בואו נתחיל!',
+    icon: '📁',
+    cta: 'הוסף מסמך ראשון',
+    skip: 'אני רוצה להסתכל קודם',
+    onComplete: () => openModal('add')
+  },
+  {
+    id: 'notifications',
+    title: 'תזכורות חכמות',
+    desc: 'קבל התראות לפני שמסמכים פגי תוקף. לא תפספס שום דדליין!',
+    icon: '🔔',
+    cta: 'אפשר התראות',
+    skip: 'אולי אחר כך',
+    onComplete: () => requestNotificationPermission()
+  },
+  {
+    id: 'family',
+    title: 'הוסף את המשפחה',
+    desc: 'נהל מסמכים לכל בני הבית - ילדים, בן/בת זוג, הורים.',
+    icon: '👨‍👩‍👧',
+    cta: 'הוסף בן משפחה',
+    skip: 'אני לבד',
+    onComplete: () => openModal('person')
+  },
+  {
+    id: 'done',
+    title: 'הכל מוכן!',
+    desc: 'אתה מוכם להתחיל. זכור: אתה יכול להוסיף מסמכים בכל עת.',
+    icon: '✅',
+    cta: 'בואו נתחיל',
+    skip: null,
+    onComplete: () => completeOnboarding()
+  }
+];
+
+let currentOnboardingStep = 0;
+let skippedSteps = [];
+
+// Initialize onboarding on app load
+function initOnboarding() {
+  // Load skipped steps
+  try {
+    skippedSteps = JSON.parse(localStorage.getItem(ONBOARDING_SKIPPED_KEY) || '[]');
+  } catch { skippedSteps = []; }
+
+  // Check if should show
+  if (!shouldShowOnboarding()) return;
+
+  // Resume from saved step if exists
+  const savedStep = parseInt(localStorage.getItem(ONBOARDING_STEP_KEY) || '0');
+  currentOnboardingStep = Math.min(savedStep, ONBOARDING_STEPS.length - 1);
+
+  // Show after a short delay to let app render
+  setTimeout(() => showOnboardingStep(currentOnboardingStep), 500);
+}
+
+function shouldShowOnboarding() {
+  const completed = localStorage.getItem(ONBOARDING_KEY);
+  if (completed) return false;
+
+  // If user has documents, they probably don't need onboarding
+  const docCount = docs?.length || 0;
+  if (docCount > 3) {
+    completeOnboarding();
+    return false;
+  }
+
+  return true;
+}
+
+function showOnboardingStep(stepIndex) {
+  const step = ONBOARDING_STEPS[stepIndex];
+  if (!step) return;
+
+  const overlay = document.getElementById('onboardingOverlay');
+  const content = document.getElementById('onboardingContent');
+  const progress = document.getElementById('onboardingProgress');
+
+  if (!overlay || !content) return;
+
+  // Update dots
+  progress?.querySelectorAll('.onboarding-dot').forEach((dot, idx) => {
+    dot.classList.toggle('active', idx === stepIndex);
+  });
+
+  // Use view transition if available
+  const updateContent = () => {
+    content.innerHTML = `
+      <span class="onboarding-icon">${step.icon}</span>
+      <h2 class="onboarding-title">${step.title}</h2>
+      <p class="onboarding-desc">${step.desc}</p>
+      <div class="onboarding-actions">
+        <button class="onboarding-btn-primary" onclick="handleOnboardingAction(${stepIndex})">
+          ${step.cta}
+        </button>
+        ${step.skip ? `<button class="onboarding-btn-skip" onclick="skipOnboardingStep(${stepIndex})">${step.skip}</button>` : ''}
+      </div>
+    `;
+  };
+
+  if (document.startViewTransition) {
+    document.startViewTransition(updateContent);
+  } else {
+    updateContent();
+  }
+
+  overlay.classList.add('open');
+  saveStep(stepIndex);
+}
+
+function handleOnboardingAction(stepIndex) {
+  const step = ONBOARDING_STEPS[stepIndex];
+
+  // Mark this step as not skipped
+  skippedSteps = skippedSteps.filter(s => s !== step.id);
+  saveSkippedSteps();
+
+  // Execute step action
+  if (step.onComplete) {
+    step.onComplete();
+  }
+
+  // For steps 0-2, advance to next. For step 3, close.
+  if (stepIndex < ONBOARDING_STEPS.length - 1) {
+    goToStep(stepIndex + 1);
+  }
+}
+
+function skipOnboardingStep(stepIndex) {
+  const step = ONBOARDING_STEPS[stepIndex];
+
+  // Mark as skipped
+  if (!skippedSteps.includes(step.id)) {
+    skippedSteps.push(step.id);
+    saveSkippedSteps();
+  }
+
+  // Advance to next step or complete
+  if (stepIndex < ONBOARDING_STEPS.length - 1) {
+    goToStep(stepIndex + 1);
+  } else {
+    completeOnboarding();
+  }
+}
+
+function goToStep(stepIndex) {
+  currentOnboardingStep = stepIndex;
+  showOnboardingStep(stepIndex);
+}
+
+function saveStep(stepIndex) {
+  localStorage.setItem(ONBOARDING_STEP_KEY, stepIndex);
+}
+
+function saveSkippedSteps() {
+  localStorage.setItem(ONBOARDING_SKIPPED_KEY, JSON.stringify(skippedSteps));
+}
+
+function completeOnboarding() {
+  localStorage.setItem(ONBOARDING_KEY, Date.now());
+  localStorage.removeItem(ONBOARDING_STEP_KEY);
+
+  const overlay = document.getElementById('onboardingOverlay');
+  if (overlay) overlay.classList.remove('open');
+
+  // Show hints for skipped features
+  setTimeout(() => showMissedFeaturesHint(), 1000);
+}
+
+function closeOnboarding() {
+  const overlay = document.getElementById('onboardingOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+// ═── NOTIFICATIONS PERMISSION ─═══════════════════════════════════════════════
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    showToast('הדפדפן שלך לא תומך בהתראות');
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission === 'granted') {
+      showToast('התראות הופעלו בהצלחה ✓');
+      await registerServiceWorker();
+    } else if (permission === 'denied') {
+      showToast('התראות נחסמו. אפשר להפעיל בהגדרות הדפדפן.');
+    }
+  } catch (err) {
+    console.error('Notification error:', err);
+  }
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    console.log('Service Worker registered:', reg);
+
+    // Subscribe to push notifications
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(
+        window.KlaserConfig?.vapidPublicKey || 'BDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+      )
+    });
+
+    // Send subscription to server
+    await KlaserAPI.savePushSubscription(sub);
+  } catch (err) {
+    console.error('Service Worker registration failed:', err);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+// ═── MISSED FEATURES HINT ─═══════════════════════════════════════════════════
+
+function showMissedFeaturesHint() {
+  const banners = [];
+
+  if (skippedSteps.includes('notifications')) {
+    banners.push({ icon: '🔔', text: 'אפשר להפעיל תזכורות בכל עת דרך הגדרות' });
+  }
+  if (skippedSteps.includes('family')) {
+    banners.push({ icon: '👨‍👩‍👧', text: 'אפשר להוסיף בני משפחה בכל עת דרך תפריט המסמכים' });
+  }
+
+  if (banners.length === 0) return;
+
+  // Show first banner
+  const banner = banners[0];
+  const el = document.getElementById('missedFeaturesBanner');
+  const iconEl = document.getElementById('bannerIcon');
+  const textEl = document.getElementById('bannerText');
+
+  if (el && iconEl && textEl) {
+    iconEl.textContent = banner.icon;
+    textEl.textContent = banner.text;
+    el.classList.add('show');
+
+    // Auto-hide after 8 seconds
+    setTimeout(() => hideMissedFeaturesBanner(), 8000);
+  }
+}
+
+function hideMissedFeaturesBanner() {
+  const el = document.getElementById('missedFeaturesBanner');
+  if (el) el.classList.remove('show');
+}
+
+// ═── RESET ONBOARDING (for testing) ─═══════════════════════════════════════════
+
+function resetOnboarding() {
+  localStorage.removeItem(ONBOARDING_KEY);
+  localStorage.removeItem(ONBOARDING_STEP_KEY);
+  localStorage.removeItem(ONBOARDING_SKIPPED_KEY);
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════

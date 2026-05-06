@@ -173,6 +173,44 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 .add-tab-custom input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:'Heebo',sans-serif;}
 .add-tab-custom button{width:100%;margin-top:8px;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
 
+/* ─── ONBOARDING WIZARD ─── */
+.onboarding-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;}
+.onboarding-overlay.open{display:flex;view-transition-name:onboarding-overlay;}
+.onboarding-modal{background:var(--surface);border-radius:24px;width:100%;max-width:420px;padding:0;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.35);view-transition-name:onboarding-modal;}
+.onboarding-step{padding:40px 32px 32px;text-align:center;view-transition-name:onboarding-content;}
+.onboarding-icon{font-size:64px;margin-bottom:16px;display:block;animation:iconIn .4s cubic-bezier(0.19, 1, 0.22, 1);}
+@keyframes iconIn{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+.onboarding-title{font-size:24px;font-weight:700;margin-bottom:12px;color:var(--text);}
+.onboarding-desc{font-size:15px;color:var(--text2);line-height:1.6;margin-bottom:32px;}
+.onboarding-actions{display:flex;flex-direction:column;gap:12px;}
+.onboarding-btn-primary{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:600;font-family:'Heebo',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.onboarding-btn-primary:hover{background:var(--accent-dark);transform:translateY(-1px);}
+.onboarding-btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:14px;font-family:'Heebo',sans-serif;cursor:pointer;transition:all .2s;}
+.onboarding-btn-secondary:hover{background:var(--border2);}
+.onboarding-btn-skip{color:var(--text3);font-size:14px;background:none;border:none;cursor:pointer;padding:8px;transition:color .2s;}
+.onboarding-btn-skip:hover{color:var(--text);}
+.onboarding-progress{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+.onboarding-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s;}
+.onboarding-dot.active{background:var(--accent);width:24px;border-radius:4px;}
+.onboarding-banner{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:1500;display:none;align-items:center;gap:12px;max-width:320px;animation:bannerIn .3s ease;}
+.onboarding-banner.show{display:flex;}
+@keyframes bannerIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.onboarding-banner-icon{font-size:24px;}
+.onboarding-banner-text{flex:1;font-size:14px;color:var(--text);}
+.onboarding-banner-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px;}
+
+/* ─── VIEW TRANSITIONS ─── */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+}
+::view-transition-old(*){animation:fadeOut .25s ease both;}
+::view-transition-new(*){animation:fadeIn .25s ease both;}
+@keyframes fadeOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-20px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
 /* ─── LAYOUT ─── */
 .app-body{display:flex;height:100vh;padding-top:var(--nav-h);overflow:hidden;}
 .sidebar{display:none;}
@@ -1712,5 +1750,28 @@ document.getElementById('fm-buy').valueAsDate=new Date();
 showTab('docs',document.querySelector('.topnav-tab'));
 renderAll();
 </script>
+
+<!-- ══ ONBOARDING WIZARD ══ -->
+<div class="onboarding-overlay" id="onboardingOverlay">
+  <div class="onboarding-modal">
+    <div class="onboarding-step" id="onboardingContent">
+      <!-- Content populated by JS -->
+    </div>
+    <div class="onboarding-progress" id="onboardingProgress">
+      <div class="onboarding-dot active" data-step="0"></div>
+      <div class="onboarding-dot" data-step="1"></div>
+      <div class="onboarding-dot" data-step="2"></div>
+      <div class="onboarding-dot" data-step="3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MISSED FEATURES BANNER ══ -->
+<div class="onboarding-banner" id="missedFeaturesBanner">
+  <span class="onboarding-banner-icon" id="bannerIcon">💡</span>
+  <span class="onboarding-banner-text" id="bannerText">אפשר להפעיל תזכורות בכל עת דרך הגדרות</span>
+  <button class="onboarding-banner-close" onclick="hideMissedFeaturesBanner()">×</button>
+</div>
+
 </body>
 </html>
