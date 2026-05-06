@@ -267,6 +267,11 @@ const CAT_TO_LIST = {
   'חינוך':          'educationList',
   'משפטי':          'legalList',
   'מסמכים אישיים':  'personalList',
+  // Business-only pages
+  'עובדים':         'employeesList',
+  'לקוחות':         'clientsList',
+  'ספקים':          'suppliersList',
+  'רישיונות':       'licensesList',
 };
 
 function renderAll() {
@@ -2009,8 +2014,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ─── ONBOARDING INIT ───
   initOnboarding();
 
-  // ─── ACCOUNT TYPE UI INIT ───
-  updateAccountTypeButtons();
+  // ─── APPLY ACCOUNT TYPE UI ───
+  applyAccountTypeUI();
 
   // ─── CROSS-PROMO BANNER (show once after 7 days or 10+ docs) ───
   setTimeout(() => showCrossPromoIfEligible(), 3000);
@@ -2878,40 +2883,87 @@ function handleSignupSuccess() {
   showAccountTypeModal();
 }
 
-function switchAccountType(type) {
-  const current = getAccountType();
-  if (current === type) return;
+// Account type is set once during registration and cannot be changed
+// Each account type shows completely different UI (like two separate apps)
 
-  if (confirm('שינוי סוג החשבון ישנה את הטאבים והקטגוריות. המסמכים הקיימים לא יימחקו. להמשיך?')) {
-    setAccountType(type);
+function updateAccountTypeDisplay() {
+  const type = getAccountType();
+  const iconEl = document.getElementById('accountTypeIcon');
+  const labelEl = document.getElementById('accountTypeLabel');
+
+  if (iconEl && labelEl) {
     if (type === 'business') {
-      setAppMode('business');
+      iconEl.textContent = '🏢';
+      labelEl.textContent = 'עסקי / משרד';
     } else {
-      setAppMode('family');
+      iconEl.textContent = '👤';
+      labelEl.textContent = 'אישי / משפחה';
     }
-    updateAccountTypeButtons();
-    showToast(`מצב ${type === 'business' ? 'עסקי' : 'אישי'} הופעל`);
-    setTimeout(() => location.reload(), 500);
   }
 }
 
-function updateAccountTypeButtons() {
+// Apply account-specific UI configuration
+function applyAccountTypeUI() {
   const type = getAccountType();
-  const personalBtn = document.getElementById('typePersonalBtn');
-  const businessBtn = document.getElementById('typeBusinessBtn');
 
-  if (personalBtn && businessBtn) {
-    if (type === 'business') {
-      businessBtn.classList.add('btn-primary');
-      businessBtn.classList.remove('btn-secondary');
-      personalBtn.classList.add('btn-secondary');
-      personalBtn.classList.remove('btn-primary');
-    } else {
-      personalBtn.classList.add('btn-primary');
-      personalBtn.classList.remove('btn-secondary');
-      businessBtn.classList.add('btn-secondary');
-      businessBtn.classList.remove('btn-primary');
-    }
+  // Show/hide tabs based on account type
+  if (type === 'business') {
+    showBusinessTabs();
+  } else {
+    showPersonalTabs();
+  }
+
+  // Update display in settings
+  updateAccountTypeDisplay();
+}
+
+function showBusinessTabs() {
+  // Hide personal nav, show business nav
+  const personalNav = document.getElementById('docsSubnav');
+  const businessNav = document.getElementById('docsSubnavBusiness');
+  if (personalNav) personalNav.style.display = 'none';
+  if (businessNav) businessNav.style.display = 'flex';
+
+  // Hide personal-specific docpages
+  document.querySelectorAll('.personal-only').forEach(el => {
+    if (el.classList.contains('docpage')) el.style.display = 'none';
+  });
+  // Show business-specific docpages (but keep them hidden until selected)
+  document.querySelectorAll('.business-only').forEach(el => {
+    if (el.classList.contains('docpage')) el.style.display = 'none';
+  });
+
+  // Show 'all' page by default
+  const allPage = document.getElementById('docpage-all');
+  if (allPage) {
+    document.querySelectorAll('.docpage').forEach(p => p.style.display = 'none');
+    allPage.style.display = 'block';
+    allPage.classList.add('active');
+  }
+}
+
+function showPersonalTabs() {
+  // Show personal nav, hide business nav
+  const personalNav = document.getElementById('docsSubnav');
+  const businessNav = document.getElementById('docsSubnavBusiness');
+  if (personalNav) personalNav.style.display = 'flex';
+  if (businessNav) businessNav.style.display = 'none';
+
+  // Hide business-specific docpages
+  document.querySelectorAll('.business-only').forEach(el => {
+    if (el.classList.contains('docpage')) el.style.display = 'none';
+  });
+  // Show personal-specific docpages (but keep them hidden until selected)
+  document.querySelectorAll('.personal-only').forEach(el => {
+    if (el.classList.contains('docpage')) el.style.display = 'none';
+  });
+
+  // Show 'all' page by default
+  const allPage = document.getElementById('docpage-all');
+  if (allPage) {
+    document.querySelectorAll('.docpage').forEach(p => p.style.display = 'none');
+    allPage.style.display = 'block';
+    allPage.classList.add('active');
   }
 }
 

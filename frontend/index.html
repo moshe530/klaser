@@ -752,13 +752,30 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       </button>
     </div>
   </div>
-  <!-- Sub-nav for docs tab: 5 default tabs (draggable) + custom tabs -->
+  <!-- Sub-nav for docs tab: Personal tabs -->
   <div class="topnav-subnav" id="docsSubnav">
-    <button class="subnav-tab active" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
-    <button class="subnav-tab" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
-    <button class="subnav-tab" draggable="true" data-tab-name="עבודה" onclick="sbNav('work',this,'docs');setSubnavActive(this)">עבודה</button>
-    <button class="subnav-tab" draggable="true" data-tab-name="אישי" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
-    <button class="subnav-tab" draggable="true" data-tab-name="אחר" onclick="sbNav('other',this,'docs');setSubnavActive(this)">אחר</button>
+    <button class="subnav-tab active personal-only" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="מוצרים" onclick="sbNav('products',this,'docs');setSubnavActive(this)">📦 מוצרים</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">💡 חשבוניות</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">🛡️ ביטוחים</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="דירה" onclick="sbNav('apartment',this,'docs');setSubnavActive(this)">🏠 דירה</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="רכב" onclick="sbNav('car',this,'docs');setSubnavActive(this)">🚗 רכב</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תלושי שכר" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">💰 תלושי שכר</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תיק רפואי" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">🏥 תיק רפואי</button>
+    <!-- Custom tabs will be inserted here -->
+    <button class="subnav-tab add-branch-tab" onclick="showAddTabMenu()">+</button>
+  </div>
+
+  <!-- Sub-nav for docs tab: Business tabs (hidden by default) -->
+  <div class="topnav-subnav" id="docsSubnavBusiness" style="display:none;">
+    <button class="subnav-tab active business-only" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="עובדים" onclick="sbNav('employees',this,'docs');setSubnavActive(this)">👥 עובדים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="לקוחות" onclick="sbNav('clients',this,'docs');setSubnavActive(this)">🤝 לקוחות</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="ספקים" onclick="sbNav('suppliers',this,'docs');setSubnavActive(this)">📦 ספקים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="רישיונות" onclick="sbNav('licenses',this,'docs');setSubnavActive(this)">📜 רישיונות</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">💡 חשבוניות</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">🛡️ ביטוחים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="משפטי" onclick="sbNav('legal',this,'docs');setSubnavActive(this)">⚖️ משפטי</button>
     <!-- Custom tabs will be inserted here -->
     <button class="subnav-tab add-branch-tab" onclick="showAddTabMenu()">+</button>
   </div>
@@ -893,7 +910,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="doc-list" id="apartmentList"></div>
   </div>
 
-  <div id="docpage-payslips" class="docpage" style="display:none">
+  <div id="docpage-payslips" class="docpage personal-only" style="display:none">
     <div class="ph"><div class="ph-left"><h1>תלושי שכר</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
     <div class="filter-row" id="payslipsFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'payslipsFilter')">הכל</button>
@@ -902,7 +919,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="doc-list" id="payslipsList"></div>
   </div>
 
-  <div id="docpage-approvals" class="docpage" style="display:none">
+  <div id="docpage-approvals" class="docpage personal-only" style="display:none">
     <div class="ph"><div class="ph-left"><h1>אישורים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
     <div class="filter-row" id="approvalsFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'approvalsFilter')">הכל</button>
@@ -911,7 +928,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="doc-list" id="approvalsList"></div>
   </div>
 
-  <div id="docpage-medical" class="docpage" style="display:none">
+  <div id="docpage-medical" class="docpage personal-only" style="display:none">
     <div class="ph"><div class="ph-left"><h1>תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+</button></div></div>
     <div class="filter-row" id="personFilter">
       <button class="chip active">כולם</button>
@@ -930,7 +947,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="doc-list" id="reportsList"></div>
   </div>
 
-  <div id="docpage-car" class="docpage" style="display:none">
+  <div id="docpage-car" class="docpage personal-only" style="display:none">
     <div class="ph"><div class="ph-left"><h1>רכב</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
     <div class="filter-row" id="carFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'carFilter')">הכל</button>
@@ -956,7 +973,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="doc-list" id="insuranceList"></div>
   </div>
 
-  <div id="docpage-pension" class="docpage" style="display:none">
+  <div id="docpage-pension" class="docpage personal-only" style="display:none">
     <div class="ph"><div class="ph-left"><h1>פנסיה וגמל</h1><p>קרנות פנסיה, השתלמות, גמל</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
     <div class="filter-row" id="pensionFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'pensionFilter')">הכל</button>
@@ -974,7 +991,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="doc-list" id="taxesList"></div>
   </div>
 
-  <div id="docpage-education" class="docpage" style="display:none">
+  <div id="docpage-education" class="docpage personal-only" style="display:none">
     <div class="ph"><div class="ph-left"><h1>חינוך</h1><p>תעודות, שכר לימוד, מלגות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
     <div class="filter-row" id="educationFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'educationFilter')">הכל</button>
@@ -1022,6 +1039,55 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <button class="chip add-sub-branch" onclick="addSubBranch('מסמכים אישיים')">+</button>
     </div>
     <div class="doc-list" id="personalList"></div>
+  </div>
+
+  <!-- BUSINESS-ONLY PAGES -->
+  <div id="docpage-employees" class="docpage business-only" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>👥 עובדים</h1><p>חוזי עבודה, תלושי שכר, חופשים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="employeesFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'employeesFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('חוזה עבודה',this,'employeesFilter')">חוזים</button>
+      <button class="chip" onclick="filterChip('תלוש שכר',this,'employeesFilter')">תלושים</button>
+      <button class="chip" onclick="filterChip('אישור חופש',this,'employeesFilter')">חופשים</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('עובדים')">+</button>
+    </div>
+    <div class="doc-list" id="employeesList"></div>
+  </div>
+
+  <div id="docpage-clients" class="docpage business-only" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>🤝 לקוחות</h1><p>הצעות מחיר, חוזים, התכתבות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="clientsFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'clientsFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('הצעת מחיר',this,'clientsFilter')">הצעות מחיר</button>
+      <button class="chip" onclick="filterChip('חוזה',this,'clientsFilter')">חוזים</button>
+      <button class="chip" onclick="filterChip('חשבונית',this,'clientsFilter')">חשבוניות</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('לקוחות')">+</button>
+    </div>
+    <div class="doc-list" id="clientsList"></div>
+  </div>
+
+  <div id="docpage-suppliers" class="docpage business-only" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>📦 ספקים</h1><p>הזמנות, חשבוניות, הסכמים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="suppliersFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'suppliersFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('הזמנה',this,'suppliersFilter')">הזמנות</button>
+      <button class="chip" onclick="filterChip('חשבונית',this,'suppliersFilter')">חשבוניות</button>
+      <button class="chip" onclick="filterChip('חוזה אספקה',this,'suppliersFilter')">חוזים</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('ספקים')">+</button>
+    </div>
+    <div class="doc-list" id="suppliersList"></div>
+  </div>
+
+  <div id="docpage-licenses" class="docpage business-only" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>📜 רישיונות</h1><p>רישיונות עסק, אישורים, תקנות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="licensesFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'licensesFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('רישיון עסק',this,'licensesFilter')">רישיון עסק</button>
+      <button class="chip" onclick="filterChip('אישור עירייה',this,'licensesFilter')">אישור עירייה</button>
+      <button class="chip" onclick="filterChip('ביטוח עסק',this,'licensesFilter')">ביטוח</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('רישיונות')">+</button>
+    </div>
+    <div class="doc-list" id="licensesList"></div>
   </div>
 
 </div><!-- /tab-docs -->
@@ -1129,21 +1195,19 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       </div>
     </div>
 
-    <!-- Account Type Setting -->
+    <!-- Account Type Display (read-only) -->
     <div class="settings-card" id="accountTypeCard">
-      <div class="sc-header"><div><div class="sc-title">סוג חשבון</div><div class="sc-sub">הגדר את המצב המרכזי של המערכת</div></div></div>
+      <div class="sc-header"><div><div class="sc-title">סוג חשבון</div><div class="sc-sub">המצב הנוכחי של המערכת</div></div></div>
       <div class="sc-body">
-        <div style="display:flex;gap:12px;margin-bottom:16px;">
-          <button class="btn-secondary" id="typePersonalBtn" onclick="switchAccountType('personal')" style="flex:1;">
-            👤 אישי / משפחה
-          </button>
-          <button class="btn-secondary" id="typeBusinessBtn" onclick="switchAccountType('business')" style="flex:1;">
-            🏢 עסקי / משרד
-          </button>
+        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--accent2);border-radius:var(--radius);border:2px solid var(--accent);">
+          <div style="font-size:40px;" id="accountTypeIcon">👤</div>
+          <div>
+            <div style="font-size:18px;font-weight:600;color:var(--accent);" id="accountTypeLabel">אישי / משפחה</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:4px;">החשבון מותאם לניהול מסמכים אישיים ומשפחתיים</div>
+          </div>
         </div>
-        <p style="font-size:13px;color:var(--text2);margin:0;">
-          💡 שינוי סוג החשבון ישנה את הטאבים, הקטגוריות והתוויות.<br>
-          המסמכים הקיימים שלך לא יימחקו.
+        <p style="font-size:12px;color:var(--text3);margin:12px 0 0 0;">
+          ℹ️ סוג החשבון נקבע בעת ההרשמה ואינו ניתן לשינוי. לפתיחת חשבון נוסף מסוג אחר, הירשם עם כתובת אימייל אחרת.
         </p>
       </div>
     </div>
