@@ -1540,10 +1540,20 @@ function showAddTabMenu() {
   list.innerHTML = '';
   TAB_SUGGESTIONS.forEach(sugg => {
     const isAdded = existing.has(sugg.name);
+    const isDefault = DEFAULT_TABS.has(sugg.name);
     const item = document.createElement('div');
     item.className = 'add-tab-item' + (isAdded ? ' added' : '');
-    item.innerHTML = `<span>${sugg.name}</span>`;
-    if (!isAdded) {
+    if (isAdded) {
+      item.innerHTML = `<span>${sugg.name}</span><span style="color:#E2544A;font-size:12px;">הסר</span>`;
+      if (!isDefault) {
+        // Allow removing custom tabs
+        item.onclick = () => removeTabByName(sugg.name);
+      } else {
+        // Default tabs cannot be removed - show message
+        item.onclick = () => alert('טאב ברירת מחדל לא ניתן להסרה');
+      }
+    } else {
+      item.innerHTML = `<span>${sugg.name}</span>`;
       item.onclick = () => addTabFromSuggestion(sugg);
     }
     list.appendChild(item);
@@ -1805,6 +1815,15 @@ function showCustomTab(name) {
   // Show this custom page
   const page = document.getElementById('docpage-custom-' + name);
   if (page) page.style.display = 'block';
+}
+
+function removeTabByName(name) {
+  // Find the tab button
+  const btn = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)')).find(t => t.textContent.trim() === name);
+  if (btn) {
+    removeCustomTab(name, btn);
+    hideAddTabMenu();
+  }
 }
 
 function removeCustomTab(name, btnElement) {
