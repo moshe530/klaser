@@ -211,6 +211,20 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 @keyframes fadeOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-20px)}}
 @keyframes fadeIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 
+/* ─── PROFILE STYLES ─── */
+.profile-photo-upload{transition:all .2s;}
+.profile-photo-upload:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(0,0,0,.15);}
+.profile-photo-upload img{width:100%;height:100%;object-fit:cover;}
+.profile-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:11px;}
+.color-picker div{transition:all .2s;}
+.color-picker div:hover{transform:scale(1.1);}
+.profile-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--radius);}
+.profile-filter-row .chip{display:flex;align-items:center;gap:6px;}
+.profile-filter-row .chip img{width:20px;height:20px;border-radius:50%;object-fit:cover;}
+.mode-toggle{position:fixed;bottom:24px;left:24px;z-index:1000;display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);cursor:pointer;transition:all .2s;}
+.mode-toggle:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.15);}
+.mode-toggle-label{font-size:13px;font-weight:600;color:var(--text);}
+
 /* ─── LAYOUT ─── */
 .app-body{display:flex;height:100vh;padding-top:var(--nav-h);overflow:hidden;}
 .sidebar{display:none;}
@@ -720,6 +734,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     </div>
     <nav class="topnav-tabs">
       <button class="topnav-tab active" onclick="showTab('docs',this)">מסמכים</button>
+      <button class="topnav-tab" onclick="showTab('people',this)" data-label="profilesTitle">לפי אדם</button>
       <button class="topnav-tab" onclick="showTab('calendar',this)">לוח שנה</button>
       <button class="topnav-tab" onclick="showTab('reminders',this)">תזכורות <span class="tab-badge" id="remBadge" style="display:none">0</span></button>
       <button class="topnav-tab" onclick="showTab('settings',this)">הגדרות</button>
@@ -1010,6 +1025,23 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </div>
 
 </div><!-- /tab-docs -->
+
+<!-- ══ PEOPLE TAB ══ -->
+<div class="page" id="tab-people">
+  <div class="ph">
+    <div class="ph-left"><h1 data-label="profilesTitle">לפי אדם</h1><p data-label="profilesSubtitle">נהל מסמכים לכל בני הבית</p></div>
+    <div class="ph-actions"><button class="btn-primary" onclick="openProfileModal()">+ <span data-label="addProfile">הוסף</span></button></div>
+  </div>
+
+  <div class="profile-filter-row" id="profileFilter">
+    <button class="chip active" onclick="filterByProfile(null, this)">כל המשפחה</button>
+    <button class="chip add-sub-branch" onclick="openProfileModal()">+</button>
+  </div>
+
+  <div class="cat-grid" id="peopleDocsGrid">
+    <!-- Documents grouped by category will be rendered here -->
+  </div>
+</div>
 
 <!-- ══ CALENDAR TAB ══ -->
 <div class="page" id="tab-calendar">
@@ -1353,6 +1385,12 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     </div>
     <div class="form-group"><label>תפוגת אחריות / תוקף</label><input class="form-input" type="date" id="fm-exp" /></div>
     <div class="form-group"><label>הערות</label><input class="form-input" id="fm-note" placeholder="מספר סידורי, גוון, פרטים נוספים..." /></div>
+    <div class="form-group" id="fm-assigned-container">
+      <label data-label="noProfile">שיוך</label>
+      <select class="form-input" id="fm-assigned">
+        <option value="">כללי (ללא שיוך)</option>
+      </select>
+    </div>
     <button class="btn-full" id="addDocBtn" onclick="addDoc()"><span class="btn-label">שמור מסמך</span></button>
   </div>
 </div>
@@ -1772,6 +1810,42 @@ renderAll();
   <span class="onboarding-banner-text" id="bannerText">אפשר להפעיל תזכורות בכל עת דרך הגדרות</span>
   <button class="onboarding-banner-close" onclick="hideMissedFeaturesBanner()">×</button>
 </div>
+
+<!-- ══ MODE TOGGLE (Family/Business) ══ -->
+<div class="mode-toggle" id="modeToggle" onclick="toggleAppMode()">
+  <span id="modeIcon">🏠</span>
+  <span class="mode-toggle-label" id="modeLabel">מצב משפחה</span>
+</div>
+
+<script>
+// Initialize profiles on load
+function initProfiles() {
+  const mode = getAppMode();
+  updateModeToggleUI(mode);
+  renderProfileChips();
+  renderProfileSelect();
+  applyAppMode(mode);
+}
+
+function toggleAppMode() {
+  const current = getAppMode();
+  const newMode = current === 'family' ? 'business' : 'family';
+  setAppMode(newMode);
+  updateModeToggleUI(newMode);
+}
+
+function updateModeToggleUI(mode) {
+  const icon = document.getElementById('modeIcon');
+  const label = document.getElementById('modeLabel');
+  if (icon && label) {
+    icon.textContent = mode === 'family' ? '🏠' : '🏢';
+    label.textContent = mode === 'family' ? 'מצב משפחה' : 'מצב עסק';
+  }
+}
+
+// Call init when DOM ready
+document.addEventListener('DOMContentLoaded', initProfiles);
+</script>
 
 </body>
 </html>

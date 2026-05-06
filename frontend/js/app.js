@@ -2019,6 +2019,492 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═── FAMILY PROFILES ─════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const FAMILY_PROFILES_KEY = 'klaser_family_profiles';
+const APP_MODE_KEY = 'klaser_app_mode'; // 'family' | 'business'
+
+// App mode management
+function getAppMode() {
+  return localStorage.getItem(APP_MODE_KEY) || 'family';
+}
+
+function setAppMode(mode) {
+  localStorage.setItem(APP_MODE_KEY, mode);
+  applyAppMode(mode);
+}
+
+function applyAppMode(mode) {
+  document.body.dataset.mode = mode;
+  // Update UI labels
+  const labels = mode === 'business' ? BUSINESS_LABELS : FAMILY_LABELS;
+  updateLabels(labels);
+}
+
+const FAMILY_LABELS = {
+  profilesTitle: 'בני משפחה',
+  profilesSubtitle: 'נהל מסמכים לכל בני הבית',
+  addProfile: 'הוסף בן משפחה',
+  allProfiles: 'כל המשפחה',
+  noProfile: 'כללי',
+  seeAllDocs: 'ראה כל המסמכים שלו ←'
+};
+
+const BUSINESS_LABELS = {
+  profilesTitle: 'אנשי קשר / תיקים',
+  profilesSubtitle: 'עובדים, לקוחות, ספקים, פרויקטים',
+  addProfile: 'הוסף איש קשר',
+  allProfiles: 'כל האנשי קשר',
+  noProfile: 'כללי',
+  seeAllDocs: 'ראה כל המסמכים ←',
+  department: 'מחלקה',
+  client: 'לקוח',
+  employee: 'עובד',
+  supplier: 'ספק',
+  project: 'פרויקט'
+};
+
+function updateLabels(labels) {
+  document.querySelectorAll('[data-label]').forEach(el => {
+    const key = el.dataset.label;
+    if (labels[key]) el.textContent = labels[key];
+  });
+}
+
+// Profile management
+function getFamilyProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem(FAMILY_PROFILES_KEY) || '[]');
+  } catch { return []; }
+}
+
+function setFamilyProfiles(profiles) {
+  localStorage.setItem(FAMILY_PROFILES_KEY, JSON.stringify(profiles));
+  renderProfileChips();
+  renderProfileSelect();
+}
+
+function createProfile(data) {
+  const profiles = getFamilyProfiles();
+  const profile = {
+    id: 'fp_' + Date.now(),
+    name: data.name?.trim(),
+    photo: data.photo || null, // base64
+    emoji: data.emoji || '👤',
+    color: data.color || getRandomProfileColor(),
+    id_number: data.id_number || null,
+    birth_date: data.birth_date || null,
+    role: data.role?.trim() || '',
+    // Business mode fields
+    department: data.department || '',
+    email: data.email || '',
+    phone: data.phone || '',
+    type: data.type || 'person', // person | project
+    created_at: Date.now()
+  };
+
+  if (!profile.name) {
+    showToast('שם הוא שדה חובה');
+    return null;
+  }
+
+  profiles.push(profile);
+  setFamilyProfiles(profiles);
+
+  // Add birthday reminder if birth_date provided
+  if (profile.birth_date) {
+    addBirthdayReminder(profile);
+  }
+
+  return profile;
+}
+
+function updateProfile(id, updates) {
+  const profiles = getFamilyProfiles();
+  const idx = profiles.findIndex(p => p.id === id);
+  if (idx === -1) return null;
+
+  // Handle photo compression if new photo
+  if (updates.photo && updates.photo !== profiles[idx].photo) {
+    updates.photo = compressPhoto(updates.photo);
+  }
+
+  profiles[idx] = { ...profiles[idx], ...updates, updated_at: Date.now() };
+  setFamilyProfiles(profiles);
+  return profiles[idx];
+}
+
+function deleteProfile(id) {
+  const profiles = getFamilyProfiles();
+  const filtered = profiles.filter(p => p.id !== id);
+  setFamilyProfiles(filtered);
+
+  // Unassign docs from this profile
+  docs.forEach(doc => {
+    if (doc.assigned_to === id) {
+      doc.assigned_to = null;
+    }
+  });
+  saveDocs();
+}
+
+// Photo handling
+function compressPhoto(base64, maxSize = 200 * 1024) {
+  if (!base64 || base64.length < maxSize) return base64;
+
+  // Simple compression: reduce quality for JPEG
+  if (base64.startsWith('data:image/jpeg') || base64.startsWith('data:image/jpg')) {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    return new Promise((resolve) => {
+      img.onload = () => {
+        const size = Math.min(img.width, img.height, 400);
+        canvas.width = size;
+        canvas.height = size;
+        ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, size, size);
+
+        let quality = 0.9;
+        let result = canvas.toDataURL('image/jpeg', quality);
+
+        while (result.length > maxSize && quality > 0.1) {
+          quality -= 0.1;
+          result = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        resolve(result);
+      };
+      img.src = base64;
+    });
+  }
+
+  return base64;
+}
+
+function getRandomProfileColor() {
+  const colors = ['#4A90E2', '#E94B8A', '#50C878', '#F5A623', '#9B59B6', '#1ABC9C', '#E74C3C', '#34495E'];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function addBirthdayReminder(profile) {
+  if (!profile.birth_date) return;
+
+  const [year, month, day] = profile.birth_date.split('-');
+  const nextBirthday = new Date();
+  nextBirthday.setMonth(parseInt(month) - 1);
+  nextBirthday.setDate(parseInt(day));
+
+  if (nextBirthday < new Date()) {
+    nextBirthday.setFullYear(nextBirthday.getFullYear() + 1);
+  }
+
+  reminders.push({
+    type: 'birthday',
+    name: `יום הולדת — ${profile.name}`,
+    date: nextBirthday.toISOString().split('T')[0],
+    dot: profile.color,
+    person_id: profile.id,
+    recurring: true
+  });
+
+  renderReminders('all');
+}
+
+// Document assignment
+function assignDocToProfile(docId, profileId) {
+  const doc = docs.find(d => d.id === docId);
+  if (doc) {
+    doc.assigned_to = profileId;
+    saveDocs();
+    renderAll();
+  }
+}
+
+function getDocsByProfile(profileId) {
+  return docs.filter(d => d.assigned_to === profileId);
+}
+
+function getProfileById(id) {
+  return getFamilyProfiles().find(p => p.id === id);
+}
+
+// UI: Profile chips for filtering
+function renderProfileChips() {
+  const container = document.getElementById('profileFilter');
+  if (!container) return;
+
+  const profiles = getFamilyProfiles();
+  const mode = getAppMode();
+  const labels = mode === 'business' ? BUSINESS_LABELS : FAMILY_LABELS;
+
+  let html = `<button class="chip ${activeProfile === null ? 'active' : ''}" onclick="filterByProfile(null, this)">${labels.allProfiles}</button>`;
+
+  profiles.forEach(p => {
+    const avatar = p.photo
+      ? `<img src="${p.photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+      : `<span style="font-size:14px;">${p.emoji}</span>`;
+
+    html += `<button class="chip ${activeProfile === p.id ? 'active' : ''}" onclick="filterByProfile('${p.id}', this)">
+      ${avatar}
+      <span>${p.name}</span>
+    </button>`;
+  });
+
+  html += `<button class="chip add-sub-branch" onclick="openProfileModal()">+</button>`;
+  container.innerHTML = html;
+}
+
+let activeProfile = null;
+
+function filterByProfile(profileId, btn) {
+  activeProfile = profileId;
+
+  // Update active chip
+  const row = btn?.closest('.filter-row');
+  if (row) {
+    row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Filter all doc lists
+  document.querySelectorAll('.doc-list').forEach(list => {
+    list.querySelectorAll('.doc-card').forEach(card => {
+      const docId = card.dataset.id;
+      const doc = docs.find(d => String(d.id) === docId);
+      const show = profileId === null || (doc && doc.assigned_to === profileId);
+      card.style.display = show ? '' : 'none';
+    });
+  });
+}
+
+// UI: Profile selector in document form
+function renderProfileSelect() {
+  const container = document.getElementById('fm-assigned-container');
+  const select = document.getElementById('fm-assigned');
+  if (!select) return;
+
+  const profiles = getFamilyProfiles();
+  const mode = getAppMode();
+  const labels = mode === 'business' ? BUSINESS_LABELS : FAMILY_LABELS;
+
+  let html = `<option value="">${labels.noProfile}</option>`;
+  profiles.forEach(p => {
+    const role = p.role ? ` (${p.role})` : '';
+    html += `<option value="${p.id}">${p.emoji} ${p.name}${role}</option>`;
+  });
+
+  select.innerHTML = html;
+}
+
+// Modal for profile creation/editing
+function openProfileModal(profileId = null) {
+  const profile = profileId ? getProfileById(profileId) : null;
+  const mode = getAppMode();
+  const isBusiness = mode === 'business';
+
+  const html = `
+    <div class="overlay open" id="modal-profile">
+      <div class="modal" style="max-width:420px;">
+        <div class="modal-head">
+          <h2>${profile ? 'ערוך פרופיל' : isBusiness ? 'הוסף איש קשר' : 'הוסף בן משפחה'}</h2>
+          <button class="icon-btn" onclick="closeModal('profile')">×</button>
+        </div>
+
+        <div style="text-align:center;margin-bottom:20px;">
+          <div class="profile-photo-upload" onclick="selectProfilePhoto()" style="
+            width:80px;height:80px;border-radius:50%;margin:0 auto;
+            background:${profile?.color || getRandomProfileColor()};
+            display:flex;align-items:center;justify-content:center;cursor:pointer;
+            font-size:32px;overflow:hidden;border:3px dashed rgba(255,255,255,0.3);
+          ">
+            ${profile?.photo ? `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;">` :
+              `<span id="profileEmoji">${profile?.emoji || '👤'}</span>`}
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-top:8px;">לחץ להעלאת תמונה</p>
+          <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="handleProfilePhoto(this)">
+        </div>
+
+        <div class="form-group">
+          <label>שם *</label>
+          <input class="form-input" type="text" id="profileName" value="${profile?.name || ''}" placeholder="שם מלא">
+        </div>
+
+        ${isBusiness ? `
+        <div class="form-group">
+          <label>סוג</label>
+          <select class="form-select" id="profileType" style="width:100%;">
+            <option value="person" ${profile?.type === 'person' ? 'selected' : ''}>אדם</option>
+            <option value="project" ${profile?.type === 'project' ? 'selected' : ''}>פרויקט</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>תפקיד / קטגוריה</label>
+          <input class="form-input" type="text" id="profileRole" value="${profile?.role || ''}" placeholder="למשל: עובד, לקוח, ספק, מחלקת שיווק">
+        </div>
+        <div class="form-group">
+          <label>מחלקה</label>
+          <input class="form-input" type="text" id="profileDepartment" value="${profile?.department || ''}" placeholder="שם המחלקה">
+        </div>
+        <div class="form-group">
+          <label>אימייל</label>
+          <input class="form-input" type="email" id="profileEmail" value="${profile?.email || ''}" placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label>טלפון</label>
+          <input class="form-input" type="tel" id="profilePhone" value="${profile?.phone || ''}" placeholder="050-0000000">
+        </div>
+        ` : `
+        <div class="form-group">
+          <label>תפקיד במשפחה</label>
+          <input class="form-input" type="text" id="profileRole" value="${profile?.role || ''}" placeholder="למשל: אבא, אמא, ילד, סבא">
+        </div>
+        `}
+
+        <div class="form-group">
+          <label>מספר ת.ז / ח.פ</label>
+          <input class="form-input" type="text" id="profileIdNumber" value="${profile?.id_number || ''}" placeholder="${isBusiness ? 'ח.פ' : '9 ספרות'}" maxlength="${isBusiness ? 9 : 9}">
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;">* יוצגו רק 4 ספרות אחרונות</p>
+        </div>
+
+        ${!isBusiness ? `
+        <div class="form-group">
+          <label>תאריך לידה</label>
+          <input class="form-input" type="date" id="profileBirthDate" value="${profile?.birth_date || ''}">
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;">* יוצר תזכורת יום הולדת אוטומטית</p>
+        </div>
+        ` : ''}
+
+        <div class="form-group">
+          <label>צבע לזיהוי</label>
+          <div class="color-picker" style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${['#4A90E2', '#E94B8A', '#50C878', '#F5A623', '#9B59B6', '#1ABC9C', '#E74C3C', '#34495E'].map(c => `
+              <div onclick="selectProfileColor('${c}')" data-color="${c}" style="
+                width:32px;height:32px;border-radius:50%;background:${c};cursor:pointer;
+                border:3px solid ${profile?.color === c ? '#fff' : 'transparent'};
+                box-shadow:0 0 0 2px ${profile?.color === c ? c : 'transparent'};
+              "></div>
+            `).join('')}
+          </div>
+          <input type="hidden" id="profileColor" value="${profile?.color || ''}">
+        </div>
+
+        <div class="form-group">
+          <label>אמוג'י (אופציונלי)</label>
+          <input class="form-input" type="text" id="profileEmoji" value="${profile?.emoji || ''}" placeholder="👤" maxlength="2">
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:24px;">
+          ${profile ? `<button class="btn-secondary" style="flex:1;" onclick="deleteProfile('${profile.id}');closeModal('profile');">מחק</button>` : ''}
+          <button class="btn-primary" style="flex:2;" onclick="saveProfile('${profile?.id || ''}')">שמור</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Insert modal into DOM
+  const existing = document.getElementById('modal-profile');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function selectProfilePhoto() {
+  document.getElementById('profilePhotoInput')?.click();
+}
+
+async function handleProfilePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('התמונה גדולה מ-2MB. נסה שוב.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = await compressPhoto(e.target.result);
+    window.tempProfilePhoto = base64;
+
+    // Update preview
+    const uploadDiv = document.querySelector('.profile-photo-upload');
+    if (uploadDiv) {
+      uploadDiv.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function selectProfileColor(color) {
+  document.getElementById('profileColor').value = color;
+  document.querySelectorAll('.color-picker div').forEach(d => {
+    d.style.boxShadow = 'none';
+    d.style.border = '3px solid transparent';
+  });
+  const selected = document.querySelector(`[data-color="${color}"]`);
+  if (selected) {
+    selected.style.border = '3px solid #fff';
+    selected.style.boxShadow = `0 0 0 2px ${color}`;
+  }
+}
+
+function saveProfile(profileId) {
+  const data = {
+    name: document.getElementById('profileName')?.value,
+    photo: window.tempProfilePhoto || null,
+    emoji: document.getElementById('profileEmoji')?.value || '👤',
+    color: document.getElementById('profileColor')?.value || getRandomProfileColor(),
+    id_number: maskIdNumber(document.getElementById('profileIdNumber')?.value),
+    birth_date: document.getElementById('profileBirthDate')?.value || null,
+    role: document.getElementById('profileRole')?.value || '',
+    department: document.getElementById('profileDepartment')?.value || '',
+    email: document.getElementById('profileEmail')?.value || '',
+    phone: document.getElementById('profilePhone')?.value || '',
+    type: document.getElementById('profileType')?.value || 'person'
+  };
+
+  if (profileId) {
+    updateProfile(profileId, data);
+  } else {
+    createProfile(data);
+  }
+
+  window.tempProfilePhoto = null;
+  closeModal('profile');
+}
+
+function maskIdNumber(idNum) {
+  if (!idNum) return null;
+  // Store encrypted/hashed in real implementation
+  // For now, just store last 4 digits with masking
+  const clean = idNum.replace(/\D/g, '');
+  if (clean.length >= 4) {
+    return '****' + clean.slice(-4);
+  }
+  return clean;
+}
+
+// Render profile assignment chip on doc cards
+function renderProfileChip(doc) {
+  if (!doc.assigned_to) return '';
+
+  const profile = getProfileById(doc.assigned_to);
+  if (!profile) return '';
+
+  const avatar = profile.photo
+    ? `<img src="${profile.photo}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;">`
+    : `<span style="font-size:12px;">${profile.emoji}</span>`;
+
+  return `<span class="profile-chip" style="
+    display:inline-flex;align-items:center;gap:4px;
+    padding:2px 8px;border-radius:12px;font-size:11px;
+    background:${profile.color}20;color:${profile.color};border:1px solid ${profile.color}40;
+  ">${avatar} ${profile.name}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ═── ONBOARDING WIZARD ─════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════════
 
