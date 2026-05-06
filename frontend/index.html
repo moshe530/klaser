@@ -942,8 +942,8 @@ body.locked .landing-view{display:block;}
         <h1>קלסרים נגמרו.<br>הבלאגן נגמר.</h1>
         <p class="lv-sub">העלו מסמך אחד — וה־AI ימיין, יתייק, יזהה תאריכים חשובים, ויזכיר לכם לפני שמשהו מתפספס.</p>
         <p class="lv-support">אחריות, מנויים, חשבוניות, זימונים, מסמכי בית, רכב, ילדים ועסק — הכול מסודר ונגיש תוך שניות.</p>
-        <button class="lv-btn-hero" onclick="openModal('auth')">
-          העלו מסמך ראשון
+        <button class="lv-btn-hero" onclick="openModal('account-type')">
+          התחל בחינם
         </button>
       </div>
     </section>
@@ -1025,17 +1025,6 @@ body.locked .landing-view{display:block;}
       </div>
     </section>
 
-    <!-- TWO PATH CTA -->
-    <section class="about-section" style="text-align:center;padding:40px 24px;">
-      <h2 style="margin-bottom:8px;">מוכנים להתחיל?</h2>
-      <p style="color:var(--text2);margin-bottom:24px;">בחרו את המסלול המתאים לכם והתחילו תוך 30 שניות</p>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:600px;margin:0 auto;">
-        <button class="btn-full" onclick="setAccountTypePreselected('personal');openModal('auth');" style="height:auto;padding:24px 16px;background:linear-gradient(135deg,var(--green-bg) 0%,#E8F5E9 100%);color:#1B5E20;border:1px solid #A5D6A7;">
-          <div style="font-size:28px;margin-bottom:8px;"></div>
-          <div style="font-weight:700;margin-bottom:4px;">משפחה / אישי</div>
-          <div style="font-size:13px;opacity:0.9;">בית, רכב, רפואה, חשבוניות</div>
-        </button>
-        <button class="btn-full" onclick="setAccountTypePreselected('business');openModal('auth');" style="height:auto;padding:24px 16px;background:linear-gradient(135deg,var(--teal-bg) 0%,#E0F2F1 100%);color:#00695C;border:1px solid #80CBC4;">
           <div style="font-size:28px;margin-bottom:8px;"></div>
           <div style="font-weight:700;margin-bottom:4px;">עסק / משרד</div>
           <div style="font-size:13px;opacity:0.9;">לקוחות, עובדים, ספקים, רישיונות</div>
@@ -1640,7 +1629,7 @@ body.locked .landing-view{display:block;}
     <script>
       function startSignup(type) {
         localStorage.setItem('account_type_preselected', type);
-        openModal('auth');
+        openModal('account-type');
         // Auto-select signup mode
         if (typeof authMode === 'undefined' || authMode !== 'signup') {
           toggleAuthMode && toggleAuthMode();
@@ -1861,8 +1850,14 @@ body.locked .landing-view{display:block;}
 <div class="overlay" id="modal-account-type" style="background:rgba(13,43,94,0.85);display:none;">
   <div class="modal" style="max-width:520px;padding:40px;">
     <div class="modal-head" style="justify-content:center;flex-direction:column;gap:12px;text-align:center;margin-bottom:32px;">
-      <h2 style="font-size:24px;">לאיזה שימוש קלסר מיועד לך?</h2>
-      <p style="font-size:14px;color:var(--text2);margin:0;">בחר את המצב המתאים ביותר לצרכים שלך</p>
+      <h2 style="font-size:24px;">Klaser מסדר את החיים שלך</h2>
+      <p style="font-size:14px;color:var(--text2);margin:0;">עלו מסמך אחד וה-AI ימיין, יתייק, יזהה תאריכים חשובים ויזכיר לכם לפני שמשהו מתפספס</p>
+      <div style="background:var(--green-bg);border-radius:8px;padding:12px 16px;margin-top:8px;">
+        <p style="font-size:13px;color:var(--text);margin:0;line-height:1.5;">
+          <strong>אחריות, מנויים, חשבוניות, זימונים, מסמכי בית, רכב, ילדים ועסק — הכול מסודר ונגיש תוך שניות</strong>
+        </p>
+      </div>
+      <p style="font-size:13px;color:var(--text2);margin:8px 0 0 0;">בחרו את המצב המתאים לכם:</p>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;">

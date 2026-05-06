@@ -2898,13 +2898,11 @@ function selectAccountType(type) {
   const selectedCard = document.querySelector(`.account-type-card[data-type="${type}"]`);
   if (selectedCard) selectedCard.classList.add('selected');
 
-  // Enable submit button
-  const submitBtn = document.getElementById('accountTypeSubmit');
-  if (submitBtn) {
-    submitBtn.disabled = false;
-    submitBtn.style.opacity = '1';
-    submitBtn.style.pointerEvents = 'auto';
-  }
+  // Open auth modal after short delay
+  setTimeout(() => {
+    closeModal('account-type');
+    openModal('auth');
+  }, 400);
 }
 
 function updateAccountTypeUI() {
