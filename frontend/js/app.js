@@ -463,20 +463,20 @@ function openAddForBranch() {
   openModal('add');
 }
 
-// Re-build category <select> options to include custom invoice branches
+// Re-build category <select> options from the dynamic categories store.
+// Delegates to renderAllCategoryTabs (single source of truth) when available.
 function refreshCategoryDropdowns() {
-  const customBranches = getInvoiceBranches();
-  const builtIn = [
-    'מוצרים', 'ביטוח', 'דירה', 'רכב',
-    'מסמכים אישיים', 'חשמל', 'גז', 'מים',
-    'תלוש שכר', 'רפואי', 'בנק', 'אשראי',
-  ];
-  const all = [...builtIn, ...customBranches];
+  if (typeof renderAllCategoryTabs === 'function') {
+    renderAllCategoryTabs();
+    return;
+  }
+  // Fallback (categories.js not loaded yet) — minimal static list.
+  const fallback = ['מוצרים', 'ביטוח', 'דירה', 'רכב', 'מסמכים אישיים', 'חשמל', 'גז', 'מים', 'תלוש שכר', 'רפואי', 'בנק', 'אשראי', 'אחר'];
   ['fm-cat', 'ed-cat'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = all.map(v => `<option value="${v}">${v}</option>`).join('');
+    sel.innerHTML = fallback.map(v => `<option value="${v}">${v}</option>`).join('');
     if (prev) sel.value = prev;
   });
 }
@@ -1090,9 +1090,12 @@ async function addDoc() {
   const nameRaw = document.getElementById('fm-name').value.trim();
   const name = nameRaw || (pendingFile ? 'ממתין לניתוח AI' : 'מסמך חדש');
 
+  const subSelEl = document.getElementById('fm-subcat');
+  const subVal = subSelEl ? subSelEl.value : '';
   const payload = toApi({
     name,
     cat: document.getElementById('fm-cat').value,
+    sub: (subVal && subVal !== '__add__') ? subVal : '',
     buy: document.getElementById('fm-buy').value,
     exp: document.getElementById('fm-exp').value || null,
     amount: document.getElementById('fm-note').value, // השדה הזה במודל הוא "הערות" — נשמר כסכום אם נומרי
@@ -1170,6 +1173,14 @@ async function runAnalyze(docId) {
     if (idx >= 0) docs[idx] = fromApi(updated);
     renderAll();
     setStatusBadge(`✓ נותח · ${docs.length} מסמכים`, 'ok');
+
+    // AI sync — if AI suggested a category/subcategory we don't know yet, prompt to add.
+    if (typeof syncAICategory === 'function') {
+      syncAICategory({
+        category: updated.category,
+        subcategory: updated.sub_category,
+      });
+    }
     setTimeout(() => setStatusBadge(`מחובר · ${docs.length} מסמכים`, 'ok'), 3000);
   } catch (e) {
     console.error(e);
@@ -1209,8 +1220,17 @@ function openEdit(id) {
   refreshCategoryDropdowns();
   document.getElementById('ed-id').value = d.id;
   document.getElementById('ed-name').value = d.name || '';
-  document.getElementById('ed-cat').value = d.cat || '';
-  document.getElementById('ed-sub').value = d.sub || '';
+  // Populate categories first, then sub-list, then select doc's values.
+  const catSel = document.getElementById('ed-cat');
+  const subSel = document.getElementById('ed-sub');
+  if (catSel && typeof populateCategoryDropdown === 'function') {
+    populateCategoryDropdown(catSel, d.cat || '');
+  } else if (catSel) {
+    catSel.value = d.cat || '';
+  }
+  if (subSel && typeof populateSubcategoryDropdown === 'function') {
+    populateSubcategoryDropdown(subSel, d.cat || '', d.sub || '');
+  }
   document.getElementById('ed-buy').value = d.buy || '';
   document.getElementById('ed-exp').value = d.exp || '';
   const amt = d._raw && d._raw.amount != null ? d._raw.amount : '';
@@ -1224,10 +1244,12 @@ async function saveEdit() {
   const name = document.getElementById('ed-name').value.trim();
   if (!name) { alert('נא להזין שם'); return; }
   const amountStr = document.getElementById('ed-amount').value;
+  const subRaw = document.getElementById('ed-sub').value;
+  const subVal = (subRaw && subRaw !== '__add__') ? subRaw.trim() : '';
   const patch = {
     name,
     category:      document.getElementById('ed-cat').value || null,
-    sub_category:  document.getElementById('ed-sub').value.trim() || null,
+    sub_category:  subVal || null,
     purchase_date: document.getElementById('ed-buy').value || null,
     warranty_end:  document.getElementById('ed-exp').value || null,
     amount: amountStr === '' ? null : Number(amountStr),
@@ -1379,6 +1401,7 @@ async function authSubmit() {
   const originalText = btn.textContent;
   btn.textContent = '...';
   try {
+    let isNewSignup = false;
     if (authMode === 'signup') {
       const data = await KlaserAuth.signUp(email, password);
       if (!data.session) {
@@ -1388,6 +1411,7 @@ async function authSubmit() {
         btn.textContent = originalText;
         return;
       }
+      isNewSignup = true;
     } else {
       await KlaserAuth.signIn(email, password);
     }
@@ -1395,6 +1419,25 @@ async function authSubmit() {
     closeModal('auth');
     document.body.classList.remove('locked');
     await startApp();
+
+    // After signup: account type selection (skipped if already set or preselected)
+    if (isNewSignup) {
+      const preselected = localStorage.getItem('account_type_preselected');
+      const existing = localStorage.getItem('account_type');
+      if (!existing && preselected && (preselected === 'personal' || preselected === 'business')) {
+        // User already chose on landing page → auto-apply, skip modal
+        localStorage.setItem('account_type', preselected);
+        localStorage.removeItem('account_type_preselected');
+        if (!localStorage.getItem('account_created')) {
+          localStorage.setItem('account_created', String(Date.now()));
+        }
+        if (typeof applyAccountTypeUI === 'function') applyAccountTypeUI();
+        if (typeof initOnboarding === 'function') setTimeout(initOnboarding, 400);
+      } else if (!existing) {
+        // No preselection → show the modal to choose
+        if (typeof handleSignupSuccess === 'function') handleSignupSuccess();
+      }
+    }
   } catch (e) {
     console.error(e);
     showAuthError(e.message || 'שגיאה בהתחברות');
@@ -2035,16 +2078,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const FAMILY_PROFILES_KEY = 'klaser_family_profiles';
-const APP_MODE_KEY = 'klaser_app_mode'; // 'family' | 'business'
 
-// App mode management
+// App mode is DERIVED from account_type — no separate storage.
+// 'personal' account → 'family' mode; 'business' account → 'business' mode.
 function getAppMode() {
-  return localStorage.getItem(APP_MODE_KEY) || 'family';
+  try {
+    return (localStorage.getItem('account_type') === 'business') ? 'business' : 'family';
+  } catch { return 'family'; }
 }
 
+// Kept for backward-compat callers; just re-applies UI based on account_type.
 function setAppMode(mode) {
-  localStorage.setItem(APP_MODE_KEY, mode);
-  applyAppMode(mode);
+  applyAppMode(mode === 'business' ? 'business' : 'family');
 }
 
 function applyAppMode(mode) {
@@ -2807,14 +2852,20 @@ let selectedAccountType = null;
 
 function showAccountTypeModal() {
   const modal = document.getElementById('modal-account-type');
-  if (modal) modal.classList.add('open');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+  }
   selectedAccountType = null;
   updateAccountTypeUI();
 }
 
 function closeAccountTypeModal() {
   const modal = document.getElementById('modal-account-type');
-  if (modal) modal.classList.remove('open');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+  }
 }
 
 function selectAccountType(type) {
@@ -2853,17 +2904,20 @@ function updateAccountTypeUI() {
 function confirmAccountType() {
   if (!selectedAccountType) return;
 
-  closeAccountTypeModal();
-
-  // Apply the mode immediately
-  if (selectedAccountType === 'business') {
-    setAppMode('business');
-  } else {
-    setAppMode('family');
+  // Persist the choice and clear any preselection from landing page
+  localStorage.setItem(ACCOUNT_TYPE_KEY, selectedAccountType);
+  localStorage.removeItem('account_type_preselected');
+  if (!localStorage.getItem('account_created')) {
+    localStorage.setItem('account_created', String(Date.now()));
   }
 
-  // Show appropriate onboarding
-  setTimeout(() => initOnboarding(), 500);
+  closeAccountTypeModal();
+
+  // Apply the unified account-type UI (handles nav + docpages + labels)
+  applyAccountTypeUI();
+
+  // Tailored onboarding for the chosen account type
+  if (typeof initOnboarding === 'function') setTimeout(initOnboarding, 400);
 }
 
 function getAccountType() {
@@ -2903,19 +2957,35 @@ function updateAccountTypeDisplay() {
   }
 }
 
-// Apply account-specific UI configuration
+// Apply account-specific UI configuration (single entry point)
 function applyAccountTypeUI() {
   const type = getAccountType();
 
-  // Show/hide tabs based on account type
+  // body data-mode for CSS hooks (e.g. business/family-only chips)
+  document.body.dataset.mode = (type === 'business') ? 'business' : 'family';
+  document.body.dataset.accountType = type;
+
+  // Switch nav, docpages
   if (type === 'business') {
     showBusinessTabs();
   } else {
     showPersonalTabs();
   }
 
-  // Update display in settings
+  // Apply textual labels (people titles, etc.)
+  if (typeof applyAppMode === 'function') {
+    applyAppMode(type === 'business' ? 'business' : 'family');
+  }
+
+  // Re-render people chips/select (uses mode for labels)
+  if (typeof renderProfileChips === 'function') renderProfileChips();
+  if (typeof renderProfileSelect === 'function') renderProfileSelect();
+
+  // Update read-only display in settings
   updateAccountTypeDisplay();
+
+  // Refresh categories everywhere (subcategory chips, dropdowns)
+  if (typeof renderAllCategoryTabs === 'function') renderAllCategoryTabs();
 }
 
 function showBusinessTabs() {

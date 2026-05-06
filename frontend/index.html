@@ -1478,9 +1478,19 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="form-row2">
       <div class="form-group">
         <label>קטגוריה</label>
-        <select class="form-input" id="ed-cat"></select>
+        <select class="form-input" id="ed-cat" onchange="onEditCategoryChange(this.value)"></select>
       </div>
-      <div class="form-group"><label>תת-קטגוריה</label><input class="form-input" id="ed-sub" /></div>
+      <div class="form-group">
+        <label>תת-ענף</label>
+        <select class="form-input" id="ed-sub" onchange="onEditSubcategoryChange(this.value)">
+          <option value="">בחר תת-ענף...</option>
+        </select>
+        <div id="ed-subcat-add-row" style="display:none;margin-top:8px;gap:6px;">
+          <input class="form-input" id="ed-subcat-new" placeholder="שם תת-ענף חדש" style="flex:1;" />
+          <button type="button" class="btn-primary" onclick="confirmAddEditSubcategoryInline()" style="padding:8px 14px;">אישור</button>
+          <button type="button" onclick="cancelAddEditSubcategoryInline()" style="padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:8px;">×</button>
+        </div>
+      </div>
     </div>
     <div class="form-row2">
       <div class="form-group"><label>תאריך רכישה / הוצאה</label><input class="form-input" type="date" id="ed-buy" /></div>
@@ -1504,23 +1514,23 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="form-row2">
       <div class="form-group">
         <label>קטגוריה</label>
-        <select class="form-input" id="fm-cat">
-          <option value="מוצרים">מוצרים</option>
-          <option value="ביטוח">ביטוח</option>
-          <option value="דירה">דירה</option>
-          <option value="רכב">רכב</option>
-          <option value="מסמכים אישיים">מסמכים אישיים</option>
-          <option value="חשמל">חשמל</option>
-          <option value="גז">גז</option>
-          <option value="מים">מים</option>
-          <option value="תלוש שכר">תלוש שכר</option>
-          <option value="רפואי">רפואי</option>
-          <option value="בנק">בנק</option>
-          <option value="אשראי">אשראי</option>
+        <select class="form-input" id="fm-cat" onchange="onCategoryChange(this.value)">
+          <!-- populated by JS from klaser_categories -->
         </select>
       </div>
-      <div class="form-group"><label>תאריך רכישה / הוצאה</label><input class="form-input" type="date" id="fm-buy" /></div>
+      <div class="form-group">
+        <label>תת-ענף</label>
+        <select class="form-input" id="fm-subcat" onchange="onSubcategoryChange(this.value)">
+          <option value="">בחר תת-ענף...</option>
+        </select>
+        <div id="fm-subcat-add-row" style="display:none;margin-top:8px;gap:6px;">
+          <input class="form-input" id="fm-subcat-new" placeholder="שם תת-ענף חדש" style="flex:1;" />
+          <button type="button" class="btn-primary" onclick="confirmAddSubcategoryInline()" style="padding:8px 14px;">אישור</button>
+          <button type="button" onclick="cancelAddSubcategoryInline()" style="padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:8px;">×</button>
+        </div>
+      </div>
     </div>
+    <div class="form-group"><label>תאריך רכישה / הוצאה</label><input class="form-input" type="date" id="fm-buy" /></div>
     <div class="form-group"><label>תפוגת אחריות / תוקף</label><input class="form-input" type="date" id="fm-exp" /></div>
     <div class="form-group"><label>הערות</label><input class="form-input" id="fm-note" placeholder="מספר סידורי, גוון, פרטים נוספים..." /></div>
     <div class="form-group" id="fm-assigned-container">
@@ -1677,7 +1687,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     </div>
 
     <p style="text-align:center;font-size:13px;color:var(--text3);margin-bottom:16px;">
-      💡 אפשר לשנות את ההגדרה בהמשך בתפריט ההגדרות
+      ℹ️ הבחירה קובעת את חוויית האתר שלך. לפתיחת חשבון מסוג אחר יש להירשם עם אימייל אחר.
     </p>
 
     <button class="btn-full" id="accountTypeSubmit" onclick="confirmAccountType()" style="opacity:0.5;pointer-events:none;" disabled>
@@ -1700,6 +1710,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
+<script src="js/categories.js"></script>
 <script src="js/app.js"></script>
 <!-- Original inline script removed — moved to js/app.js. Kept here as reference comment -->
 <script type="text/plain" data-archived="true">
@@ -2015,36 +2026,16 @@ renderAll();
   <button class="onboarding-banner-close" onclick="hideMissedFeaturesBanner()">×</button>
 </div>
 
-<!-- ══ MODE TOGGLE (Family/Business) ══ -->
-<div class="mode-toggle" id="modeToggle" onclick="toggleAppMode()">
-  <span id="modeIcon">🏠</span>
-  <span class="mode-toggle-label" id="modeLabel">מצב משפחה</span>
-</div>
+<!-- Account type is now decided once at signup; no in-app switching -->
 
 <script>
 // Initialize profiles on load
 function initProfiles() {
-  const mode = getAppMode();
-  updateModeToggleUI(mode);
-  renderProfileChips();
-  renderProfileSelect();
-  applyAppMode(mode);
-}
-
-function toggleAppMode() {
-  const current = getAppMode();
-  const newMode = current === 'family' ? 'business' : 'family';
-  setAppMode(newMode);
-  updateModeToggleUI(newMode);
-}
-
-function updateModeToggleUI(mode) {
-  const icon = document.getElementById('modeIcon');
-  const label = document.getElementById('modeLabel');
-  if (icon && label) {
-    icon.textContent = mode === 'family' ? '🏠' : '🏢';
-    label.textContent = mode === 'family' ? 'מצב משפחה' : 'מצב עסק';
-  }
+  // Mode is now derived from account_type (single source of truth)
+  const mode = (typeof getAccountType === 'function' && getAccountType() === 'business') ? 'business' : 'family';
+  if (typeof applyAppMode === 'function') applyAppMode(mode);
+  if (typeof renderProfileChips === 'function') renderProfileChips();
+  if (typeof renderProfileSelect === 'function') renderProfileSelect();
 }
 
 // Call init when DOM ready
