@@ -855,13 +855,10 @@ body.locked .landing-view{display:block;}
   <!-- Sub-nav for docs tab: Personal tabs -->
   <div class="topnav-subnav" id="docsSubnav">
     <button class="subnav-tab active personal-only" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="מוצרים" onclick="sbNav('products',this,'docs');setSubnavActive(this)">מוצרים</button>
     <button class="subnav-tab personal-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">ביטוחים</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="דירה" onclick="sbNav('apartment',this,'docs');setSubnavActive(this)">דירה</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="רכב" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תלושי שכר" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">תלושי שכר</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תיק רפואי" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">תיק רפואי</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="עבודה" onclick="sbNav('work',this,'docs');setSubnavActive(this)">עבודה</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="אישי" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="אחר" onclick="sbNav('other',this,'docs');setSubnavActive(this)">אחר</button>
     <!-- Custom tabs will be inserted here -->
     <button class="subnav-tab add-branch-tab" onclick="showAddTabMenu()">+</button>
   </div>
@@ -1233,6 +1230,7 @@ body.locked .landing-view{display:block;}
       <button class="chip active" onclick="filterChip('הכל',this,'workFilter')">הכל</button>
       <button class="chip" onclick="filterChip('תלוש שכר',this,'workFilter')">תלושי שכר</button>
       <button class="chip" onclick="filterChip('פנסיה',this,'workFilter')">פנסיה</button>
+      <button class="chip" onclick="filterChip('מיסים',this,'workFilter')">מיסים</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('עבודה')">+</button>
     </div>
     <div class="doc-list" id="workList"></div>
