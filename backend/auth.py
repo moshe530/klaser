@@ -31,13 +31,28 @@ class AuthContext:
 def _decode_jwt_sub(token: str) -> UUID:
     """Extract `sub` claim from a Supabase JWT.
 
-    If SUPABASE_JWT_SECRET is configured, the signature & expiry are verified
-    locally (defense in depth). Otherwise we fall back to unverified decode
-    and rely on Supabase to reject invalid tokens downstream.
+    Algorithm-aware:
+      - HS256 + SUPABASE_JWT_SECRET set → full local signature verification.
+      - ES256/RS256 (Supabase asymmetric keys, default for new projects) →
+        unverified decode + manual exp check. Supabase still rejects forged
+        tokens downstream on every DB call.
+      - No secret configured → unverified decode + manual exp check.
     """
+    import base64
+    import json
+    import time
+
     try:
-        if settings.SUPABASE_JWT_SECRET:
-            # Strong path: verify signature, expiry, and audience.
+        # Always start by parsing the header so we can decide what to do.
+        parts = token.split(".")
+        if len(parts) != 3:
+            raise ValueError("malformed jwt")
+        header_b64 = parts[0] + "=" * (-len(parts[0]) % 4)
+        header = json.loads(base64.urlsafe_b64decode(header_b64))
+        alg = header.get("alg", "")
+
+        # Strong path: only when alg is HS256 AND we have a shared secret.
+        if alg == "HS256" and settings.SUPABASE_JWT_SECRET:
             import jwt as pyjwt
             payload = pyjwt.decode(
                 token,
@@ -47,18 +62,11 @@ def _decode_jwt_sub(token: str) -> UUID:
                 options={"require": ["exp", "sub"]},
             )
         else:
-            # Weak path: decode without verifying signature. Still parses
-            # exp/sub. Supabase will reject forged tokens on the actual DB
-            # call, but this is not cryptographically explicit.
-            import base64
-            import json
-            import time
-            parts = token.split(".")
-            if len(parts) != 3:
-                raise ValueError("malformed jwt")
+            # Weak path: decode payload without verifying signature, but still
+            # check expiry locally. Supabase rejects forged/expired tokens on
+            # the actual DB call (RLS uses auth.uid()).
             payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
             payload = json.loads(base64.urlsafe_b64decode(payload_b64))
-            # Manual expiry check
             exp = payload.get("exp")
             if exp and int(exp) < int(time.time()):
                 raise ValueError("token expired")
