@@ -107,10 +107,39 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 @media(max-width:640px){.conn-badge{display:none;}}
 
 /* ─── SUBNAV (tabs under main nav) ─── */
+.subnav-wrap{position:relative;}
 .topnav-subnav{
   display:flex;gap:0;padding:0 20px;height:52px;align-items:center;
   border-top:1px solid rgba(255,255,255,0.1);
+  overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;
+  scrollbar-width:none;-ms-overflow-style:none;
 }
+.topnav-subnav::-webkit-scrollbar{display:none;}
+
+/* Half-transparent scroll arrow buttons over subnav edges. Shown only when
+   the subnav actually overflows; toggled by JS via .visible class. */
+.subnav-arrow{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:36px;height:36px;border:none;border-radius:50%;
+  background:rgba(255,255,255,0.18);
+  color:#fff;font-size:22px;font-weight:700;line-height:1;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+  z-index:5;transition:background .15s,opacity .15s;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.subnav-arrow:hover{background:rgba(255,255,255,0.32);}
+.subnav-arrow.visible{display:flex;}
+.subnav-arrow-left{left:6px;}
+.subnav-arrow-right{right:6px;}
+/* Soft fade so the half-hidden tab "peeks" out from under the arrow */
+.subnav-wrap::before,.subnav-wrap::after{
+  content:'';position:absolute;top:0;bottom:0;width:48px;
+  pointer-events:none;z-index:4;opacity:0;transition:opacity .15s;
+}
+.subnav-wrap::before{left:0;background:linear-gradient(to right,var(--nav-bg) 30%,transparent);}
+.subnav-wrap::after{right:0;background:linear-gradient(to left,var(--nav-bg) 30%,transparent);}
+.subnav-wrap.scroll-left::before{opacity:1;}
+.subnav-wrap.scroll-right::after{opacity:1;}
 .subnav-tab{
   padding:6px 16px;margin-left:8px;font-size:13px;color:rgba(255,255,255,0.7);
   cursor:pointer;border:none;background:none;font-family:'Heebo',sans-serif;

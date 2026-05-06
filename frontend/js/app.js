@@ -521,6 +521,80 @@ function clearButtonLoading(btn) {
   btn.disabled = false;
 }
 
+// ─── SUBNAV SCROLL ARROWS ───
+// Wraps every `.topnav-subnav` in a `.subnav-wrap` and overlays half-
+// transparent ‹/› arrow buttons on each edge. Arrows + edge fades are
+// shown only when there's hidden content in that direction. Works in both
+// LTR and RTL because we use `scrollBy` with relative deltas.
+function setupSubnavArrows() {
+  document.querySelectorAll('.topnav-subnav').forEach(nav => {
+    if (nav.dataset.arrowsInit) return;
+    nav.dataset.arrowsInit = '1';
+
+    // Wrap nav in a positioning container (preserve DOM order).
+    const wrap = document.createElement('div');
+    wrap.className = 'subnav-wrap';
+    nav.parentNode.insertBefore(wrap, nav);
+    wrap.appendChild(nav);
+
+    const mkArrow = (side, glyph) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'subnav-arrow subnav-arrow-' + side;
+      b.innerHTML = glyph;
+      b.setAttribute('aria-label', side === 'left' ? 'גלול שמאלה' : 'גלול ימינה');
+      b.addEventListener('click', () => {
+        const delta = Math.max(160, nav.clientWidth * 0.6);
+        nav.scrollBy({ left: side === 'left' ? -delta : delta, behavior: 'smooth' });
+      });
+      return b;
+    };
+    const leftBtn = mkArrow('left', '‹');
+    const rightBtn = mkArrow('right', '›');
+    wrap.appendChild(leftBtn);
+    wrap.appendChild(rightBtn);
+
+    nav.addEventListener('scroll', updateSubnavArrows, { passive: true });
+  });
+  updateSubnavArrows();
+}
+
+// Refreshes arrow + edge-fade visibility for every wrapped subnav.
+// Safe to call multiple times (idempotent).
+function updateSubnavArrows() {
+  document.querySelectorAll('.subnav-wrap').forEach(wrap => {
+    const nav = wrap.querySelector('.topnav-subnav');
+    if (!nav) return;
+    const leftBtn = wrap.querySelector('.subnav-arrow-left');
+    const rightBtn = wrap.querySelector('.subnav-arrow-right');
+    // If subnav is hidden (display:none), skip — no measurement possible.
+    if (nav.offsetParent === null) {
+      if (leftBtn) leftBtn.classList.remove('visible');
+      if (rightBtn) rightBtn.classList.remove('visible');
+      wrap.classList.remove('scroll-left', 'scroll-right');
+      return;
+    }
+    const sl = nav.scrollLeft;          // can be negative in RTL on some browsers
+    const max = nav.scrollWidth - nav.clientWidth;
+    const overflow = max > 2;
+    // Normalize scroll position: `pos` is 0 at start, `max` at end regardless of dir.
+    const pos = Math.abs(sl);
+    const canScrollStart = overflow && pos > 1;            // can go back toward start
+    const canScrollEnd   = overflow && pos < max - 1;      // can go forward toward end
+    // In RTL the visual "start" is the right side, so the right arrow scrolls back.
+    const isRTL = getComputedStyle(nav).direction === 'rtl';
+    const showLeft  = isRTL ? canScrollEnd   : canScrollStart;
+    const showRight = isRTL ? canScrollStart : canScrollEnd;
+    if (leftBtn)  leftBtn.classList.toggle('visible',  showLeft);
+    if (rightBtn) rightBtn.classList.toggle('visible', showRight);
+    wrap.classList.toggle('scroll-left',  showLeft);
+    wrap.classList.toggle('scroll-right', showRight);
+  });
+}
+window.addEventListener('resize', () => {
+  if (typeof updateSubnavArrows === 'function') updateSubnavArrows();
+});
+
 // ─── MOBILE SIDEBAR ───
 function toggleSidebar() {
   const sb = document.getElementById('mobileSidebar');
@@ -563,13 +637,22 @@ function showTab(tab, el, mobEl) {
     const g = document.getElementById('sb-' + t);
     if (g) g.style.display = (t === tab) ? 'block' : 'none';
   });
-  // Show/hide topnav-subnav rows — only the matching tab's subnav is visible
+  // Show/hide topnav-subnav rows — only the matching tab's subnav is visible.
+  // Each subnav may be wrapped in a `.subnav-wrap` (added by setupSubnavArrows)
+  // so we toggle the wrap's display when present, otherwise the subnav itself.
   document.querySelectorAll('.topnav-subnav').forEach(n => {
-    n.style.setProperty('display', 'none', 'important');
+    const host = n.parentElement && n.parentElement.classList.contains('subnav-wrap') ? n.parentElement : n;
+    host.style.setProperty('display', 'none', 'important');
   });
   const subnavMap = { docs: 'docsSubnav', calendar: 'calSubnav', reminders: 'remSubnav', settings: 'settSubnav' };
   const activeSubnav = document.getElementById(subnavMap[tab]);
-  if (activeSubnav) activeSubnav.style.setProperty('display', 'flex', 'important');
+  if (activeSubnav) {
+    const host = activeSubnav.parentElement && activeSubnav.parentElement.classList.contains('subnav-wrap') ? activeSubnav.parentElement : activeSubnav;
+    host.style.setProperty('display', activeSubnav.parentElement?.classList.contains('subnav-wrap') ? 'block' : 'flex', 'important');
+    activeSubnav.style.setProperty('display', 'flex', 'important');
+    // Recompute arrow visibility now that the subnav has size again
+    if (typeof updateSubnavArrows === 'function') setTimeout(updateSubnavArrows, 50);
+  }
   // Update mobile sidebar active state
   document.querySelectorAll('.mobile-nav-item').forEach(item => {
     item.classList.remove('active');
@@ -1387,6 +1470,9 @@ function addNewTab() {
   // Create the page div for this tab
   createCustomTabPage(trimmed);
 
+  // The new tab may have pushed the subnav into overflow — refresh arrows.
+  if (typeof updateSubnavArrows === 'function') updateSubnavArrows();
+
   alert('הלשונית "' + trimmed + '" נוספה בהצלחה!');
 }
 
@@ -1652,6 +1738,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load custom tabs after app starts
   loadCustomTabs();
+
+  // Wrap each subnav with scroll arrows (called AFTER custom tabs are added
+  // so the wrap measurement is accurate from the start).
+  setupSubnavArrows();
 
   // Load sub-branches for all categories
   loadAllSubBranches();
