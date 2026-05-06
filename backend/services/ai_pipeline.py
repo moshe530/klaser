@@ -69,12 +69,14 @@ def run_pipeline(
     mime_type: str,
     categories: list[str] | None = None,
     people: list[dict] | None = None,
+    account_type: str = "personal",
 ) -> dict[str, Any]:
     """Full pipeline: hash → render → classify → guard → extract → merge.
 
     `categories` is the user's current branch list; forwarded to the Extractor.
     `people`     is the user's people list ({name, id_number}); forwarded to
-                 the Extractor for medical/personal document attribution."""
+                 the Extractor for medical/personal document attribution.
+    `account_type` is 'personal' or 'business' — affects AI prompts."""
     pipeline_t0 = time.perf_counter()
     result = _full_skeleton()
     result["file_hash"] = _file_hash(data)
@@ -123,6 +125,7 @@ def run_pipeline(
         extractor_doc_type,
         categories=categories,
         people=people,
+        account_type=account_type,
     )
     ext_ms = int((time.perf_counter() - t_ext) * 1000)
     for k, v in extraction.items():

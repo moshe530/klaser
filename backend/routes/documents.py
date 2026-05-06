@@ -237,9 +237,10 @@ def analyze_document(
     if not doc.get("file_path"):
         raise HTTPException(400, "Document has no attached file to analyze")
 
-    # Extract user categories and people from request body (optional)
+    # Extract user categories, people, and account type from request body (optional)
     user_categories: list[str] | None = None
     user_people: list[dict] | None = None
+    account_type: str = "personal"  # default to personal
     if isinstance(payload, dict):
         cats = payload.get("categories")
         if isinstance(cats, list):
@@ -247,6 +248,10 @@ def analyze_document(
         people = payload.get("people")
         if isinstance(people, list):
             user_people = [p for p in people if isinstance(p, dict) and p.get("name")]
+        # Account type: 'personal' or 'business' - affects AI prompts
+        acct_type = payload.get("account_type")
+        if acct_type in ("personal", "business"):
+            account_type = acct_type
 
     # Mark as processing
     auth.client.table(TABLE).update({"ocr_status": "processing"}).eq(
@@ -260,6 +265,7 @@ def analyze_document(
             doc.get("mime_type") or "application/pdf",
             categories=user_categories,
             people=user_people,
+            account_type=account_type,
         )
     except Exception as e:
         import traceback

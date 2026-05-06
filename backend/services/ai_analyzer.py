@@ -19,16 +19,19 @@ def analyze_file(
     mime_type: str,
     categories: list[str] | None = None,
     people: list[dict] | None = None,
+    account_type: str = "personal",
 ) -> dict[str, Any]:
     """Run the full AI pipeline on a file. Returns the v4.1 unified shape.
 
     `categories` (optional) is the user's current branch list, forwarded to
     the extractor so newly-added user branches are recognized.
     `people` (optional) is a list of {name, id_number} so the extractor can
-    associate medical/personal documents with the right family member."""
+    associate medical/personal documents with the right family member.
+    `account_type` (optional) is 'personal' or 'business' — affects AI prompts."""
     return ai_pipeline.run_pipeline(
         data,
         mime_type,
         categories=categories,
         people=people,
+        account_type=account_type,
     )

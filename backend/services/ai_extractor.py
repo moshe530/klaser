@@ -409,6 +409,7 @@ def extract(
     doc_type_detected: str | None,
     categories: list[str] | None = None,
     people: list[dict] | None = None,
+    account_type: str = "personal",
 ) -> dict[str, Any]:
     """Run the Extractor vision call. Always returns a full skeleton dict
     with normalized amounts, dates, and category clamped to CATEGORIES.
@@ -419,9 +420,18 @@ def extract(
     list is used.
     `people` is a list of {name, id_number} dicts. When provided, the model
     is instructed to identify the person the document belongs to (by name OR
-    by ID number) and return it in the `person` field."""
-    # Build the effective category list: built-ins + any user-added branches.
+    by ID number) and return it in the `person` field.
+    `account_type` is 'personal' or 'business' — affects category suggestions."""
+    # Build the effective category list: built-ins + account-specific + user-added.
     effective_categories = list(CATEGORIES)
+
+    # Add business-only categories if account_type is business
+    if account_type == "business":
+        business_cats = ["עובדים", "לקוחות", "ספקים", "רישיונות"]
+        for bc in business_cats:
+            if bc not in effective_categories:
+                effective_categories.append(bc)
+
     if categories:
         for c in categories:
             if c and c not in effective_categories:

@@ -49,8 +49,8 @@
       return res.json();
     },
     getFileUrl: (id) => request(`/documents/${id}/file-url`),
-    analyzeDocument: (id, categories = null, people = null) => {
-      const body = {};
+    analyzeDocument: (id, categories = null, people = null, accountType = 'personal') => {
+      const body = { account_type: accountType };
       if (categories) body.categories = categories;
       if (people && people.length) body.people = people;
       return request(`/documents/${id}/analyze`, {

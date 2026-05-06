@@ -1156,14 +1156,15 @@ async function addDoc() {
 async function runAnalyze(docId) {
   setStatusBadge('🤖 מנתח מסמך...', 'loading');
   try {
-    // Send current user-added branches, custom tabs, and people (with ID numbers)
-    // so the AI can classify documents and identify medical/personal docs by ID.
+    // Send current user-added branches, custom tabs, people, and account type
+    // so the AI can classify documents and use business-specific prompts.
     const userCats = [
       ...getInvoiceBranches(),
       ...getCustomTabs().map(t => t.name),
     ];
     const people = getPeople();
-    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people);
+    const accountType = getAccountType(); // 'personal' or 'business'
+    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType);
     // החלף את המסמך ברשימה ב-data החדש
     const idx = docs.findIndex(d => d.id === docId);
     if (idx >= 0) docs[idx] = fromApi(updated);
