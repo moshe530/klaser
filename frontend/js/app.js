@@ -245,9 +245,39 @@ function deleteBranch(e, branchName) {
   }
 }
 
+// Built-in tabs and which AI categories belong to each one.
+// Categories NOT in this map (e.g. "פנסיה", "מיסים", "חינוך", "תקשורת",
+// "משפטי", "אחר") fall back to the "מסמכים אישיים" tab so they're never
+// invisible after AI classification.
+const BUILTIN_TAB_CATS = {
+  productsList:  ['מוצרים'],
+  apartmentList: ['דירה'],
+  payslipsList:  ['תלוש שכר'],
+  approvalsList: ['אישורים'],
+  medicalList:   ['רפואי'],
+  reportsList:   ['בנק', 'אשראי'],
+  carList:       ['רכב'],
+  insuranceList: ['ביטוח'],
+  personalList:  ['מסמכים אישיים'],
+};
+
+// Returns the set of all categories explicitly placed into a built-in tab.
+// Anything not in here becomes a "leftover" and is shown in personalList.
+function _allMappedCats() {
+  const s = new Set();
+  Object.values(BUILTIN_TAB_CATS).forEach(arr => arr.forEach(c => s.add(c)));
+  // Invoice branches (built-in + user-added) are also "mapped" via utilitiesList.
+  allInvoiceCats().forEach(c => s.add(c));
+  // User-added custom tabs are mapped too (they have their own list).
+  getCustomTabs().forEach(t => s.add(t.name));
+  return s;
+}
+
 function renderAll() {
   fillList('docList', docs);
   fillList('alertList', docs.filter(d => { const s = status(d.exp); return s?.urgent || s?.expiring; }));
+
+  // Built-in tabs
   fillList('productsList',  docs.filter(d => d.cat === 'מוצרים'));
   const invCats = allInvoiceCats();
   fillList('utilitiesList', docs.filter(d => invCats.includes(d.cat)));
@@ -260,7 +290,22 @@ function renderAll() {
   fillList('reportsList',   docs.filter(d => ['בנק', 'אשראי'].includes(d.cat)));
   fillList('carList',       docs.filter(d => d.cat === 'רכב'));
   fillList('insuranceList', docs.filter(d => d.cat === 'ביטוח'));
-  fillList('personalList',  docs.filter(d => d.cat === 'מסמכים אישיים'));
+
+  // Personal: explicit "מסמכים אישיים" + any unmapped category (פנסיה, מיסים,
+  // חינוך, תקשורת, משפטי, אחר, ...). Without this, those docs only appear in
+  // "כל המסמכים" and look "missing from any category".
+  const mapped = _allMappedCats();
+  fillList('personalList', docs.filter(d =>
+    d.cat === 'מסמכים אישיים' || !mapped.has(d.cat)
+  ));
+
+  // Custom user tabs: each has a list `list-${tabName}` and matches docs
+  // whose category equals the tab name.
+  getCustomTabs().forEach(tab => {
+    const listEl = document.getElementById('list-' + tab.name);
+    if (listEl) fillList('list-' + tab.name, docs.filter(d => d.cat === tab.name));
+  });
+
   renderReminders('all');
   renderCal();
   updateStats();
