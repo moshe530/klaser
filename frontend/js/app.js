@@ -245,22 +245,25 @@ function deleteBranch(e, branchName) {
   }
 }
 
-// Maps each AI-returned category to its built-in tab list ID.
-// Anything not in here falls through to personalList (true catch-all).
-// תקשורת is intentionally routed to utilitiesList because it's a recurring
-// monthly bill, just like חשמל/מים/גז.
+// Category mapping for default 5 tabs: All, Utilities, Work, Personal, Other
+// Categories assigned to each default tab:
+// - Utilities: חשמל, מים, גז, ארנונה, תקשורת (recurring bills)
+// - Work: תלוש שכר, פנסיה, מיסים
+// - Personal: מסמכים אישיים
+// - Other: everything else (מוצרים, דירה, רפואי, רכב, ביטוח, חינוך, משפטי, אישורים, בנק, אשראי)
+const WORK_CATS = new Set(['תלוש שכר', 'פנסיה', 'מיסים']);
+const UTILITIES_CATS = new Set(['חשמל', 'מים', 'גז', 'ארנונה', 'תקשורת']);
+
+// Full category to list mapping (for additional tabs that can be added)
 const CAT_TO_LIST = {
   'מוצרים':         'productsList',
   'דירה':           'apartmentList',
-  'תלוש שכר':       'payslipsList',
   'אישורים':        'approvalsList',
   'רפואי':          'medicalList',
   'בנק':            'reportsList',
   'אשראי':          'reportsList',
   'רכב':            'carList',
   'ביטוח':          'insuranceList',
-  'פנסיה':          'pensionList',
-  'מיסים':          'taxesList',
   'חינוך':          'educationList',
   'משפטי':          'legalList',
   'מסמכים אישיים':  'personalList',
@@ -270,15 +273,23 @@ function renderAll() {
   fillList('docList', docs);
   fillList('alertList', docs.filter(d => { const s = status(d.exp); return s?.urgent || s?.expiring; }));
 
-  // ── Utilities (חשבוניות): built-in invoice cats + user-added branches +
-  //    תקשורת (smart mapping — telecom bills are recurring like utilities).
+  // ── Utilities (חשבוניות): recurring bills
   const invCats = new Set([...allInvoiceCats(), 'תקשורת']);
   fillList('utilitiesList', docs.filter(d => invCats.has(d.cat)));
   renderInvoiceChips();
   applyInvoiceFilter();
 
-  // ── Custom user tabs: filled before built-ins so a user-defined tab takes
-  //    precedence over the catch-all if its name happens to match a category.
+  // ── Work: תלוש שכר + פנסיה + מיסים
+  fillList('workList', docs.filter(d => WORK_CATS.has(d.cat)));
+
+  // ── Personal: explicit category
+  fillList('personalList', docs.filter(d => d.cat === 'מסמכים אישיים'));
+
+  // ── Other: everything not in utilities, work, or personal
+  const defaultCats = new Set([...invCats, ...WORK_CATS, 'מסמכים אישיים']);
+  fillList('otherList', docs.filter(d => !defaultCats.has(d.cat)));
+
+  // ── Custom user tabs: filled so they take precedence over other
   const customTabNames = new Set();
   getCustomTabs().forEach(tab => {
     customTabNames.add(tab.name);
@@ -288,19 +299,18 @@ function renderAll() {
     }
   });
 
-  // ── Built-in tabs by direct category mapping.
-  //    Group docs by their target list in one pass for efficiency.
+  // ── Additional built-in tabs (if user adds them): route by CAT_TO_LIST
   const buckets = {};
   docs.forEach(d => {
-    // Skip docs already absorbed by utilities or by a custom user tab.
+    // Skip docs already absorbed by default tabs or custom tabs
     if (invCats.has(d.cat)) return;
+    if (WORK_CATS.has(d.cat)) return;
+    if (d.cat === 'מסמכים אישיים') return;
     if (customTabNames.has(d.cat)) return;
-    const listId = CAT_TO_LIST[d.cat] || 'personalList';
-    (buckets[listId] = buckets[listId] || []).push(d);
+    const listId = CAT_TO_LIST[d.cat];
+    if (listId) (buckets[listId] = buckets[listId] || []).push(d);
   });
-  // Make sure every built-in list gets cleared, even if no docs match.
-  const allBuiltinLists = new Set([...Object.values(CAT_TO_LIST)]);
-  allBuiltinLists.forEach(listId => {
+  Object.values(CAT_TO_LIST).forEach(listId => {
     fillList(listId, buckets[listId] || []);
   });
 
@@ -555,8 +565,24 @@ function setupSubnavArrows() {
     wrap.appendChild(rightBtn);
 
     nav.addEventListener('scroll', updateSubnavArrows, { passive: true });
+
+    // Initialize drag events on all tabs (including default ones)
+    initTabDragging(nav);
   });
   updateSubnavArrows();
+}
+
+function initTabDragging(nav) {
+  nav.querySelectorAll('.subnav-tab:not(.add-branch-tab)').forEach(tab => {
+    if (tab.dataset.dragInit) return;
+    tab.dataset.dragInit = '1';
+    tab.addEventListener('dragstart', handleDragStart);
+    tab.addEventListener('dragend', handleDragEnd);
+    tab.addEventListener('dragover', handleDragOver);
+    tab.addEventListener('drop', handleDrop);
+    tab.addEventListener('dragenter', handleDragEnter);
+    tab.addEventListener('dragleave', handleDragLeave);
+  });
 }
 
 // Refreshes arrow + edge-fade visibility for every wrapped subnav.
@@ -1432,48 +1458,272 @@ function setCustomTabs(tabs) {
   localStorage.setItem(CUSTOM_TABS_KEY, JSON.stringify(tabs));
 }
 
-// ─── ADD NEW TAB (from top subnav) ───
-function addNewTab() {
-  const name = prompt('שם הענף/הלשונית החדשה:');
-  if (!name || !name.trim()) return;
-  const trimmed = name.trim();
+// ─── ADD TAB MENU SYSTEM ───
+// Available tab suggestions with default sub-branches
+const TAB_SUGGESTIONS = [
+  { name: 'התראות', subBranches: [] },
+  { name: 'מוצרים', subBranches: ['מוצרי חשמל', 'ריהוט', 'מטבח', 'גינה'] },
+  { name: 'ביטוחים', subBranches: ['רכב', 'דירה', 'חיים', 'בריאות'] },
+  { name: 'דירה', subBranches: ['חוזה', 'שכר דירה', 'ועד בית'] },
+  { name: 'תלושי שכר', subBranches: [] },
+  { name: 'פנסיה', subBranches: [] },
+  { name: 'רפואי', subBranches: [], hasPeople: true },
+  { name: 'רכב', subBranches: ['רישיון', 'טסט', 'רענון נהיגה', 'תיקונים'] },
+  { name: 'מיסים', subBranches: [] },
+  { name: 'חינוך', subBranches: [] },
+  { name: 'משפטי', subBranches: [] },
+  { name: 'אישורים', subBranches: [] },
+  { name: 'בנק', subBranches: [] },
+  { name: 'אשראי', subBranches: [] },
+];
 
+const DEFAULT_TABS = new Set(['כל המסמכים', 'חשבוניות', 'עבודה', 'אישי', 'אחר']);
+
+function showAddTabMenu() {
+  const menu = document.getElementById('addTabMenu');
+  const list = document.getElementById('addTabList');
+  if (!menu || !list) return;
+
+  // Get existing tabs (including custom)
+  const existing = new Set(Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)')).map(t => t.textContent.trim()));
+
+  // Build menu items
+  list.innerHTML = '';
+  TAB_SUGGESTIONS.forEach(sugg => {
+    const isAdded = existing.has(sugg.name);
+    const item = document.createElement('div');
+    item.className = 'add-tab-item' + (isAdded ? ' added' : '');
+    item.innerHTML = `<span>${sugg.name}</span>`;
+    if (!isAdded) {
+      item.onclick = () => addTabFromSuggestion(sugg);
+    }
+    list.appendChild(item);
+  });
+
+  // Position menu under the + button
+  const addBtn = document.querySelector('#docsSubnav .add-branch-tab');
+  if (addBtn) {
+    const rect = addBtn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (rect.bottom + 8) + 'px';
+    menu.style.left = rect.left + 'px';
+    menu.style.transform = 'none';
+  }
+
+  menu.classList.add('show');
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', hideAddTabMenuOnOutside, { once: true });
+  }, 100);
+}
+
+function hideAddTabMenu() {
+  const menu = document.getElementById('addTabMenu');
+  if (menu) menu.classList.remove('show');
+}
+
+function hideAddTabMenuOnOutside(e) {
+  const menu = document.getElementById('addTabMenu');
+  if (menu && !menu.contains(e.target)) {
+    menu.classList.remove('show');
+  }
+}
+
+function addTabFromSuggestion(sugg) {
+  hideAddTabMenu();
+  addNewTabWithData(sugg.name, sugg.subBranches, sugg.hasPeople);
+}
+
+function addCustomTabFromInput() {
+  const input = document.getElementById('customTabName');
+  const name = input?.value.trim();
+  if (!name) return;
+  input.value = '';
+  hideAddTabMenu();
+  addNewTabWithData(name, [], false);
+}
+
+function addNewTabWithData(name, subBranches = [], hasPeople = false) {
   // Check if exists
-  const existingTabs = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)')).map(t => t.textContent.replace(/\s*\d+$/, '').trim());
-  if (existingTabs.includes(trimmed)) {
+  const existingTabs = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)')).map(t => t.textContent.trim());
+  if (existingTabs.includes(name)) {
     alert('לשונית עם שם זה כבר קיימת');
     return;
   }
 
   // Save to custom tabs
   const customTabs = getCustomTabs();
-  customTabs.push({ id: 'custom-' + Date.now(), name: trimmed });
+  customTabs.push({ id: 'custom-' + Date.now(), name, subBranches, hasPeople });
   setCustomTabs(customTabs);
 
-  // Create the new tab button
+  // Create the new tab button (with drag support)
   const addBtn = document.querySelector('#docsSubnav .add-branch-tab');
-  const newBtn = document.createElement('button');
-  newBtn.className = 'subnav-tab';
-  newBtn.textContent = trimmed;
-  newBtn.setAttribute('data-custom-tab', 'true');
-  newBtn.onclick = function() { sbNav('custom', this, 'docs'); setSubnavActive(this); showCustomTab(trimmed); };
-  newBtn.oncontextmenu = function(e) {
-    e.preventDefault();
-    if (confirm('להסיר את הלשונית "' + trimmed + '"?')) {
-      removeCustomTab(trimmed, newBtn);
-    }
-  };
+  const newBtn = createDraggableTabButton(name, 'custom', () => showCustomTab(name));
 
   // Insert before the + button
   addBtn.parentNode.insertBefore(newBtn, addBtn);
 
-  // Create the page div for this tab
-  createCustomTabPage(trimmed);
+  // Create the page with sub-branches
+  createCustomTabPageWithBranches(name, subBranches, hasPeople);
 
-  // The new tab may have pushed the subnav into overflow — refresh arrows.
+  // Save default sub-branches to storage if provided
+  if (subBranches.length > 0) {
+    const sbKey = 'subBranches_' + name;
+    const existing = getSubBranchesForCat(name);
+    const merged = [...new Set([...existing, ...subBranches])];
+    localStorage.setItem(sbKey, JSON.stringify(merged));
+  }
+
+  // Refresh arrows and reindex draggables
   if (typeof updateSubnavArrows === 'function') updateSubnavArrows();
+  reindexDraggables();
 
-  alert('הלשונית "' + trimmed + '" נוספה בהצלחה!');
+  // Switch to the new tab
+  newBtn.click();
+}
+
+// Legacy function - now opens the menu
+function addNewTab() {
+  showAddTabMenu();
+}
+
+function createDraggableTabButton(name, type, onClick) {
+  const btn = document.createElement('button');
+  btn.className = 'subnav-tab';
+  btn.textContent = name;
+  btn.setAttribute('data-custom-tab', 'true');
+  btn.setAttribute('draggable', 'true');
+  btn.dataset.tabName = name;
+  btn.dataset.tabType = type;
+
+  btn.onclick = function() { sbNav(type === 'custom' ? 'custom' : name, this, 'docs'); setSubnavActive(this); onClick(); };
+  btn.oncontextmenu = function(e) {
+    e.preventDefault();
+    if (confirm('להסיר את הלשונית "' + name + '"?')) {
+      removeCustomTab(name, btn);
+    }
+  };
+
+  // Drag events
+  btn.addEventListener('dragstart', handleDragStart);
+  btn.addEventListener('dragend', handleDragEnd);
+  btn.addEventListener('dragover', handleDragOver);
+  btn.addEventListener('drop', handleDrop);
+  btn.addEventListener('dragenter', handleDragEnter);
+  btn.addEventListener('dragleave', handleDragLeave);
+
+  return btn;
+}
+
+// ─── DRAG AND DROP ───
+let dragSrcEl = null;
+
+function handleDragStart(e) {
+  dragSrcEl = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', this.dataset.tabName);
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  document.querySelectorAll('.subnav-tab').forEach(t => t.classList.remove('drag-over'));
+  dragSrcEl = null;
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleDragEnter(e) {
+  if (this !== dragSrcEl) {
+    this.classList.add('drag-over');
+  }
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  if (e.stopPropagation) e.stopPropagation();
+
+  if (dragSrcEl !== this) {
+    // Swap the tabs in DOM
+    const parent = this.parentNode;
+    const addBtn = parent.querySelector('.add-branch-tab');
+
+    // Get all draggable tabs (excluding the + button)
+    const allTabs = Array.from(parent.querySelectorAll('.subnav-tab:not(.add-branch-tab)'));
+    const srcIndex = allTabs.indexOf(dragSrcEl);
+    const targetIndex = allTabs.indexOf(this);
+
+    if (srcIndex < targetIndex) {
+      parent.insertBefore(dragSrcEl, this.nextSibling);
+    } else {
+      parent.insertBefore(dragSrcEl, this);
+    }
+
+    // Save new order
+    saveTabOrder();
+  }
+
+  return false;
+}
+
+function saveTabOrder() {
+  const tabs = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)')).map(t => ({
+    name: t.textContent.trim(),
+    isCustom: t.hasAttribute('data-custom-tab')
+  }));
+  localStorage.setItem('tabOrder', JSON.stringify(tabs));
+}
+
+function reindexDraggables() {
+  // Re-apply drag events to all custom tabs (in case new ones added)
+  document.querySelectorAll('#docsSubnav .subnav-tab[data-custom-tab]').forEach(btn => {
+    if (!btn.hasAttribute('draggable')) {
+      btn.setAttribute('draggable', 'true');
+      btn.addEventListener('dragstart', handleDragStart);
+      btn.addEventListener('dragend', handleDragEnd);
+      btn.addEventListener('dragover', handleDragOver);
+      btn.addEventListener('drop', handleDrop);
+      btn.addEventListener('dragenter', handleDragEnter);
+      btn.addEventListener('dragleave', handleDragLeave);
+    }
+  });
+}
+
+function createCustomTabPageWithBranches(name, subBranches = [], hasPeople = false) {
+  const tabDocs = document.getElementById('tab-docs');
+  const pageId = 'docpage-custom-' + name;
+
+  // Check if already exists
+  if (document.getElementById(pageId)) return;
+
+  // Build filter chips from sub-branches
+  let chipsHtml = `<button class="chip active" onclick="filterChip('הכל',this,'filter-${name}')">הכל</button>`;
+  subBranches.forEach(br => {
+    chipsHtml += `<button class="chip" onclick="filterChip('${br}',this,'filter-${name}')">${br}</button>`;
+  });
+  chipsHtml += `<button class="chip add-sub-branch" onclick="addSubBranch('${name}')">+</button>`;
+
+  const div = document.createElement('div');
+  div.id = pageId;
+  div.className = 'docpage';
+  div.style.display = 'none';
+  div.innerHTML = `
+    <div class="ph"><div class="ph-left"><h1>${name}</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="filter-${name}">
+      ${chipsHtml}
+    </div>
+    <div class="doc-list" id="list-${name}"></div>
+  `;
+
+  tabDocs.appendChild(div);
 }
 
 function createCustomTabPage(name) {
@@ -1525,26 +1775,30 @@ function removeCustomTab(name, btnElement) {
   sbNav('all', null, 'docs');
 }
 
-// Load custom tabs on init
+// Load custom tabs on init - respects saved order and sub-branches
 function loadCustomTabs() {
   const customTabs = getCustomTabs();
   const addBtn = document.querySelector('#docsSubnav .add-branch-tab');
 
-  customTabs.forEach(tab => {
-    const newBtn = document.createElement('button');
-    newBtn.className = 'subnav-tab';
-    newBtn.textContent = tab.name;
-    newBtn.setAttribute('data-custom-tab', 'true');
-    newBtn.onclick = function() { sbNav('custom', this, 'docs'); setSubnavActive(this); showCustomTab(tab.name); };
-    newBtn.oncontextmenu = function(e) {
-      e.preventDefault();
-      if (confirm('להסיר את הלשונית "' + tab.name + '"?')) {
-        removeCustomTab(tab.name, newBtn);
-      }
-    };
+  // Check for saved tab order and reorder if needed
+  const savedOrder = JSON.parse(localStorage.getItem('tabOrder') || '[]');
+  let orderedTabs = customTabs;
+  if (savedOrder.length > 0) {
+    const orderMap = new Map(savedOrder.map((t, i) => [t.name, i]));
+    orderedTabs.sort((a, b) => (orderMap.get(a.name) ?? 999) - (orderMap.get(b.name) ?? 999));
+  }
+
+  orderedTabs.forEach(tab => {
+    const newBtn = createDraggableTabButton(tab.name, 'custom', () => showCustomTab(tab.name));
     addBtn.parentNode.insertBefore(newBtn, addBtn);
-    createCustomTabPage(tab.name);
+    createCustomTabPageWithBranches(tab.name, tab.subBranches || [], tab.hasPeople || false);
   });
+}
+
+function getSubBranchesForCat(cat) {
+  try {
+    return JSON.parse(localStorage.getItem('subBranches_' + cat) || '[]');
+  } catch { return []; }
 }
 
 // ─── PEOPLE STORAGE ───
@@ -1742,6 +1996,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Wrap each subnav with scroll arrows (called AFTER custom tabs are added
   // so the wrap measurement is accurate from the start).
   setupSubnavArrows();
+
+  // Ensure all tabs (default + custom) have drag handlers
+  reindexDraggables();
 
   // Load sub-branches for all categories
   loadAllSubBranches();

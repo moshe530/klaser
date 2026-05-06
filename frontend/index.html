@@ -151,6 +151,28 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 .subnav-tab.add-branch-tab:hover{background:rgba(255,255,255,0.25);}
 .subnav-tab .tab-badge{background:#E2544A;color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-right:4px;font-weight:700;}
 
+/* ─── DRAGGABLE TABS ─── */
+.subnav-tab[draggable="true"]{cursor:grab;}
+.subnav-tab[draggable="true"]:active{cursor:grabbing;}
+.subnav-tab.dragging{opacity:.5;transform:scale(0.95);}
+.subnav-tab.drag-over{border:2px dashed rgba(255,255,255,0.5);background:rgba(255,255,255,0.1);}
+
+/* ─── ADD TAB MENU ─── */
+.add-tab-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:1000;min-width:220px;max-width:320px;overflow:hidden;display:none;}
+.add-tab-menu.show{display:block;animation:menuIn .15s ease;}
+@keyframes menuIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.add-tab-menu-header{background:var(--nav-bg);color:#fff;padding:12px 16px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+.add-tab-menu-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 4px;}
+.add-tab-list{max-height:320px;overflow-y:auto;padding:8px 0;}
+.add-tab-item{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);transition:background .15s;}
+.add-tab-item:hover{background:var(--surface2);}
+.add-tab-item.added{opacity:.5;cursor:not-allowed;}
+.add-tab-item.added::after{content:'✓';margin-right:auto;color:var(--green);font-weight:700;}
+.add-tab-divider{height:1px;background:var(--border);margin:8px 0;}
+.add-tab-custom{padding:12px 16px;background:var(--surface2);}
+.add-tab-custom input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:'Heebo',sans-serif;}
+.add-tab-custom button{width:100%;margin-top:8px;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+
 /* ─── LAYOUT ─── */
 .app-body{display:flex;height:100vh;padding-top:var(--nav-h);overflow:hidden;}
 .sidebar{display:none;}
@@ -677,25 +699,33 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       </button>
     </div>
   </div>
-  <!-- Sub-nav for docs tab -->
+  <!-- Sub-nav for docs tab: 5 default tabs (draggable) + custom tabs -->
   <div class="topnav-subnav" id="docsSubnav">
-    <button class="subnav-tab active" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
-    <button class="subnav-tab" onclick="sbNav('alerts',this,'docs');setSubnavActive(this)">התראות <span class="tab-badge" id="alertBadge" style="display:none">0</span></button>
-    <button class="subnav-tab" onclick="sbNav('products',this,'docs');setSubnavActive(this)">מוצרים</button>
-    <button class="subnav-tab" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
-    <button class="subnav-tab" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">ביטוחים</button>
-    <button class="subnav-tab" onclick="sbNav('apartment',this,'docs');setSubnavActive(this)">דירה</button>
-    <button class="subnav-tab" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">תלושי שכר</button>
-    <button class="subnav-tab" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">רפואי</button>
-    <button class="subnav-tab" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
-    <button class="subnav-tab" onclick="sbNav('pension',this,'docs');setSubnavActive(this)">פנסיה</button>
-    <button class="subnav-tab" onclick="sbNav('taxes',this,'docs');setSubnavActive(this)">מיסים</button>
-    <button class="subnav-tab" onclick="sbNav('education',this,'docs');setSubnavActive(this)">חינוך</button>
-    <button class="subnav-tab" onclick="sbNav('legal',this,'docs');setSubnavActive(this)">משפטי</button>
-    <button class="subnav-tab" onclick="sbNav('approvals',this,'docs');setSubnavActive(this)">אישורים</button>
-    <button class="subnav-tab" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
-    <button class="subnav-tab add-branch-tab" onclick="addNewTab()">+</button>
+    <button class="subnav-tab active" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
+    <button class="subnav-tab" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
+    <button class="subnav-tab" draggable="true" data-tab-name="עבודה" onclick="sbNav('work',this,'docs');setSubnavActive(this)">עבודה</button>
+    <button class="subnav-tab" draggable="true" data-tab-name="אישי" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
+    <button class="subnav-tab" draggable="true" data-tab-name="אחר" onclick="sbNav('other',this,'docs');setSubnavActive(this)">אחר</button>
+    <!-- Custom tabs will be inserted here -->
+    <button class="subnav-tab add-branch-tab" onclick="showAddTabMenu()">+</button>
   </div>
+
+  <!-- Add Tab Menu -->
+  <div class="add-tab-menu" id="addTabMenu">
+    <div class="add-tab-menu-header">
+      <span>הוסף ענף</span>
+      <button class="add-tab-menu-close" onclick="hideAddTabMenu()">×</button>
+    </div>
+    <div class="add-tab-list" id="addTabList">
+      <!-- Items populated by JS -->
+    </div>
+    <div class="add-tab-divider"></div>
+    <div class="add-tab-custom">
+      <input type="text" id="customTabName" placeholder="אחר______ שם הענף">
+      <button onclick="addCustomTabFromInput()">הוסף</button>
+    </div>
+  </div>
+
   <div class="topnav-subnav" id="calSubnav" style="display:none">
     <button class="subnav-tab active" onclick="setCalView('month',null,this);setSubnavActive(this)">חודשי</button>
     <button class="subnav-tab" onclick="setCalView('week',null,this);setSubnavActive(this)">שבועי</button>
@@ -907,6 +937,26 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <button class="chip add-sub-branch" onclick="addSubBranch('משפטי')">+</button>
     </div>
     <div class="doc-list" id="legalList"></div>
+  </div>
+
+  <div id="docpage-work" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>עבודה</h1><p>תלושי שכר, פנסיה, מיסים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="workFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'workFilter')">הכל</button>
+      <button class="chip" onclick="filterChip('תלוש שכר',this,'workFilter')">תלושי שכר</button>
+      <button class="chip" onclick="filterChip('פנסיה',this,'workFilter')">פנסיה</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('עבודה')">+</button>
+    </div>
+    <div class="doc-list" id="workList"></div>
+  </div>
+
+  <div id="docpage-other" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>אחר</h1><p>מסמכים שלא שייכים לקטגוריות אחרות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="otherFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'otherFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('אחר')">+</button>
+    </div>
+    <div class="doc-list" id="otherList"></div>
   </div>
 
   <div id="docpage-personal" class="docpage" style="display:none">
