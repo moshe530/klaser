@@ -20,6 +20,8 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false  # Supabase Dashboard → Settings → API → JWT Secret
       - key: GROQ_API_KEY
         sync: false
       - key: RESEND_API_KEY
