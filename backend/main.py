@@ -60,7 +60,9 @@ app.add_middleware(
     # Auto-allow all Netlify previews, Cloudflare Pages, and Cloudflare Workers
     # subdomains so deploy-preview URLs work without manual env changes.
     allow_origin_regex=(
-        r"^https://([a-zA-Z0-9-]+\.)?(netlify\.app|pages\.dev|workers\.dev)$"
+        # Match any number of subdomain levels — Cloudflare Workers use
+        # patterns like `app.account.workers.dev` (two levels).
+        r"^https://([a-zA-Z0-9-]+\.)*(netlify\.app|pages\.dev|workers\.dev)$"
     ),
     allow_credentials=True,
     allow_methods=["*"],
