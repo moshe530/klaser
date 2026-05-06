@@ -692,6 +692,106 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 .testimonial-author{display:flex;flex-direction:column;}
 .testimonial-author strong{color:var(--accent);font-size:14px;}
 .testimonial-author span{color:var(--text3);font-size:12px;}
+
+/* ═── LANDING VIEW (visible when not logged in) ═══════════════════════════ */
+.landing-view{display:none;direction:rtl;}
+body.locked .landing-view{display:block;}
+.landing-view .lv-header{
+  position:fixed;top:0;left:0;right:0;z-index:150;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:64px;
+  background:rgba(26,58,107,0.95);backdrop-filter:blur(10px);
+}
+.landing-view .lv-header .logo{color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.landing-view .lv-header .lv-cta{
+  background:#fff;color:var(--accent);border:none;border-radius:8px;
+  padding:8px 18px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.landing-view .lv-header .lv-cta:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+
+.landing-content{padding-top:64px;}
+
+/* Hero */
+.lv-hero{
+  background:linear-gradient(135deg, #0D2B5E 0%, #1A3A6B 40%, #2C5BA0 100%);
+  color:#fff;padding:72px 24px 56px;text-align:center;position:relative;overflow:hidden;
+}
+.lv-hero::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(circle at 30% 50%, rgba(255,255,255,0.04) 0%, transparent 50%),
+             radial-gradient(circle at 70% 80%, rgba(255,255,255,0.03) 0%, transparent 40%);
+  animation:lvHeroPulse 8s ease-in-out infinite;
+}
+@keyframes lvHeroPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.03);}}
+.lv-hero-inner{position:relative;z-index:2;max-width:720px;margin:0 auto;}
+.lv-hero h1{font-size:42px;font-weight:800;line-height:1.15;margin-bottom:20px;letter-spacing:-0.5px;}
+.lv-hero .lv-sub{font-size:20px;line-height:1.7;opacity:0.92;margin-bottom:16px;}
+.lv-hero .lv-support{font-size:16px;opacity:0.75;margin-bottom:32px;}
+.lv-hero .lv-btn-hero{
+  display:inline-flex;align-items:center;gap:10px;
+  background:#fff;color:var(--accent);border:none;border-radius:12px;
+  padding:16px 36px;font-family:'Heebo',sans-serif;font-size:18px;font-weight:700;
+  cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.2);transition:all .25s;
+  animation:lvHeroBounce 2s ease-in-out infinite;
+}
+@keyframes lvHeroBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.lv-hero .lv-btn-hero:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,0.25);}
+
+/* How it works */
+.lv-hiw{background:var(--surface);padding:56px 24px;text-align:center;}
+.lv-hiw h2{font-size:28px;font-weight:700;color:var(--accent);margin-bottom:40px;}
+.lv-hiw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:900px;margin:0 auto;}
+.lv-hiw-step{background:var(--bg);border-radius:var(--radius);padding:28px 20px;border:1px solid var(--border);transition:all .3s;}
+.lv-hiw-step:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg);border-color:var(--accent3);}
+.lv-hiw-step .hiw-ico{font-size:40px;margin-bottom:12px;display:block;}
+.lv-hiw-step h3{font-size:17px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+.lv-hiw-step p{font-size:14px;color:var(--text2);line-height:1.6;}
+.lv-hiw-arrow{display:none;}
+
+/* Pain points */
+.lv-pain{background:linear-gradient(135deg, #FFF8F0 0%, #FFF0E8 100%);padding:56px 24px;text-align:center;}
+.lv-pain h2{font-size:26px;font-weight:700;color:var(--accent);margin-bottom:32px;}
+.lv-pain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:640px;margin:0 auto 28px;}
+.lv-pain-card{background:#fff;border-radius:var(--radius);padding:20px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;text-align:right;transition:all .2s;}
+.lv-pain-card:hover{border-color:var(--orange);transform:translateX(-4px);}
+.lv-pain-card .pain-ico{font-size:24px;flex-shrink:0;}
+.lv-pain-card span{font-size:15px;font-weight:600;color:var(--text);}
+.lv-pain-closing{font-size:20px;font-weight:700;color:var(--accent);margin-top:8px;}
+
+/* Dashboard welcome banner */
+.welcome-banner{
+  background:linear-gradient(135deg, var(--accent2) 0%, #E8F0FF 100%);
+  border:1px solid var(--accent3);border-radius:var(--radius);padding:16px 20px;
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;
+  font-size:15px;font-weight:600;color:var(--accent);
+}
+.welcome-banner .wb-ico{font-size:22px;}
+
+/* Upload modal helper text */
+.upload-helper-text{
+  text-align:center;font-size:14px;color:var(--text2);margin-top:8px;line-height:1.5;
+}
+
+/* Two path */
+.lv-paths{background:var(--bg);padding:56px 24px;text-align:center;}
+.lv-paths h2{font-size:26px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+.lv-paths > p{color:var(--text2);margin-bottom:28px;font-size:15px;}
+
+@media(max-width:768px){
+  .lv-hero{padding:56px 20px 40px;}
+  .lv-hero h1{font-size:30px;}
+  .lv-hero .lv-sub{font-size:17px;}
+  .lv-hiw-grid{grid-template-columns:repeat(2,1fr);gap:16px;}
+  .lv-hiw-step{padding:20px 14px;}
+  .lv-pain-grid{grid-template-columns:1fr;}
+  .lv-hiw h2{font-size:22px;}
+  .lv-pain h2{font-size:20px;}
+}
+@media(max-width:480px){
+  .lv-hiw-grid{grid-template-columns:1fr;}
+}
+
 .about-cta{
   background:linear-gradient(135deg, var(--accent) 0%, #2C5BA0 100%);
   color:#fff;
@@ -755,13 +855,13 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   <!-- Sub-nav for docs tab: Personal tabs -->
   <div class="topnav-subnav" id="docsSubnav">
     <button class="subnav-tab active personal-only" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="מוצרים" onclick="sbNav('products',this,'docs');setSubnavActive(this)">📦 מוצרים</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">💡 חשבוניות</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">🛡️ ביטוחים</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="דירה" onclick="sbNav('apartment',this,'docs');setSubnavActive(this)">🏠 דירה</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="רכב" onclick="sbNav('car',this,'docs');setSubnavActive(this)">🚗 רכב</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תלושי שכר" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">💰 תלושי שכר</button>
-    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תיק רפואי" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">🏥 תיק רפואי</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="מוצרים" onclick="sbNav('products',this,'docs');setSubnavActive(this)">מוצרים</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">ביטוחים</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="דירה" onclick="sbNav('apartment',this,'docs');setSubnavActive(this)">דירה</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="רכב" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תלושי שכר" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">תלושי שכר</button>
+    <button class="subnav-tab personal-only" draggable="true" data-tab-name="תיק רפואי" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">תיק רפואי</button>
     <!-- Custom tabs will be inserted here -->
     <button class="subnav-tab add-branch-tab" onclick="showAddTabMenu()">+</button>
   </div>
@@ -769,13 +869,13 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   <!-- Sub-nav for docs tab: Business tabs (hidden by default) -->
   <div class="topnav-subnav" id="docsSubnavBusiness" style="display:none;">
     <button class="subnav-tab active business-only" draggable="true" data-tab-name="כל המסמכים" onclick="sbNav('all',this,'docs');setSubnavActive(this)">כל המסמכים</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="עובדים" onclick="sbNav('employees',this,'docs');setSubnavActive(this)">👥 עובדים</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="לקוחות" onclick="sbNav('clients',this,'docs');setSubnavActive(this)">🤝 לקוחות</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="ספקים" onclick="sbNav('suppliers',this,'docs');setSubnavActive(this)">📦 ספקים</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="רישיונות" onclick="sbNav('licenses',this,'docs');setSubnavActive(this)">📜 רישיונות</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">💡 חשבוניות</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">🛡️ ביטוחים</button>
-    <button class="subnav-tab business-only" draggable="true" data-tab-name="משפטי" onclick="sbNav('legal',this,'docs');setSubnavActive(this)">⚖️ משפטי</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="עובדים" onclick="sbNav('employees',this,'docs');setSubnavActive(this)">עובדים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="לקוחות" onclick="sbNav('clients',this,'docs');setSubnavActive(this)">לקוחות</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="ספקים" onclick="sbNav('suppliers',this,'docs');setSubnavActive(this)">ספקים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="רישיונות" onclick="sbNav('licenses',this,'docs');setSubnavActive(this)">רישיונות</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="חשבוניות" onclick="sbNav('utilities',this,'docs');setSubnavActive(this)">חשבוניות</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="ביטוחים" onclick="sbNav('insurance',this,'docs');setSubnavActive(this)">ביטוחים</button>
+    <button class="subnav-tab business-only" draggable="true" data-tab-name="משפטי" onclick="sbNav('legal',this,'docs');setSubnavActive(this)">משפטי</button>
     <!-- Custom tabs will be inserted here -->
     <button class="subnav-tab add-branch-tab" onclick="showAddTabMenu()">+</button>
   </div>
@@ -832,6 +932,123 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
   </nav>
 </div>
 
+<div class="landing-view" id="landingView">
+  <div class="lv-header">
+    <div class="logo">קלסר</div>
+    <button class="lv-cta" onclick="openModal('auth')">התחבר / הירשם</button>
+  </div>
+  <div class="landing-content">
+
+    <!-- HERO -->
+    <section class="lv-hero">
+      <div class="lv-hero-inner">
+        <h1>קלסרים נגמרו.<br>הבלאגן נגמר.</h1>
+        <p class="lv-sub">העלו מסמך אחד — וה־AI ימיין, יתייק, יזהה תאריכים חשובים, ויזכיר לכם לפני שמשהו מתפספס.</p>
+        <p class="lv-support">אחריות, מנויים, חשבוניות, זימונים, מסמכי בית, רכב, ילדים ועסק — הכול מסודר ונגיש תוך שניות.</p>
+        <button class="lv-btn-hero" onclick="openModal('auth')">
+          העלו מסמך ראשון
+        </button>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="lv-hiw">
+      <h2>איך זה עובד?</h2>
+      <div class="lv-hiw-grid">
+        <div class="lv-hiw-step">
+          <span class="hiw-ico"></span>
+          <h3>מעלים מסמך</h3>
+          <p>צילום, PDF, או קובץ — מה שיש ביד</p>
+        </div>
+        <div class="lv-hiw-step">
+          <span class="hiw-ico"></span>
+          <h3>AI מנתח ומבין</h3>
+          <p>מזהה סוג מסמך, מחלץ תאריכים, סכומים ופרטים</p>
+        </div>
+        <div class="lv-hiw-step">
+          <span class="hiw-ico"></span>
+          <h3>תיוק אוטומטי</h3>
+          <p>מסמך ממוין לקטגוריה הנכונה — בלי ידיים</p>
+        </div>
+        <div class="lv-hiw-step">
+          <span class="hiw-ico"></span>
+          <h3>תזכורות בזמן אמת</h3>
+          <p>התראות לפני פג תוקף, אחריות, וכל מועד חשוב</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAIN POINTS -->
+    <section class="lv-pain">
+      <h2>כמה פעמים זה קרה לכם?</h2>
+      <div class="lv-pain-grid">
+        <div class="lv-pain-card"><span class="pain-ico"></span><span>איפה האחריות?</span></div>
+        <div class="lv-pain-card"><span class="pain-ico"></span><span>מתי הביטוח נגמר?</span></div>
+        <div class="lv-pain-card"><span class="pain-ico"></span><span>איפה הזימון?</span></div>
+        <div class="lv-pain-card"><span class="pain-ico"></span><span>איפה המסמך ששמרתי?</span></div>
+      </div>
+      <div class="lv-pain-closing">Klaser זוכר בשבילכם.</div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="about-section">
+      <h2>המלצות משתמשים</h2>
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <p>"קלסר חסך לי המון זמן! סוף סוף יש לי מקום אחד לכל המסמכים והתזכורות עובדות מצוין."</p>
+          <div class="testimonial-author"><strong>שרה כהן</strong><span>אמא לשלושה</span></div>
+        </div>
+        <div class="testimonial">
+          <p>"כבעל עסק קטן, אני מנהל המון חשבוניות. ה-AI סורק אוטומטית ומסדר הכל — מדהים!"</p>
+          <div class="testimonial-author"><strong>דני לוי</strong><span>בעל עסק</span></div>
+        </div>
+        <div class="testimonial">
+          <p>"ההתראות לפני פג תוקף הצילו אותי כמה פעמים. ממש כלי הכרחי."</p>
+          <div class="testimonial-author"><strong>מיכל אברהם</strong><span>משתמשת 2 שנים</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="about-section accordion" onclick="toggleAccordion(this)">
+      <h2>שאלות ותשובות נפוצות <span class="accordion-arrow">▼</span></h2>
+      <div class="accordion-body">
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>האם המסמכים שלי מאובטחים? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>כן! כל המסמכים מוצפנים ומאוחסנים בשרתי Supabase באירופה.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>כמה עולה השירות? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>השירות חינמי לשימוש בסיסי. תוכלו לשדרג לתוכנית Pro בעתיד.</p></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(event, this)">
+          <h3>איך ה-AI יודע לארגן את המסמכים? <span class="faq-arrow">+</span></h3>
+          <div class="faq-answer"><p>ה-AI לומד ממיליוני מסמכים ומזהה אוטומטית סוגי מסמכים, תאריכים, וקטגוריות.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TWO PATH CTA -->
+    <section class="about-section" style="text-align:center;padding:40px 24px;">
+      <h2 style="margin-bottom:8px;">מוכנים להתחיל?</h2>
+      <p style="color:var(--text2);margin-bottom:24px;">בחרו את המסלול המתאים לכם והתחילו תוך 30 שניות</p>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:600px;margin:0 auto;">
+        <button class="btn-full" onclick="setAccountTypePreselected('personal');openModal('auth');" style="height:auto;padding:24px 16px;background:linear-gradient(135deg,var(--green-bg) 0%,#E8F5E9 100%);color:#1B5E20;border:1px solid #A5D6A7;">
+          <div style="font-size:28px;margin-bottom:8px;"></div>
+          <div style="font-weight:700;margin-bottom:4px;">משפחה / אישי</div>
+          <div style="font-size:13px;opacity:0.9;">בית, רכב, רפואה, חשבוניות</div>
+        </button>
+        <button class="btn-full" onclick="setAccountTypePreselected('business');openModal('auth');" style="height:auto;padding:24px 16px;background:linear-gradient(135deg,var(--teal-bg) 0%,#E0F2F1 100%);color:#00695C;border:1px solid #80CBC4;">
+          <div style="font-size:28px;margin-bottom:8px;"></div>
+          <div style="font-weight:700;margin-bottom:4px;">עסק / משרד</div>
+          <div style="font-size:13px;opacity:0.9;">לקוחות, עובדים, ספקים, רישיונות</div>
+        </button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
 <div class="app-body">
 
 <!-- MAIN -->
@@ -844,6 +1061,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <div class="ph">
       <div class="ph-left"><h1>כל המסמכים</h1><p id="docsSubtitle">0 מסמכים</p></div>
     </div>
+    <div class="welcome-banner"><span class="wb-ico"></span><span>המסמכים שלכם עובדים בשבילכם — לא להפך.</span></div>
     <div class="stats-grid">
       <div class="stat c-accent" style="cursor:pointer" onclick="filterByStatus('all')"><div class="sv" id="stat-total">0</div><div class="sl">סה"כ מסמכים</div></div>
       <div class="stat c-orange" style="cursor:pointer" onclick="filterByStatus('soon')"><div class="sv" id="stat-soon">0</div><div class="sl">פגים בקרוב</div></div>
@@ -1502,14 +1720,14 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 </div>
 
 <!-- ADD MODAL -->
-<div class="overlay" id="modal-add">
   <div class="modal">
     <div class="modal-head"><h2>הוספת מסמך</h2><button class="close-btn" onclick="closeModal('add')">×</button></div>
     <div class="ai-badge">AI ינתח ויסווג אוטומטית</div>
     <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
-      <div class="uz-icon">�</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small>
+      <div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small>
       <input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">
     </div>
+    <p class="upload-helper-text">העלו כל מסמך — Klaser יזהה, ימיין, יתייק, ויעקוב אחר כל תאריך חשוב.</p>
     <div class="form-group"><label>שם המסמך</label><input class="form-input" id="fm-name" placeholder="למשל: מקרר בוש KGE36" /></div>
     <div class="form-row2">
       <div class="form-group">
@@ -1570,9 +1788,10 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 </div>
 
 <!-- ══ LOGIN / SIGNUP MODAL ══ -->
-<div class="overlay" id="modal-auth" style="background:rgba(13,43,94,0.75);">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-head" style="justify-content:center;flex-direction:column;gap:8px;text-align:center;">
+<div class="overlay" id="modal-auth" style="background:rgba(13,43,94,0.45);">
+  <div class="modal" style="max-width:420px;position:relative;">
+    <button onclick="closeModal('auth')" style="position:absolute;top:12px;left:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text2);z-index:10;">×</button>
+    <div class="modal-head" style="justify-content:center;flex-direction:column;gap:8px;text-align:center;padding-top:16px;">
       <img src="assets/logo.svg" alt="קלסר" width="64" height="64">
       <h2 id="authTitle">התחברות</h2>
       <p style="font-size:13px;color:var(--text2);margin:0;">התחבר או הירשם כדי להתחיל</p>
@@ -1962,7 +2181,7 @@ document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',func
 function handleFile(inp){
   if(!inp.files[0])return;
   const z=document.getElementById('uz');
-  z.innerHTML=`<div class="uz-icon">✅</div><p>${inp.files[0].name}</p><small>קובץ נבחר — AI מנתח...</small>`;
+  z.innerHTML=`<div class="uz-icon"></div><p>${inp.files[0].name}</p><small>קובץ נבחר — AI מנתח...</small>`;
   z.style.borderColor='var(--green)';z.style.background='var(--green-bg)';
 }
 
@@ -1976,7 +2195,7 @@ function addDoc(){
   document.getElementById('fm-exp').value='';
   document.getElementById('fm-note').value='';
   const z=document.getElementById('uz');
-  z.innerHTML=`<div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small><input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">`;
+  z.innerHTML=`<div class="uz-icon"></div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small><input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">`;
   z.style.borderColor='';z.style.background='';
 }
 

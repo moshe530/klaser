@@ -91,7 +91,7 @@ function status(exp) {
 }
 
 function makeCard(d) {
-  const ic = CAT_ICON[d.cat] || { bg: '#F0EDE6', e: '📄' };
+  const ic = CAT_ICON[d.cat] || { bg: '#F0EDE6', e: '' };
   const st = status(d.exp);
   const cls = st?.urgent ? 'urgent' : st?.expiring ? 'expiring' : '';
   const tag = st ? `<span class="tag ${st.cls}">${st.label}</span>` : '';
@@ -102,20 +102,20 @@ function makeCard(d) {
   // AI fields display
   const aiMeta = [];
   if (d.needs_review) {
-    aiMeta.push(`<span class="ai-badge ai-review">⚠️ צריך בדיקה</span>`);
+    aiMeta.push(`<span class="ai-badge ai-review">צריך בדיקה</span>`);
   }
   if (d.confidence != null) {
     const confColor = d.confidence >= 80 ? '#10B981' : d.confidence >= 60 ? '#F59E0B' : '#EF4444';
     aiMeta.push(`<span class="ai-badge ai-confidence" style="color:${confColor}">${d.confidence}%</span>`);
   }
   if (d.merchant) {
-    aiMeta.push(`<span class="ai-badge ai-merchant">🏪 ${d.merchant}</span>`);
+    aiMeta.push(`<span class="ai-badge ai-merchant">${d.merchant}</span>`);
   }
   if (d.document_period) {
-    aiMeta.push(`<span class="ai-badge ai-period">📅 ${d.document_period}</span>`);
+    aiMeta.push(`<span class="ai-badge ai-period">${d.document_period}</span>`);
   }
   if (d.document_type) {
-    aiMeta.push(`<span class="ai-badge ai-type">📄 ${d.document_type}</span>`);
+    aiMeta.push(`<span class="ai-badge ai-type">${d.document_type}</span>`);
   }
 
   // Amount candidates picker (if multiple candidates exist)
@@ -143,9 +143,9 @@ function makeCard(d) {
     </div>
     <div class="doc-right">${tag}${dt}</div>
     <div class="doc-actions">
-      <button class="ico-btn" data-act="view" title="הצג">👁</button>
-      <button class="ico-btn" data-act="edit" title="עריכה">✎</button>
-      <button class="ico-btn danger" data-act="del" title="מחיקה">✕</button>
+      <button class="ico-btn" data-act="view" title="הצג">הצג</button>
+      <button class="ico-btn" data-act="edit" title="עריכה">עריכה</button>
+      <button class="ico-btn danger" data-act="del" title="מחיקה">מחק</button>
     </div>
   </div>`;
 }
@@ -903,7 +903,7 @@ const REM_TYPE_LABEL = {
   periodic: ' תקופתי', warranty: ' אחריות', other: ' אחר',
 };
 const REM_STATUS_LABEL = {
-  pending: '', sent: ' ✓ נשלח', failed: ' ⚠ נכשל', cancelled: ' • בוטל',
+  pending: '', sent: 'נשלח', failed: 'נכשל', cancelled: 'בוטל',
 };
 
 function fmtRemindAt(iso) {
@@ -934,7 +934,7 @@ function renderReminders(filter) {
   const el = document.getElementById('reminderList');
   if (el) {
     el.innerHTML = arr.map(r => {
-      const typeTag = REM_TYPE_LABEL[r.type] || '📌';
+      const typeTag = REM_TYPE_LABEL[r.type] || 'תזכורת';
       const statusTag = REM_STATUS_LABEL[r.status] || '';
       return `
       <div class="rem-item" data-id="${r.id}">
@@ -944,7 +944,7 @@ function renderReminders(filter) {
           <div class="rem-when">${fmtRemindAt(r.remind_at)}</div>
         </div>
         <span class="rem-type">${typeTag}</span>
-        <button class="ico-btn danger" onclick="delReminder('${r.id}')" title="מחק" style="margin-right:8px;">🗑️</button>
+        <button class="ico-btn danger" onclick="delReminder('${r.id}')" title="מחק" style="margin-right:8px;">מחק</button>
       </div>`;
     }).join('') || '<p style="color:var(--text3);text-align:center;padding:32px 0">אין תזכורות</p>';
   }
@@ -1017,7 +1017,7 @@ async function saveReminder() {
     document.getElementById('rem-time').value = '';
     // Show a one-time spam-check hint (hidden after user sees it once)
     if (!localStorage.getItem('klaser_spam_hint_seen')) {
-      alert('✅ התזכורת נשמרה\n\n📧 המייל יישלח בסמוך לתאריך שבחרת.\n⚠️ בהתחלה ייתכן שיגיע לתיקיית SPAM — סמן אותו כ"לא ספאם" כדי לקבל את הבאים בתיבה הראשית.');
+      alert('התזכורת נשמרה\n\nהמייל יישלח בסמוך לתאריך שבחרת.\nבהתחלה ייתכן שיגיע לתיקיית SPAM — סמן אותו כ"לא ספאם" כדי לקבל את הבאים בתיבה הראשית.');
       localStorage.setItem('klaser_spam_hint_seen', '1');
     }
   } catch (e) {
@@ -1063,7 +1063,7 @@ function handleFile(inp) {
   pendingFile = inp.files[0];
   const z = document.getElementById('uz');
   const sizeKb = (pendingFile.size / 1024).toFixed(1);
-  z.innerHTML = `<div class="uz-icon">✅</div><p>${pendingFile.name}</p><small>${sizeKb} KB · יועלה עם השמירה</small>`;
+  z.innerHTML = `<div class="uz-icon"></div><p>${pendingFile.name}</p><small>${sizeKb} KB · יועלה עם השמירה</small>`;
   z.style.borderColor = 'var(--green)';
   z.style.background = 'var(--green-bg)';
 }
@@ -1071,7 +1071,7 @@ function handleFile(inp) {
 function resetUploadZone() {
   pendingFile = null;
   const z = document.getElementById('uz');
-  z.innerHTML = `<div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small><input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">`;
+  z.innerHTML = `<div class="uz-icon"></div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small><input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">`;
   z.style.borderColor = '';
   z.style.background = '';
 }
@@ -1141,7 +1141,7 @@ async function addDoc() {
     document.getElementById('fm-note').value = '';
     resetUploadZone();
     clearButtonLoading(btn);
-    setStatusBadge(didUpload ? 'הקובץ הועלה ✓' : 'המסמך נשמר ✓', 'ok');
+    setStatusBadge(didUpload ? 'הקובץ הועלה' : 'המסמך נשמר', 'ok');
 
     // ניתוח AI ברקע — לא חוסם את המשתמש
     if (didUpload) {
@@ -1172,7 +1172,7 @@ async function runAnalyze(docId) {
     const idx = docs.findIndex(d => d.id === docId);
     if (idx >= 0) docs[idx] = fromApi(updated);
     renderAll();
-    setStatusBadge(`✓ נותח · ${docs.length} מסמכים`, 'ok');
+    setStatusBadge(`נותח · ${docs.length} מסמכים`, 'ok');
 
     // AI sync — if AI suggested a category/subcategory we don't know yet, prompt to add.
     if (typeof syncAICategory === 'function') {
@@ -2148,7 +2148,7 @@ function createProfile(data) {
     id: 'fp_' + Date.now(),
     name: data.name?.trim(),
     photo: data.photo || null, // base64
-    emoji: data.emoji || '👤',
+    emoji: data.emoji || '',
     color: data.color || getRandomProfileColor(),
     id_number: data.id_number || null,
     birth_date: data.birth_date || null,
@@ -2377,7 +2377,7 @@ function openProfileModal(profileId = null) {
             font-size:32px;overflow:hidden;border:3px dashed rgba(255,255,255,0.3);
           ">
             ${profile?.photo ? `<img src="${profile.photo}" style="width:100%;height:100%;object-fit:cover;">` :
-              `<span id="profileEmoji">${profile?.emoji || '👤'}</span>`}
+              `<span id="profileEmoji">${profile?.emoji || ''}</span>`}
           </div>
           <p style="font-size:12px;color:var(--text2);margin-top:8px;">לחץ להעלאת תמונה</p>
           <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="handleProfilePhoto(this)">
@@ -2449,7 +2449,7 @@ function openProfileModal(profileId = null) {
 
         <div class="form-group">
           <label>אמוג'י (אופציונלי)</label>
-          <input class="form-input" type="text" id="profileEmoji" value="${profile?.emoji || ''}" placeholder="👤" maxlength="2">
+          <input class="form-input" type="text" id="profileEmoji" value="${profile?.emoji || ''}" placeholder="" maxlength="2">
         </div>
 
         <div style="display:flex;gap:10px;margin-top:24px;">
@@ -2511,7 +2511,7 @@ function saveProfile(profileId) {
   const data = {
     name: document.getElementById('profileName')?.value,
     photo: window.tempProfilePhoto || null,
-    emoji: document.getElementById('profileEmoji')?.value || '👤',
+    emoji: document.getElementById('profileEmoji')?.value || '',
     color: document.getElementById('profileColor')?.value || getRandomProfileColor(),
     id_number: maskIdNumber(document.getElementById('profileIdNumber')?.value),
     birth_date: document.getElementById('profileBirthDate')?.value || null,
@@ -2574,7 +2574,7 @@ const ONBOARDING_STEPS = [
     id: 'welcome',
     title: 'ברוכים הבאים לקלסר',
     desc: 'המערכת שתעזור לך לנהל את כל המסמכים שלך במקום אחד. בואו נתחיל!',
-    icon: '📁',
+    icon: '',
     cta: 'הוסף מסמך ראשון',
     skip: 'אני רוצה להסתכל קודם',
     onComplete: () => openModal('add')
@@ -2583,7 +2583,7 @@ const ONBOARDING_STEPS = [
     id: 'notifications',
     title: 'תזכורות חכמות',
     desc: 'קבל התראות לפני שמסמכים פגי תוקף. לא תפספס שום דדליין!',
-    icon: '🔔',
+    icon: '',
     cta: 'אפשר התראות',
     skip: 'אולי אחר כך',
     onComplete: () => requestNotificationPermission()
@@ -3088,6 +3088,12 @@ function openCrossPromo() {
   const newType = type === 'business' ? 'personal' : 'business';
   localStorage.setItem('account_type_preselected', newType);
   openModal('auth');
+}
+
+function setAccountTypePreselected(type) {
+  if (type === 'personal' || type === 'business') {
+    localStorage.setItem('account_type_preselected', type);
+  }
 }
 
 function closeCrossPromo() {

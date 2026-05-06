@@ -175,7 +175,7 @@ function populateSubcategoryDropdown(sel, cat, selected) {
   const cur = selected || '';
   let html = '<option value="">בחר תת-ענף...</option>';
   html += subs.map(s => {
-    const badge = isSubcategoryNew(s) ? ' 🆕' : '';
+    const badge = isSubcategoryNew(s) ? ' [חדש]' : '';
     return `<option value="${_esc(s.name)}"${s.name === cur ? ' selected' : ''}>${_esc(s.name)}${badge}</option>`;
   }).join('');
   html += '<option value="__add__" style="font-weight:600;color:var(--accent,#3B82F6);">+ הוסף תת-ענף חדש</option>';
@@ -293,7 +293,7 @@ function openSubcategoryManager(cat) {
     document.body.appendChild(overlay);
   }
   overlay.dataset.category = cat;
-  document.getElementById('subcat-manager-title').textContent = `✏️ ניהול תתי-ענפים — ${cat}`;
+  document.getElementById('subcat-manager-title').textContent = `ניהול תתי-ענפים — ${cat}`;
   renderSubcategoryManagerList();
   overlay.style.display = 'flex';
 }
@@ -316,7 +316,7 @@ function renderSubcategoryManagerList() {
   }
   list.innerHTML = subs.map(s => {
     const count = countDocsInSubcategory(cat, s.name);
-    const badge = isSubcategoryNew(s) ? '<span style="background:#FF6B6B;color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;margin-right:6px;">🆕</span>' : '';
+    const badge = isSubcategoryNew(s) ? '<span style="background:#FF6B6B;color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;margin-right:6px;">[חדש]</span>' : '';
     return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid var(--border,#eee);">
         <div style="display:flex;align-items:center;gap:8px;">
@@ -324,7 +324,7 @@ function renderSubcategoryManagerList() {
           ${count > 0 ? `<span style="font-size:12px;color:var(--text3,#888);">(${count} מסמכים)</span>` : ''}
         </div>
         <div style="display:flex;gap:6px;">
-          <button onclick="renameSubcategoryFromManager('${_attr(s.name)}')" title="שנה שם" style="background:transparent;border:1px solid var(--border,#ccc);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✏️</button>
+          <button onclick="renameSubcategoryFromManager('${_attr(s.name)}')" title="שנה שם" style="background:transparent;border:1px solid var(--border,#ccc);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✎</button>
           <button onclick="deleteSubcategoryFromManager('${_attr(s.name)}')" title="מחק" style="background:transparent;border:1px solid #FF6B6B;color:#FF6B6B;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">×</button>
         </div>
       </div>`;
@@ -388,15 +388,15 @@ function showAddSubcategoryPrompt(cat, sub) {
   banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:2px solid var(--accent,#3B82F6);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.18);padding:16px 20px;z-index:9999;max-width:420px;direction:rtl;';
   banner.innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:12px;">
-      <div style="font-size:24px;">🤖</div>
+      <div style="font-size:24px;">AI</div>
       <div style="flex:1;">
         <div style="font-weight:600;margin-bottom:4px;">ה-AI זיהה תת-ענף חדש</div>
         <div style="font-size:13px;color:var(--text2,#666);margin-bottom:10px;">
           ${_esc(cat)} → <strong>"${_esc(sub)}"</strong>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button onclick="acceptAISubcategory('${_attr(cat)}','${_attr(sub)}')" class="btn-primary" style="padding:6px 14px;font-size:13px;">✅ הוסף</button>
-          <button onclick="renameAISubcategory('${_attr(cat)}','${_attr(sub)}')" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">✏️ שנה שם</button>
+          <button onclick="acceptAISubcategory('${_attr(cat)}','${_attr(sub)}')" class="btn-primary" style="padding:6px 14px;font-size:13px;">הוסף</button>
+          <button onclick="renameAISubcategory('${_attr(cat)}','${_attr(sub)}')" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">שנה שם</button>
           <button onclick="removeAISuggestionBanner()" style="padding:6px 10px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">✕</button>
         </div>
       </div>
@@ -466,10 +466,10 @@ function renderSubcategoryChips(row, cat) {
   const active = row.dataset.activeSub || 'הכל';
   let html = `<button class="chip ${active === 'הכל' ? 'active' : ''}" onclick="filterSubChip(this,'הכל','${_attr(cat)}')">הכל</button>`;
   html += subs.map(s => {
-    const badge = isSubcategoryNew(s) ? ' 🆕' : '';
+    const badge = isSubcategoryNew(s) ? ' [חדש]' : '';
     return `<button class="chip ${active === s.name ? 'active' : ''}" onclick="filterSubChip(this,'${_attr(s.name)}','${_attr(cat)}')">${_esc(s.name)}${badge}</button>`;
   }).join('');
-  html += `<button class="chip" title="ניהול תתי-ענפים" onclick="openSubcategoryManager('${_attr(cat)}')" style="background:transparent;border:1px dashed var(--border,#ccc);">⚙️ +</button>`;
+  html += `<button class="chip" title="ניהול תתי-ענפים" onclick="openSubcategoryManager('${_attr(cat)}')" style="background:transparent;border:1px dashed var(--border,#ccc);">+</button>`;
   row.innerHTML = html;
 }
 
