@@ -2009,6 +2009,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ─── ONBOARDING INIT ───
   initOnboarding();
 
+  // ─── ACCOUNT TYPE UI INIT ───
+  updateAccountTypeButtons();
+
+  // ─── CROSS-PROMO BANNER (show once after 7 days or 10+ docs) ───
+  setTimeout(() => showCrossPromoIfEligible(), 3000);
+
   // Keep server alive - ping every 10 minutes
   const BACKEND_URL = window.KlaserConfig?.apiBase || 'https://klaser.onrender.com';
   setInterval(async () => {
@@ -2783,6 +2789,187 @@ function resetOnboarding() {
   localStorage.removeItem(ONBOARDING_STEP_KEY);
   localStorage.removeItem(ONBOARDING_SKIPPED_KEY);
   location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ═── ACCOUNT TYPE SELECTION ─══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ACCOUNT_TYPE_KEY = 'account_type';
+
+let selectedAccountType = null;
+
+function showAccountTypeModal() {
+  const modal = document.getElementById('modal-account-type');
+  if (modal) modal.classList.add('open');
+  selectedAccountType = null;
+  updateAccountTypeUI();
+}
+
+function closeAccountTypeModal() {
+  const modal = document.getElementById('modal-account-type');
+  if (modal) modal.classList.remove('open');
+}
+
+function selectAccountType(type) {
+  selectedAccountType = type;
+  localStorage.setItem(ACCOUNT_TYPE_KEY, type);
+
+  // Update UI
+  document.querySelectorAll('.account-type-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  const selectedCard = document.querySelector(`.account-type-card[data-type="${type}"]`);
+  if (selectedCard) selectedCard.classList.add('selected');
+
+  // Enable submit button
+  const submitBtn = document.getElementById('accountTypeSubmit');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.style.pointerEvents = 'auto';
+  }
+}
+
+function updateAccountTypeUI() {
+  document.querySelectorAll('.account-type-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+
+  const submitBtn = document.getElementById('accountTypeSubmit');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.pointerEvents = 'none';
+  }
+}
+
+function confirmAccountType() {
+  if (!selectedAccountType) return;
+
+  closeAccountTypeModal();
+
+  // Apply the mode immediately
+  if (selectedAccountType === 'business') {
+    setAppMode('business');
+  } else {
+    setAppMode('family');
+  }
+
+  // Show appropriate onboarding
+  setTimeout(() => initOnboarding(), 500);
+}
+
+function getAccountType() {
+  return localStorage.getItem(ACCOUNT_TYPE_KEY) || 'personal';
+}
+
+function setAccountType(type) {
+  localStorage.setItem(ACCOUNT_TYPE_KEY, type);
+}
+
+// Handle signup success - show account type selection
+function handleSignupSuccess() {
+  // Save account creation date for cross-promo eligibility
+  if (!localStorage.getItem('account_created')) {
+    localStorage.setItem('account_created', Date.now());
+  }
+  closeModal('auth');
+  showAccountTypeModal();
+}
+
+function switchAccountType(type) {
+  const current = getAccountType();
+  if (current === type) return;
+
+  if (confirm('שינוי סוג החשבון ישנה את הטאבים והקטגוריות. המסמכים הקיימים לא יימחקו. להמשיך?')) {
+    setAccountType(type);
+    if (type === 'business') {
+      setAppMode('business');
+    } else {
+      setAppMode('family');
+    }
+    updateAccountTypeButtons();
+    showToast(`מצב ${type === 'business' ? 'עסקי' : 'אישי'} הופעל`);
+    setTimeout(() => location.reload(), 500);
+  }
+}
+
+function updateAccountTypeButtons() {
+  const type = getAccountType();
+  const personalBtn = document.getElementById('typePersonalBtn');
+  const businessBtn = document.getElementById('typeBusinessBtn');
+
+  if (personalBtn && businessBtn) {
+    if (type === 'business') {
+      businessBtn.classList.add('btn-primary');
+      businessBtn.classList.remove('btn-secondary');
+      personalBtn.classList.add('btn-secondary');
+      personalBtn.classList.remove('btn-primary');
+    } else {
+      personalBtn.classList.add('btn-primary');
+      personalBtn.classList.remove('btn-secondary');
+      businessBtn.classList.add('btn-secondary');
+      businessBtn.classList.remove('btn-primary');
+    }
+  }
+}
+
+// Cross-promo banner - show once after 7 days or 10+ docs
+const CROSS_PROMO_KEY = 'cross_promo_shown';
+
+function showCrossPromoIfEligible() {
+  // Only show if not already shown
+  if (localStorage.getItem(CROSS_PROMO_KEY)) return;
+
+  // Check if enough time has passed or enough docs
+  const accountCreated = parseInt(localStorage.getItem('account_created') || '0');
+  const daysSinceCreation = accountCreated ? (Date.now() - accountCreated) / (1000 * 60 * 60 * 24) : 0;
+  const docCount = docs?.length || 0;
+
+  if (daysSinceCreation >= 7 || docCount >= 10) {
+    const type = getAccountType();
+    const message = type === 'business'
+      ? '💼 רוצה קלסר נפרד לבית? פתח חשבון אישי בחינם ←'
+      : '💡 גם מנהל מסמכים בעסק? קלסר עסקי כולל ניהול עובדים וחוזים ←';
+
+    // Show banner
+    const banner = document.createElement('div');
+    banner.id = 'crossPromoBanner';
+    banner.innerHTML = `
+      <div style="
+        position:fixed;top:0;left:0;right:0;z-index:2001;
+        background:linear-gradient(135deg, var(--accent) 0%, #2C5BA0 100%);
+        color:#fff;padding:12px 20px;text-align:center;font-size:14px;
+        display:flex;align-items:center;justify-content:center;gap:12px;
+      ">
+        <span>${message}</span>
+        <button onclick="openCrossPromo()" style="
+          background:#fff;color:var(--accent);border:none;padding:6px 16px;
+          border-radius:6px;font-weight:600;cursor:pointer;
+        ">התחל עכשיו</button>
+        <button onclick="closeCrossPromo()" style="
+          background:none;border:none;color:#fff;cursor:pointer;font-size:18px;margin-right:8px;
+        ">×</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+
+    // Mark as shown
+    localStorage.setItem(CROSS_PROMO_KEY, 'true');
+  }
+}
+
+function openCrossPromo() {
+  const type = getAccountType();
+  const newType = type === 'business' ? 'personal' : 'business';
+  localStorage.setItem('account_type_preselected', newType);
+  openModal('auth');
+}
+
+function closeCrossPromo() {
+  const banner = document.getElementById('crossPromoBanner');
+  if (banner) banner.remove();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
