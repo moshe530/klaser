@@ -644,6 +644,11 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <button class="subnav-tab" onclick="sbNav('payslips',this,'docs');setSubnavActive(this)">תלושי שכר</button>
     <button class="subnav-tab" onclick="sbNav('medical',this,'docs');setSubnavActive(this)">רפואי</button>
     <button class="subnav-tab" onclick="sbNav('car',this,'docs');setSubnavActive(this)">רכב</button>
+    <button class="subnav-tab" onclick="sbNav('pension',this,'docs');setSubnavActive(this)">פנסיה</button>
+    <button class="subnav-tab" onclick="sbNav('taxes',this,'docs');setSubnavActive(this)">מיסים</button>
+    <button class="subnav-tab" onclick="sbNav('education',this,'docs');setSubnavActive(this)">חינוך</button>
+    <button class="subnav-tab" onclick="sbNav('legal',this,'docs');setSubnavActive(this)">משפטי</button>
+    <button class="subnav-tab" onclick="sbNav('approvals',this,'docs');setSubnavActive(this)">אישורים</button>
     <button class="subnav-tab" onclick="sbNav('personal',this,'docs');setSubnavActive(this)">אישי</button>
     <button class="subnav-tab add-branch-tab" onclick="addNewTab()">+</button>
   </div>
@@ -822,6 +827,42 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
       <button class="chip add-sub-branch" onclick="addSubBranch('ביטוח')">+</button>
     </div>
     <div class="doc-list" id="insuranceList"></div>
+  </div>
+
+  <div id="docpage-pension" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>פנסיה וגמל</h1><p>קרנות פנסיה, השתלמות, גמל</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="pensionFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'pensionFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('פנסיה')">+</button>
+    </div>
+    <div class="doc-list" id="pensionList"></div>
+  </div>
+
+  <div id="docpage-taxes" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>מיסים</h1><p>שומות, החזרים, דוחות שנתיים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="taxesFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'taxesFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('מיסים')">+</button>
+    </div>
+    <div class="doc-list" id="taxesList"></div>
+  </div>
+
+  <div id="docpage-education" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>חינוך</h1><p>תעודות, שכר לימוד, מלגות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="educationFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'educationFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('חינוך')">+</button>
+    </div>
+    <div class="doc-list" id="educationList"></div>
+  </div>
+
+  <div id="docpage-legal" class="docpage" style="display:none">
+    <div class="ph"><div class="ph-left"><h1>משפטי</h1><p>חוזים, פסקי דין, ייפוי כוח</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="filter-row" id="legalFilter">
+      <button class="chip active" onclick="filterChip('הכל',this,'legalFilter')">הכל</button>
+      <button class="chip add-sub-branch" onclick="addSubBranch('משפטי')">+</button>
+    </div>
+    <div class="doc-list" id="legalList"></div>
   </div>
 
   <div id="docpage-personal" class="docpage" style="display:none">

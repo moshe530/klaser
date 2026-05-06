@@ -245,65 +245,63 @@ function deleteBranch(e, branchName) {
   }
 }
 
-// Built-in tabs and which AI categories belong to each one.
-// Categories NOT in this map (e.g. "פנסיה", "מיסים", "חינוך", "תקשורת",
-// "משפטי", "אחר") fall back to the "מסמכים אישיים" tab so they're never
-// invisible after AI classification.
-const BUILTIN_TAB_CATS = {
-  productsList:  ['מוצרים'],
-  apartmentList: ['דירה'],
-  payslipsList:  ['תלוש שכר'],
-  approvalsList: ['אישורים'],
-  medicalList:   ['רפואי'],
-  reportsList:   ['בנק', 'אשראי'],
-  carList:       ['רכב'],
-  insuranceList: ['ביטוח'],
-  personalList:  ['מסמכים אישיים'],
+// Maps each AI-returned category to its built-in tab list ID.
+// Anything not in here falls through to personalList (true catch-all).
+// תקשורת is intentionally routed to utilitiesList because it's a recurring
+// monthly bill, just like חשמל/מים/גז.
+const CAT_TO_LIST = {
+  'מוצרים':         'productsList',
+  'דירה':           'apartmentList',
+  'תלוש שכר':       'payslipsList',
+  'אישורים':        'approvalsList',
+  'רפואי':          'medicalList',
+  'בנק':            'reportsList',
+  'אשראי':          'reportsList',
+  'רכב':            'carList',
+  'ביטוח':          'insuranceList',
+  'פנסיה':          'pensionList',
+  'מיסים':          'taxesList',
+  'חינוך':          'educationList',
+  'משפטי':          'legalList',
+  'מסמכים אישיים':  'personalList',
 };
-
-// Returns the set of all categories explicitly placed into a built-in tab.
-// Anything not in here becomes a "leftover" and is shown in personalList.
-function _allMappedCats() {
-  const s = new Set();
-  Object.values(BUILTIN_TAB_CATS).forEach(arr => arr.forEach(c => s.add(c)));
-  // Invoice branches (built-in + user-added) are also "mapped" via utilitiesList.
-  allInvoiceCats().forEach(c => s.add(c));
-  // User-added custom tabs are mapped too (they have their own list).
-  getCustomTabs().forEach(t => s.add(t.name));
-  return s;
-}
 
 function renderAll() {
   fillList('docList', docs);
   fillList('alertList', docs.filter(d => { const s = status(d.exp); return s?.urgent || s?.expiring; }));
 
-  // Built-in tabs
-  fillList('productsList',  docs.filter(d => d.cat === 'מוצרים'));
-  const invCats = allInvoiceCats();
-  fillList('utilitiesList', docs.filter(d => invCats.includes(d.cat)));
+  // ── Utilities (חשבוניות): built-in invoice cats + user-added branches +
+  //    תקשורת (smart mapping — telecom bills are recurring like utilities).
+  const invCats = new Set([...allInvoiceCats(), 'תקשורת']);
+  fillList('utilitiesList', docs.filter(d => invCats.has(d.cat)));
   renderInvoiceChips();
   applyInvoiceFilter();
-  fillList('apartmentList', docs.filter(d => d.cat === 'דירה'));
-  fillList('payslipsList',  docs.filter(d => d.cat === 'תלוש שכר'));
-  fillList('approvalsList', docs.filter(d => d.cat === 'אישורים'));
-  fillList('medicalList',   docs.filter(d => d.cat === 'רפואי'));
-  fillList('reportsList',   docs.filter(d => ['בנק', 'אשראי'].includes(d.cat)));
-  fillList('carList',       docs.filter(d => d.cat === 'רכב'));
-  fillList('insuranceList', docs.filter(d => d.cat === 'ביטוח'));
 
-  // Personal: explicit "מסמכים אישיים" + any unmapped category (פנסיה, מיסים,
-  // חינוך, תקשורת, משפטי, אחר, ...). Without this, those docs only appear in
-  // "כל המסמכים" and look "missing from any category".
-  const mapped = _allMappedCats();
-  fillList('personalList', docs.filter(d =>
-    d.cat === 'מסמכים אישיים' || !mapped.has(d.cat)
-  ));
-
-  // Custom user tabs: each has a list `list-${tabName}` and matches docs
-  // whose category equals the tab name.
+  // ── Custom user tabs: filled before built-ins so a user-defined tab takes
+  //    precedence over the catch-all if its name happens to match a category.
+  const customTabNames = new Set();
   getCustomTabs().forEach(tab => {
-    const listEl = document.getElementById('list-' + tab.name);
-    if (listEl) fillList('list-' + tab.name, docs.filter(d => d.cat === tab.name));
+    customTabNames.add(tab.name);
+    const listId = 'list-' + tab.name;
+    if (document.getElementById(listId)) {
+      fillList(listId, docs.filter(d => d.cat === tab.name));
+    }
+  });
+
+  // ── Built-in tabs by direct category mapping.
+  //    Group docs by their target list in one pass for efficiency.
+  const buckets = {};
+  docs.forEach(d => {
+    // Skip docs already absorbed by utilities or by a custom user tab.
+    if (invCats.has(d.cat)) return;
+    if (customTabNames.has(d.cat)) return;
+    const listId = CAT_TO_LIST[d.cat] || 'personalList';
+    (buckets[listId] = buckets[listId] || []).push(d);
+  });
+  // Make sure every built-in list gets cleared, even if no docs match.
+  const allBuiltinLists = new Set([...Object.values(CAT_TO_LIST)]);
+  allBuiltinLists.forEach(listId => {
+    fillList(listId, buckets[listId] || []);
   });
 
   renderReminders('all');
