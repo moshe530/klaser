@@ -481,11 +481,44 @@ async function loadDocs() {
   }
 }
 
+// ─── GLOBAL STATUS TOAST ───
+// A single floating toast element (#klaserToast) displays loading/ok/err
+// messages. Loading states include a spinner and never auto-hide; ok/err
+// auto-hide after ~2.5s. Calls are debounced by replacing the content.
+let _toastHideTimer = null;
 function setStatusBadge(text, cls) {
-  const el = document.getElementById('connBadge');
+  const el = document.getElementById('klaserToast');
   if (!el) return;
-  el.textContent = text;
+  clearTimeout(_toastHideTimer);
+  const isLoading = cls === 'loading';
+  const safe = String(text).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  el.innerHTML = (isLoading ? '<span class="spinner"></span>' : '') + `<span>${safe}</span>`;
   el.dataset.state = cls || '';
+  el.classList.add('show');
+  if (!isLoading) {
+    _toastHideTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+}
+
+function hideStatusBadge() {
+  const el = document.getElementById('klaserToast');
+  if (el) el.classList.remove('show');
+  clearTimeout(_toastHideTimer);
+}
+
+// Sets a button into a loading state with a spinner, preserving original text.
+function setButtonLoading(btn, loadingText) {
+  if (!btn) return;
+  if (!btn.dataset.origHtml) btn.dataset.origHtml = btn.innerHTML;
+  btn.classList.add('is-loading');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span><span>${loadingText}</span>`;
+}
+function clearButtonLoading(btn) {
+  if (!btn) return;
+  if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+  btn.classList.remove('is-loading');
+  btn.disabled = false;
 }
 
 // ─── MOBILE SIDEBAR ───
@@ -958,13 +991,22 @@ async function addDoc() {
     payload.tags = [noteRaw];
   }
 
+  const btn = document.getElementById('addDocBtn');
+  const uz = document.getElementById('uz');
+  setButtonLoading(btn, pendingFile ? 'מעלה קובץ...' : 'שומר...');
+  setStatusBadge(pendingFile ? 'מעלה קובץ...' : 'שומר מסמך...', 'loading');
+
   try {
     let created = await KlaserAPI.createDocument(payload);
 
     // אם נבחר קובץ — העלה אותו ואז הפעל ניתוח AI
     let didUpload = false;
     if (pendingFile) {
-      setStatusBadge('מעלה קובץ...', 'loading');
+      // Visual feedback inside the upload zone too (modal might be the
+      // user's focus; the button spinner alone can be missed).
+      if (uz) {
+        uz.innerHTML = `<div class="uz-icon"><span class="spinner dark lg"></span></div><p>מעלה קובץ לשרת...</p><small>${pendingFile.name}</small>`;
+      }
       try {
         created = await KlaserAPI.uploadFile(created.id, pendingFile);
         didUpload = true;
@@ -981,7 +1023,8 @@ async function addDoc() {
     document.getElementById('fm-exp').value = '';
     document.getElementById('fm-note').value = '';
     resetUploadZone();
-    setStatusBadge(`מחובר · ${docs.length} מסמכים`, 'ok');
+    clearButtonLoading(btn);
+    setStatusBadge(didUpload ? 'הקובץ הועלה ✓' : 'המסמך נשמר ✓', 'ok');
 
     // ניתוח AI ברקע — לא חוסם את המשתמש
     if (didUpload) {
@@ -989,6 +1032,9 @@ async function addDoc() {
     }
   } catch (e) {
     console.error(e);
+    clearButtonLoading(btn);
+    resetUploadZone();
+    setStatusBadge('שגיאה בשמירה', 'err');
     alert('שגיאה ביצירת מסמך:\n' + e.message);
   }
 }

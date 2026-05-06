@@ -337,9 +337,24 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
 .form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:5px;}
 .form-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .ai-badge{display:inline-flex;align-items:center;gap:5px;background:var(--purple-bg);color:var(--purple);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;margin-bottom:12px;}
-.btn-full{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-full{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
 .btn-full:hover{opacity:.88;}
+.btn-full:disabled,.btn-primary:disabled{opacity:.7;cursor:not-allowed;}
+.btn-full.is-loading,.btn-primary.is-loading{pointer-events:none;opacity:.85;}
 .btn-full.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+
+/* ─── SPINNER ─── */
+@keyframes ks-spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:ks-spin .7s linear infinite;vertical-align:middle;flex-shrink:0;}
+.spinner.dark{border-color:rgba(0,0,0,.18);border-top-color:var(--accent);}
+.spinner.lg{width:32px;height:32px;border-width:3px;}
+
+/* ─── GLOBAL TOAST ─── */
+@keyframes ks-toast-in{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
+.klaser-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999;display:none;align-items:center;gap:10px;max-width:90vw;}
+.klaser-toast.show{display:inline-flex;animation:ks-toast-in .25s ease;}
+.klaser-toast[data-state="ok"]{background:#047857;}
+.klaser-toast[data-state="err"]{background:#b91c1c;}
 
 /* ─── BOTTOM NAV (mobile) ─── */
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-h);background:var(--nav-bg);border-top:1px solid rgba(255,255,255,0.1);padding:0 4px;padding-bottom:max(0px,env(safe-area-inset-bottom));z-index:200;grid-template-columns:repeat(5,1fr);}
@@ -1221,7 +1236,7 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     </div>
     <div class="form-group"><label>תפוגת אחריות / תוקף</label><input class="form-input" type="date" id="fm-exp" /></div>
     <div class="form-group"><label>הערות</label><input class="form-input" id="fm-note" placeholder="מספר סידורי, גוון, פרטים נוספים..." /></div>
-    <button class="btn-full" onclick="addDoc()">שמור מסמך</button>
+    <button class="btn-full" id="addDocBtn" onclick="addDoc()"><span class="btn-label">שמור מסמך</span></button>
   </div>
 </div>
 
@@ -1318,6 +1333,9 @@ body.locked{background:var(--accent-dark,#0D2B5E);}
     <button class="btn-full" id="resetSubmit" onclick="submitPasswordReset()">עדכן סיסמה</button>
   </div>
 </div>
+
+<!-- Global toast for loading/success/error messages -->
+<div class="klaser-toast" id="klaserToast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
