@@ -290,11 +290,7 @@ function renderAll() {
   // ── Personal: explicit category
   fillList('personalList', docs.filter(d => d.cat === 'מסמכים אישיים'));
 
-  // ── Other: everything not in utilities, work, or personal
-  const defaultCats = new Set([...invCats, ...WORK_CATS, 'מסמכים אישיים']);
-  fillList('otherList', docs.filter(d => !defaultCats.has(d.cat)));
-
-  // ── Custom user tabs: filled so they take precedence over other
+  // ── Custom user tabs: filled so they take precedence over "other"
   const customTabNames = new Set();
   getCustomTabs().forEach(tab => {
     customTabNames.add(tab.name);
@@ -303,6 +299,25 @@ function renderAll() {
       fillList(listId, docs.filter(d => d.cat === tab.name));
     }
   });
+
+  // ── Other: everything that doesn't have its own display surface (any
+  //   default/built-in category with a docpage, any custom tab, and any
+  //   user-registered category). This prevents docs from appearing in both
+  //   their proper tab AND the "other" catch-all.
+  const handledCats = new Set([
+    ...invCats,
+    ...WORK_CATS,
+    'מסמכים אישיים',
+    ...Object.keys(CAT_TO_LIST),
+    ...customTabNames,
+  ]);
+  // Include all user-registered categories (categories.js). Built-in names
+  // like 'אחר' are intentionally treated as "not handled elsewhere" so the
+  // "אחר" tab still collects explicitly-other docs.
+  if (typeof getCategoryNames === 'function') {
+    getCategoryNames().forEach(n => { if (n && n !== 'אחר') handledCats.add(n); });
+  }
+  fillList('otherList', docs.filter(d => !handledCats.has(d.cat)));
 
   // ── Additional built-in tabs (if user adds them): route by CAT_TO_LIST
   const buckets = {};
@@ -431,6 +446,9 @@ function addBranch() {
     setSubBranches(trimmed, ['+']);
     // Auto-register icon if missing
     if (!CAT_ICON[trimmed]) CAT_ICON[trimmed] = { bg: '#F0EDE6', e: '' };
+    // ALSO register as a proper category (categories.js) so it flows into
+    // the edit-modal dropdown and is sent to the AI for classification.
+    if (typeof addCategory === 'function') addCategory(trimmed, { source: 'user' });
     console.log('addBranch: calling renderInvoiceChips and refreshCategoryDropdowns');
     renderInvoiceChips();
     refreshCategoryDropdowns();
@@ -1164,10 +1182,15 @@ async function runAnalyze(docId) {
   try {
     // Send current user-added branches, custom tabs, people, and account type
     // so the AI can classify documents and use business-specific prompts.
-    const userCats = [
+    // Union of every known category name so the AI can classify into them.
+    const catSet = new Set([
       ...getInvoiceBranches(),
       ...getCustomTabs().map(t => t.name),
-    ];
+    ]);
+    if (typeof getCategoryNames === 'function') {
+      getCategoryNames().forEach(n => { if (n) catSet.add(n); });
+    }
+    const userCats = Array.from(catSet);
     const people = getPeople();
     const accountType = getAccountType(); // 'personal' or 'business'
     const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType);
@@ -1679,6 +1702,15 @@ function addNewTabWithData(name, subBranches = [], hasPeople = false) {
   customTabs.push({ id: 'custom-' + Date.now(), name, subBranches, hasPeople });
   setCustomTabs(customTabs);
 
+  // ALSO register as a proper category so it appears in the edit modal
+  // dropdown and in the list the AI receives when classifying new documents.
+  if (typeof addCategory === 'function') {
+    addCategory(name, { source: 'user' });
+    if (typeof addSubcategory === 'function') {
+      subBranches.forEach(sb => { if (sb && sb !== '+') addSubcategory(name, sb, { source: 'user' }); });
+    }
+  }
+
   // Create the new tab button (with drag support)
   const addBtn = document.querySelector('#docsSubnav .add-branch-tab');
   const newBtn = createDraggableTabButton(name, 'custom', () => showCustomTab(name));
@@ -2028,6 +2060,11 @@ function addSubBranch(categoryName) {
 
   // Save
   setSubBranches(categoryName, subBranches);
+
+  // ALSO register as a proper sub-category (categories.js) so it flows into
+  // the edit-modal sub-category dropdown and is surfaced to the AI.
+  if (typeof addCategory === 'function') addCategory(categoryName, { source: 'user' });
+  if (typeof addSubcategory === 'function') addSubcategory(categoryName, trimmed, { source: 'user' });
 
   // Refresh the filter row
   refreshSubBranches(categoryName);
