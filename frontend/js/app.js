@@ -2050,8 +2050,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!session) {
     document.body.classList.add('locked');
-    openModal('auth');
-    document.getElementById('auth-email').focus();
     return;
   }
 
@@ -2943,6 +2941,20 @@ function getAccountType() {
 
 function setAccountType(type) {
   localStorage.setItem(ACCOUNT_TYPE_KEY, type);
+}
+
+// Called when user clicks personal/business cards on landing page
+function chooseAccountTypeAndAuth(type) {
+  localStorage.setItem(ACCOUNT_TYPE_KEY, type);
+  localStorage.setItem('account_type_preselected', type);
+  selectedAccountType = type;
+  openModal('auth');
+  // Switch to signup mode
+  if (authMode === 'login') toggleAuthMode();
+  setTimeout(() => {
+    const el = document.getElementById('auth-email');
+    if (el) el.focus();
+  }, 100);
 }
 
 // Handle signup success - show account type selection
