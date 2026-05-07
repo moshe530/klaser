@@ -470,15 +470,124 @@ function addBranch() {
   }
 }
 
-// Open add-doc modal pre-filled with the current invoice branch
-function openAddForBranch() {
-  const sel = document.getElementById('fm-cat');
-  if (sel && activeInvoiceFilter !== 'הכל') {
-    // Make sure the option exists (custom branches need to be added)
-    refreshCategoryDropdowns();
-    sel.value = activeInvoiceFilter;
+// Pending preselect the user picked via a tab/chip "+ הוסף" click.
+// When set, runAnalyze() will respect this category/sub even if the AI
+// disagrees (and offer an inline "switch" suggestion instead of silently
+// overriding the user's intent).
+let currentAddPreselect = null; // { cat, sub }
+// Preselect per created document id — kept until AI returns so we can decide
+// whether to lock or propose a switch.
+const docPreselects = new Map();
+
+// Open the add-doc modal pre-filled with a category (and optional sub-branch).
+// When `cat` is empty/"הכל" the modal opens in "let AI decide" mode.
+function openAddForTab(cat, sub) {
+  currentAddPreselect = null;
+  refreshCategoryDropdowns();
+  const catSel = document.getElementById('fm-cat');
+  const subSel = document.getElementById('fm-subcat');
+  const realCat = (cat && cat !== 'הכל') ? cat : '';
+  // If no sub was passed explicitly, auto-detect from the active chip on the
+  // currently-visible docpage (stored on `.filter-row` by filterChip).
+  let effectiveSub = (sub && sub !== 'הכל') ? sub : '';
+  if (!effectiveSub) {
+    const visiblePage = Array.from(document.querySelectorAll('.docpage'))
+      .find(p => p.offsetParent !== null && p.style.display !== 'none');
+    const row = visiblePage ? visiblePage.querySelector('.filter-row') : null;
+    if (row && row.dataset.activeSub) effectiveSub = row.dataset.activeSub;
   }
+  if (catSel && realCat) {
+    catSel.value = realCat;
+    if (typeof populateSubcategoryDropdown === 'function' && subSel) {
+      populateSubcategoryDropdown(subSel, realCat, effectiveSub || '');
+    }
+  }
+  if (realCat) {
+    currentAddPreselect = { cat: realCat, sub: effectiveSub };
+  }
+  _renderAddPreselectHint();
   openModal('add');
+}
+
+// Back-compat: legacy call site (invoices branch chip).
+function openAddForBranch() {
+  const cat = (typeof activeInvoiceFilter !== 'undefined') ? activeInvoiceFilter : '';
+  openAddForTab(cat);
+}
+
+// Render a small banner inside the add-modal showing the preselected target
+// and offering a "שנה / נקה" link so the user can fall back to full AI mode.
+function _renderAddPreselectHint() {
+  const modal = document.querySelector('#modal-add .modal');
+  if (!modal) return;
+  let hint = document.getElementById('addPreselectHint');
+  if (!currentAddPreselect) { if (hint) hint.remove(); return; }
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'addPreselectHint';
+    hint.style.cssText = 'margin:8px 0 12px;padding:10px 14px;background:#EEF4FF;border:1px solid #BFD6FF;border-radius:10px;font-size:13px;color:#1A4A9E;display:flex;align-items:center;justify-content:space-between;gap:10px;direction:rtl;';
+    const head = modal.querySelector('.modal-head');
+    if (head && head.nextSibling) modal.insertBefore(hint, head.nextSibling);
+    else modal.insertBefore(hint, modal.firstChild);
+  }
+  const p = currentAddPreselect;
+  const subTxt = p.sub ? ` · <strong>${p.sub}</strong>` : '';
+  hint.innerHTML = `
+    <div>ייווסף ל: <strong>${p.cat}</strong>${subTxt}</div>
+    <button type="button" onclick="clearAddPreselect()" style="background:transparent;border:1px solid #BFD6FF;color:#1A4A9E;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">נקה — תן ל-AI להחליט</button>
+  `;
+}
+
+function clearAddPreselect() {
+  currentAddPreselect = null;
+  _renderAddPreselectHint();
+  // Keep the currently-visible category choice so the user can still edit
+  // it manually if they want a specific category without the "lock".
+}
+
+// Non-blocking banner: offered when AI disagrees with the user's preselected
+// category. User can accept AI's suggestion (→ updates cat/sub) or dismiss.
+function _showAICategorySuggestion(docId, userChoice, aiChoice) {
+  // Remove any previous banner.
+  const prev = document.getElementById('aiCatSuggestBanner');
+  if (prev) prev.remove();
+  const el = document.createElement('div');
+  el.id = 'aiCatSuggestBanner';
+  el.dataset.docId = String(docId);
+  el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:2px solid #1A4A9E;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.18);padding:14px 18px;z-index:9999;max-width:460px;direction:rtl;font-size:14px;';
+  const aiSubTxt = aiChoice.sub ? ` · ${aiChoice.sub}` : '';
+  const userSubTxt = userChoice.sub ? ` · ${userChoice.sub}` : '';
+  el.innerHTML = `
+    <div style="font-weight:600;margin-bottom:6px;">ה-AI חושב שהמסמך שייך לקטגוריה אחרת</div>
+    <div style="font-size:13px;color:#444;margin-bottom:10px;">
+      שמרת תחת: <strong>${userChoice.cat}${userSubTxt}</strong><br/>
+      ה-AI מציע: <strong>${aiChoice.cat}${aiSubTxt}</strong>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="button" class="btn-primary" style="padding:6px 14px;font-size:13px;"
+        onclick="acceptAICategorySuggestion('${String(docId)}','${String(aiChoice.cat).replace(/'/g, "\\'")}','${String(aiChoice.sub || '').replace(/'/g, "\\'")}')">העבר לקטגוריה של ה-AI</button>
+      <button type="button" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;"
+        onclick="document.getElementById('aiCatSuggestBanner')?.remove()">השאר כמו שהגדרתי</button>
+    </div>
+  `;
+  document.body.appendChild(el);
+  setTimeout(() => { const b = document.getElementById('aiCatSuggestBanner'); if (b && b.dataset.docId === String(docId)) b.remove(); }, 30000);
+}
+
+async function acceptAICategorySuggestion(docId, aiCat, aiSub) {
+  const banner = document.getElementById('aiCatSuggestBanner');
+  if (banner) banner.remove();
+  try {
+    const updated = await KlaserAPI.updateDocument(docId, {
+      category: aiCat || null,
+      sub_category: aiSub || null,
+    });
+    const idx = docs.findIndex(d => String(d.id) === String(docId));
+    if (idx >= 0) docs[idx] = fromApi(updated);
+    renderAll();
+  } catch (e) {
+    alert('שגיאה בהחלפת קטגוריה:\n' + e.message);
+  }
 }
 
 // Re-build category <select> options from the dynamic categories store.
@@ -734,7 +843,12 @@ function sbNav(page, el, tab) {
 // own `.doc-list`. This keeps every existing call site working.
 function filterChip(cat, el, listId) {
   const row = el.closest('.filter-row');
-  if (row) row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  if (row) {
+    row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    // Remember which sub-branch is active so "+ הוסף" in the page header can
+    // pre-fill the sub-category automatically.
+    row.dataset.activeSub = (cat && cat !== 'הכל') ? cat : '';
+  }
   el.classList.add('active');
   let list = null;
   if (listId) {
@@ -1169,11 +1283,18 @@ async function addDoc() {
 
     docs.unshift(fromApi(created));
     renderAll();
+    // Record any preselect so runAnalyze() can protect the user's choice.
+    if (currentAddPreselect) {
+      docPreselects.set(String(created.id), { ...currentAddPreselect });
+    }
+    const justPreselect = currentAddPreselect;
+    currentAddPreselect = null;
     closeModal('add');
     document.getElementById('fm-name').value = '';
     document.getElementById('fm-exp').value = '';
     document.getElementById('fm-note').value = '';
     resetUploadZone();
+    _renderAddPreselectHint();
     clearButtonLoading(btn);
     setStatusBadge(didUpload ? 'הקובץ הועלה' : 'המסמך נשמר', 'ok');
 
@@ -1229,11 +1350,46 @@ async function runAnalyze(docId) {
     const people = getPeople();
     const accountType = getAccountType(); // 'personal' or 'business'
     const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType, subsMap);
+
+    // If the user explicitly added the doc from a specific tab/sub-chip, we
+    // protect that choice. Override the AI's category/sub back to the user's
+    // preselect locally (in-memory) and patch the backend to match.
+    const preselect = docPreselects.get(String(docId));
+    let finalDoc = updated;
+    let aiDisagrees = false;
+    let aiSuggestion = null;
+    if (preselect && preselect.cat) {
+      const aiCat = updated.category || '';
+      const aiSub = updated.sub_category || '';
+      aiDisagrees = (aiCat && aiCat !== preselect.cat);
+      if (aiDisagrees) {
+        aiSuggestion = { cat: aiCat, sub: aiSub };
+      }
+      // Restore user's cat/sub on the returned object (others remain AI's).
+      finalDoc = { ...updated, category: preselect.cat, sub_category: preselect.sub || updated.sub_category || null };
+      // Persist to backend so state matches what the user sees.
+      try {
+        await KlaserAPI.updateDocument(docId, {
+          category: preselect.cat,
+          sub_category: preselect.sub || null,
+        });
+      } catch (patchErr) {
+        console.warn('preselect restore patch failed', patchErr);
+      }
+    }
+
     // החלף את המסמך ברשימה ב-data החדש
     const idx = docs.findIndex(d => d.id === docId);
-    if (idx >= 0) docs[idx] = fromApi(updated);
+    if (idx >= 0) docs[idx] = fromApi(finalDoc);
     renderAll();
     setStatusBadge(`נותח · ${docs.length} מסמכים`, 'ok');
+
+    // If AI proposed a different category than the user's preselect, offer
+    // a non-blocking banner that lets them switch with one click.
+    if (aiDisagrees && aiSuggestion) {
+      _showAICategorySuggestion(docId, preselect, aiSuggestion);
+    }
+    docPreselects.delete(String(docId));
 
     // AI sync — if AI suggested a category/subcategory we don't know yet, prompt to add.
     if (typeof syncAICategory === 'function') {
@@ -1905,7 +2061,7 @@ function createCustomTabPageWithBranches(name, subBranches = [], hasPeople = fal
   div.className = 'docpage';
   div.style.display = 'none';
   div.innerHTML = `
-    <div class="ph"><div class="ph-left"><h1>${name}</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>${name}</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('${name.replace(/'/g, "\\'")}')">+ הוסף</button></div></div>
     <div class="filter-row" id="filter-${name}">
       ${chipsHtml}
     </div>
@@ -1927,7 +2083,7 @@ function createCustomTabPage(name) {
   div.className = 'docpage';
   div.style.display = 'none';
   div.innerHTML = `
-    <div class="ph"><div class="ph-left"><h1>${name}</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>${name}</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('${name.replace(/'/g, "\\'")}')">+ הוסף</button></div></div>
     <div class="filter-row" id="filter-${name}">
       <button class="chip active" onclick="filterChip('הכל',this,'filter-${name}')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('${name}')">+</button>

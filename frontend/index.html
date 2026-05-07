@@ -1015,7 +1015,7 @@ body.locked .landing-view{display:block;}
       <div class="accordion-body">
         <div class="faq-item" onclick="toggleFaq(event, this)">
           <h3>האם המסמכים שלי מאובטחים? <span class="faq-arrow">+</span></h3>
-          <div class="faq-answer"><p>כן! כל המסמכים מוצפנים ומאוחסנים בשרתי Supabase המאובטחים.</p></div>
+          <div class="faq-answer"><p>כן! כל המסמכים מוצפנים ומאוחסנים בשרתי Supabase באירופה.</p></div>
         </div>
         <div class="faq-item" onclick="toggleFaq(event, this)">
           <h3>כמה עולה השירות? <span class="faq-arrow">+</span></h3>
@@ -1080,7 +1080,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-products" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>מוצרים</h1><p>אחריות ומסמכי מוצרים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('מוצרים')">+ הוסף</button></div></div>
     <div class="filter-row" id="productsFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'productsFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('מוצרים')">+</button>
@@ -1100,7 +1100,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-apartment" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>דירה</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>דירה</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('דירה')">+ הוסף</button></div></div>
     <div class="filter-row" id="aptFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'aptFilter')">הכל</button>
       <button class="chip" onclick="filterChip('חוזה',this,'aptFilter')">חוזה</button>
@@ -1111,7 +1111,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-payslips" class="docpage personal-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>תלושי שכר</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>תלושי שכר</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('תלוש שכר')">+ הוסף</button></div></div>
     <div class="filter-row" id="payslipsFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'payslipsFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('תלוש שכר')">+</button>
@@ -1120,7 +1120,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-approvals" class="docpage personal-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>אישורים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>אישורים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('אישורים')">+ הוסף</button></div></div>
     <div class="filter-row" id="approvalsFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'approvalsFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('אישורים')">+</button>
@@ -1148,7 +1148,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-car" class="docpage personal-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>רכב</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>רכב</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('רכב')">+ הוסף</button></div></div>
     <div class="filter-row" id="carFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'carFilter')">הכל</button>
       <button class="chip" onclick="filterChip('רישיון',this,'carFilter')">רישיונות</button>
@@ -1161,7 +1161,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-insurance" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>ביטוחים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>ביטוחים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('ביטוח')">+ הוסף</button></div></div>
     <div class="filter-row" id="insFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'insFilter')">הכל</button>
       <button class="chip" onclick="filterChip('רכב',this,'insFilter')">רכב</button>
@@ -1174,7 +1174,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-pension" class="docpage personal-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>פנסיה וגמל</h1><p>קרנות פנסיה, השתלמות, גמל</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>פנסיה וגמל</h1><p>קרנות פנסיה, השתלמות, גמל</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('פנסיה')">+ הוסף</button></div></div>
     <div class="filter-row" id="pensionFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'pensionFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('פנסיה')">+</button>
@@ -1183,7 +1183,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-taxes" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>מיסים</h1><p>שומות, החזרים, דוחות שנתיים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>מיסים</h1><p>שומות, החזרים, דוחות שנתיים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('מיסים')">+ הוסף</button></div></div>
     <div class="filter-row" id="taxesFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'taxesFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('מיסים')">+</button>
@@ -1192,7 +1192,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-education" class="docpage personal-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>חינוך</h1><p>תעודות, שכר לימוד, מלגות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>חינוך</h1><p>תעודות, שכר לימוד, מלגות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('חינוך')">+ הוסף</button></div></div>
     <div class="filter-row" id="educationFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'educationFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('חינוך')">+</button>
@@ -1201,7 +1201,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-legal" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>משפטי</h1><p>חוזים, פסקי דין, ייפוי כוח</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>משפטי</h1><p>חוזים, פסקי דין, ייפוי כוח</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('משפטי')">+ הוסף</button></div></div>
     <div class="filter-row" id="legalFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'legalFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('משפטי')">+</button>
@@ -1210,7 +1210,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-work" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>עבודה</h1><p>תלושי שכר, פנסיה, מיסים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>עבודה</h1><p>תלושי שכר, פנסיה, מיסים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('תלוש שכר')">+ הוסף</button></div></div>
     <div class="filter-row" id="workFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'workFilter')">הכל</button>
       <button class="chip" onclick="filterChip('תלוש שכר',this,'workFilter')">תלושי שכר</button>
@@ -1222,7 +1222,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-other" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>אחר</h1><p>מסמכים שלא שייכים לקטגוריות אחרות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>אחר</h1><p>מסמכים שלא שייכים לקטגוריות אחרות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('אחר')">+ הוסף</button></div></div>
     <div class="filter-row" id="otherFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'otherFilter')">הכל</button>
       <button class="chip add-sub-branch" onclick="addSubBranch('אחר')">+</button>
@@ -1231,7 +1231,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-personal" class="docpage" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>מסמכים אישיים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>מסמכים אישיים</h1></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('מסמכים אישיים')">+ הוסף</button></div></div>
     <div class="filter-row" id="persFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'persFilter')">הכל</button>
       <button class="chip" onclick="filterChip('תעודת זהות',this,'persFilter')">תעודת זהות</button>
@@ -1244,7 +1244,7 @@ body.locked .landing-view{display:block;}
 
   <!-- BUSINESS-ONLY PAGES -->
   <div id="docpage-employees" class="docpage business-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>👥 עובדים</h1><p>חוזי עבודה, תלושי שכר, חופשים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>👥 עובדים</h1><p>חוזי עבודה, תלושי שכר, חופשים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('עובדים')">+ הוסף</button></div></div>
     <div class="filter-row" id="employeesFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'employeesFilter')">הכל</button>
       <button class="chip" onclick="filterChip('חוזה עבודה',this,'employeesFilter')">חוזים</button>
@@ -1256,7 +1256,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-clients" class="docpage business-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>🤝 לקוחות</h1><p>הצעות מחיר, חוזים, התכתבות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>🤝 לקוחות</h1><p>הצעות מחיר, חוזים, התכתבות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('לקוחות')">+ הוסף</button></div></div>
     <div class="filter-row" id="clientsFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'clientsFilter')">הכל</button>
       <button class="chip" onclick="filterChip('הצעת מחיר',this,'clientsFilter')">הצעות מחיר</button>
@@ -1268,7 +1268,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-suppliers" class="docpage business-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>📦 ספקים</h1><p>הזמנות, חשבוניות, הסכמים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>📦 ספקים</h1><p>הזמנות, חשבוניות, הסכמים</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('ספקים')">+ הוסף</button></div></div>
     <div class="filter-row" id="suppliersFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'suppliersFilter')">הכל</button>
       <button class="chip" onclick="filterChip('הזמנה',this,'suppliersFilter')">הזמנות</button>
@@ -1280,7 +1280,7 @@ body.locked .landing-view{display:block;}
   </div>
 
   <div id="docpage-licenses" class="docpage business-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>📜 רישיונות</h1><p>רישיונות עסק, אישורים, תקנות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openModal('add')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>📜 רישיונות</h1><p>רישיונות עסק, אישורים, תקנות</p></div><div class="ph-actions"><button class="btn-primary" onclick="openAddForTab('רישיונות')">+ הוסף</button></div></div>
     <div class="filter-row" id="licensesFilter">
       <button class="chip active" onclick="filterChip('הכל',this,'licensesFilter')">הכל</button>
       <button class="chip" onclick="filterChip('רישיון עסק',this,'licensesFilter')">רישיון עסק</button>
@@ -1493,20 +1493,6 @@ body.locked .landing-view{display:block;}
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">גיבוי אוטומטי לענן</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
       </div>
     </div>
-
-    <!-- Danger Zone -->
-    <div class="settings-card" style="border:1px solid #FCA5A5;margin-top:16px;">
-      <div class="sc-header"><div><div class="sc-title" style="color:#991B1B;">אזור מסוכן</div></div></div>
-      <div class="sc-body">
-        <div class="sc-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
-          <div class="sc-row-left">
-            <div class="sc-row-label">מחיקת חשבון</div>
-            <div class="sc-row-sub">פעולה זו תמחק לצמיתות את החשבון, כל המסמכים, התזכורות והנתונים שלך. אי אפשר לשחזר. תוכל להירשם שוב עם אותו אימייל.</div>
-          </div>
-          <button class="btn-sm" style="background:#DC2626;color:#fff;border:none;" onclick="confirmDeleteAccount()">מחק את החשבון שלי לצמיתות</button>
-        </div>
-      </div>
-    </div>
   </div>
 
 </div><!-- /tab-settings -->
@@ -1717,7 +1703,6 @@ body.locked .landing-view{display:block;}
 </div>
 
 <!-- ADD MODAL -->
-<div class="overlay" id="modal-add">
   <div class="modal">
     <div class="modal-head"><h2>הוספת מסמך</h2><button class="close-btn" onclick="closeModal('add')">×</button></div>
     <div class="ai-badge">AI ינתח ויסווג אוטומטית</div>
