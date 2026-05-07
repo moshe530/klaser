@@ -1495,6 +1495,20 @@ body.locked .landing-view{display:block;}
         <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">גיבוי אוטומטי לענן</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
       </div>
     </div>
+
+    <!-- Danger Zone -->
+    <div class="settings-card" style="border-color:var(--red)">
+      <div class="sc-header"><div><div class="sc-title" style="color:var(--red)">Danger Zone</div><div class="sc-sub">פעולות שאינן ניתנות לביטול</div></div></div>
+      <div class="sc-body">
+        <div class="sc-row" style="align-items:flex-start;gap:16px;">
+          <div style="flex:1">
+            <div class="sc-row-label" style="color:var(--red)">מחיקת חשבון לצמיתות</div>
+            <div class="sc-row-sub">כולל מסמכים, תזכורות וכל הנתונים המשויכים. לא ניתן לשחזר!</div>
+          </div>
+          <button class="btn-primary" style="background:var(--red);border-color:var(--red);color:#fff" onclick="confirmDeleteAccount()">מחק חשבון</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div><!-- /tab-settings -->
