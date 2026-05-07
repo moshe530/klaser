@@ -31,8 +31,20 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
     return currentSession;
   }
 
+  async function getCaptchaToken() {
+    return new Promise((resolve) => {
+      turnstile.render('#turnstile-widget', {
+        sitekey: '0x4AAAAAAAAADKm7CnBj4qQdKQh',
+        callback: function(token) {
+          resolve(token);
+          turnstile.reset('#turnstile-widget');
+        }
+      });
+    });
+  }
+
   async function signUp(email, password) {
-    const token = await turnstile.execute('0x4AAAAAAAAADKm7CnBj4qQdKQh');
+    const token = await getCaptchaToken();
     const { data, error } = await client.auth.signUp({
       email,
       password,
@@ -43,7 +55,7 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
   }
 
   async function signIn(email, password) {
-    const token = await turnstile.execute('0x4AAAAAAAAADKm7CnBj4qQdKQh');
+    const token = await getCaptchaToken();
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
