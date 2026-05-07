@@ -1,5 +1,8 @@
 // ─── Klaser Auth (Supabase) ───
 // Manages user session, login, signup, logout. Exposes window.KlaserAuth.
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
+
 (function () {
   const cfg = window.KLASER_CONFIG;
   if (!window.supabase) {
@@ -29,13 +32,23 @@
   }
 
   async function signUp(email, password) {
-    const { data, error } = await client.auth.signUp({ email, password });
+    const token = await turnstile.execute(TURNSTILE_SITE_KEY, { action: 'signup' });
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: { captchaToken: token }
+    });
     if (error) throw error;
     return data;
   }
 
   async function signIn(email, password) {
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    const token = await turnstile.execute(TURNSTILE_SITE_KEY, { action: 'login' });
+    const { data, error } = await client.auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken: token }
+    });
     if (error) throw error;
     currentSession = data.session;
     return data;
