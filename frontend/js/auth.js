@@ -38,24 +38,13 @@ window.onTurnstileSuccess = function(token) {
   }
 
   async function getCaptchaToken() {
-    if (captchaToken) {
-      const token = captchaToken;
-      captchaToken = null;
-      turnstile.reset('#turnstile-widget');
-      return token;
-    }
-    return null;
+    return null; // Turnstile disabled temporarily (Error 400020)
   }
 
   async function signUp(email, password) {
-    console.log('signUp called');
-    const token = await getCaptchaToken();
-    console.log('captcha token:', token);
-    const options = token ? { captchaToken: token } : undefined;
     const { data, error } = await client.auth.signUp({
       email,
-      password,
-      options
+      password
     });
     if (error) {
       console.error('signup error:', error);
@@ -65,14 +54,9 @@ window.onTurnstileSuccess = function(token) {
   }
 
   async function signIn(email, password) {
-    console.log('signIn called');
-    const token = await getCaptchaToken();
-    console.log('captcha token:', token);
-    const options = token ? { captchaToken: token } : undefined;
     const { data, error } = await client.auth.signInWithPassword({
       email,
-      password,
-      options
+      password
     });
     if (error) {
       console.error('signin error:', error);
