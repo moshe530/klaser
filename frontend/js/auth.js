@@ -35,7 +35,11 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
     try {
       return new Promise((resolve) => {
         turnstile.ready(function() {
-          turnstile.reset('#turnstile-widget');
+          try {
+            turnstile.reset('#turnstile-widget');
+          } catch(e) {
+            // Widget doesn't exist yet, ignore
+          }
           turnstile.render('#turnstile-widget', {
             sitekey: '0x4AAAAAAAAADKm7CnBj4qQdKQh',
             size: 'invisible',
