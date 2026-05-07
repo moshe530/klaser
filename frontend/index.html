@@ -20,6 +20,7 @@
   --text2: #555F6E;
   --text3: #9AA3AE;
   --accent: #1A3A6B;
+  --accent-dark: #12294D;
   --accent2: #EBF0F8;
   --accent3: #C8D8EE;
   --green: #2E7D32; --green-bg: #E8F5E9;
@@ -304,14 +305,15 @@ html:has(body.locked){overflow-y:auto;height:auto;}
 .tag.expired{background:var(--red-bg);color:#B71C1C;}
 .tag.neutral{background:var(--surface2);color:var(--text2);}
 .doc-date{font-size:12px;color:var(--text2);}
-.doc-actions{display:flex;gap:4px;flex-shrink:0;}
+.doc-actions{display:flex;gap:6px;flex-shrink:0;}
 .doc-actions .ico-btn{
-  width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--surface);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);
+  width:32px;height:32px;border:none;border-radius:6px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;
   transition:all .15s;padding:0;font-size:13px;
 }
-.doc-actions .ico-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border2);}
-.doc-actions .ico-btn.danger:hover{background:var(--red-bg);color:var(--red);border-color:#FFCDD2;}
+.doc-actions .ico-btn:hover{background:var(--accent-dark);transform:scale(1.05);}
+.doc-actions .ico-btn.danger{background:var(--red);}
+.doc-actions .ico-btn.danger:hover{background:var(--red);opacity:.85;}
 .chip.add-branch{border-style:dashed;color:var(--accent);border-color:var(--accent);}
 .chip.add-branch:hover{background:var(--accent2);}
 
