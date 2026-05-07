@@ -32,39 +32,40 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
   }
 
   async function getCaptchaToken() {
-    return new Promise((resolve, reject) => {
-      try {
+    try {
+      return new Promise((resolve) => {
         turnstile.ready(function() {
+          turnstile.reset('#turnstile-widget');
           turnstile.render('#turnstile-widget', {
             sitekey: '0x4AAAAAAAAADKm7CnBj4qQdKQh',
             size: 'invisible',
             callback: function(token) {
               console.log('captcha token received:', token);
               resolve(token);
-              turnstile.reset('#turnstile-widget');
             },
             'error-callback': function() {
-              console.error('Turnstile error callback fired');
-              reject(new Error('Turnstile failed'));
+              console.error('Turnstile error callback fired, continuing without captcha');
+              resolve(null);
             }
           });
           turnstile.execute('#turnstile-widget');
         });
-      } catch(e) {
-        console.error('getCaptchaToken exception:', e);
-        reject(e);
-      }
-    });
+      });
+    } catch(e) {
+      console.error('getCaptchaToken exception, continuing without captcha:', e);
+      return null;
+    }
   }
 
   async function signUp(email, password) {
     console.log('signUp called');
     const token = await getCaptchaToken();
     console.log('captcha token:', token);
+    const options = token ? { captchaToken: token } : undefined;
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { captchaToken: token }
+      options
     });
     if (error) {
       console.error('signup error:', error);
@@ -77,10 +78,11 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
     console.log('signIn called');
     const token = await getCaptchaToken();
     console.log('captcha token:', token);
+    const options = token ? { captchaToken: token } : undefined;
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
-      options: { captchaToken: token }
+      options
     });
     if (error) {
       console.error('signin error:', error);
