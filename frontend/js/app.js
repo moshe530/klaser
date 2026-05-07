@@ -480,33 +480,43 @@ let currentAddPreselect = null; // { cat, sub }
 const docPreselects = new Map();
 
 // Open the add-doc modal pre-filled with a category (and optional sub-branch).
-// When `cat` is empty/"הכל" the modal opens in "let AI decide" mode.
+// When `cat` is empty/"הכל" the modal opens in "let AI decide" mode. The
+// modal is opened FIRST; preselect logic is wrapped in try/catch so a DOM
+// edge-case can never block the add flow.
 function openAddForTab(cat, sub) {
+  // Always open the modal first — failure to apply preselect shouldn't
+  // prevent the user from adding a document.
+  try { openModal('add'); } catch (e) { console.error('openAddForTab: openModal failed', e); return; }
   currentAddPreselect = null;
-  refreshCategoryDropdowns();
-  const catSel = document.getElementById('fm-cat');
-  const subSel = document.getElementById('fm-subcat');
-  const realCat = (cat && cat !== 'הכל') ? cat : '';
-  // If no sub was passed explicitly, auto-detect from the active chip on the
-  // currently-visible docpage (stored on `.filter-row` by filterChip).
-  let effectiveSub = (sub && sub !== 'הכל') ? sub : '';
-  if (!effectiveSub) {
-    const visiblePage = Array.from(document.querySelectorAll('.docpage'))
-      .find(p => p.offsetParent !== null && p.style.display !== 'none');
-    const row = visiblePage ? visiblePage.querySelector('.filter-row') : null;
-    if (row && row.dataset.activeSub) effectiveSub = row.dataset.activeSub;
-  }
-  if (catSel && realCat) {
-    catSel.value = realCat;
-    if (typeof populateSubcategoryDropdown === 'function' && subSel) {
-      populateSubcategoryDropdown(subSel, realCat, effectiveSub || '');
+  try {
+    if (typeof refreshCategoryDropdowns === 'function') refreshCategoryDropdowns();
+  } catch (e) { console.warn('refreshCategoryDropdowns failed', e); }
+  try {
+    const catSel = document.getElementById('fm-cat');
+    const subSel = document.getElementById('fm-subcat');
+    const realCat = (cat && cat !== 'הכל') ? cat : '';
+    // Auto-detect active sub-chip from the currently-visible docpage when
+    // the caller didn't pass one explicitly.
+    let effectiveSub = (sub && sub !== 'הכל') ? sub : '';
+    if (!effectiveSub) {
+      const visiblePage = Array.from(document.querySelectorAll('.docpage'))
+        .find(p => p && p.offsetParent !== null && p.style.display !== 'none');
+      const row = visiblePage ? visiblePage.querySelector('.filter-row') : null;
+      if (row && row.dataset && row.dataset.activeSub) effectiveSub = row.dataset.activeSub;
     }
+    if (catSel && realCat) {
+      catSel.value = realCat;
+      if (typeof populateSubcategoryDropdown === 'function' && subSel) {
+        populateSubcategoryDropdown(subSel, realCat, effectiveSub || '');
+      }
+    }
+    if (realCat) {
+      currentAddPreselect = { cat: realCat, sub: effectiveSub };
+    }
+    _renderAddPreselectHint();
+  } catch (e) {
+    console.warn('openAddForTab: preselect apply failed (modal is still open)', e);
   }
-  if (realCat) {
-    currentAddPreselect = { cat: realCat, sub: effectiveSub };
-  }
-  _renderAddPreselectHint();
-  openModal('add');
 }
 
 // Back-compat: legacy call site (invoices branch chip).
