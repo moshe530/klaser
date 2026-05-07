@@ -3,6 +3,12 @@
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
 
+let captchaToken = null;
+
+window.onTurnstileSuccess = function(token) {
+  captchaToken = token;
+};
+
 (function () {
   const cfg = window.KLASER_CONFIG;
   if (!window.supabase) {
@@ -32,33 +38,13 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
   }
 
   async function getCaptchaToken() {
-    try {
-      return new Promise((resolve) => {
-        turnstile.ready(function() {
-          try {
-            turnstile.reset('#turnstile-widget');
-          } catch(e) {
-            // Widget doesn't exist yet, ignore
-          }
-          turnstile.render('#turnstile-widget', {
-            sitekey: '0x4AAAAAAAAADKm7CnBj4qQdKQh',
-            size: 'invisible',
-            callback: function(token) {
-              console.log('captcha token received:', token);
-              resolve(token);
-            },
-            'error-callback': function() {
-              console.error('Turnstile error callback fired, continuing without captcha');
-              resolve(null);
-            }
-          });
-          turnstile.execute('#turnstile-widget');
-        });
-      });
-    } catch(e) {
-      console.error('getCaptchaToken exception, continuing without captcha:', e);
-      return null;
+    if (captchaToken) {
+      const token = captchaToken;
+      captchaToken = null;
+      turnstile.reset('#turnstile-widget');
+      return token;
     }
+    return null;
   }
 
   async function signUp(email, password) {

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
 :root {
   --bg: #F4F6F9;
@@ -1793,6 +1793,7 @@ body.locked .landing-view{display:block;}
       <label>סיסמה</label>
       <input class="form-input" type="password" id="auth-password" placeholder="לפחות 6 תווים" autocomplete="current-password">
     </div>
+    <div id="turnstile-widget" class="cf-turnstile" data-sitekey="0x4AAAAAAAAADKm7CnBj4qQdKQh" data-callback="onTurnstileSuccess" data-size="compact" style="margin-bottom:12px;"></div>
     <button class="btn-full" id="authSubmit" onclick="authSubmit()">התחבר</button>
     <p style="text-align:center;margin-top:10px;font-size:13px;" id="authForgotRow">
       <a href="#" onclick="openForgotPassword();return false;" style="color:var(--text2);text-decoration:none;">שכחתי סיסמה</a>
@@ -2322,9 +2323,6 @@ function initProfiles() {
 // Call init when DOM ready
 document.addEventListener('DOMContentLoaded', initProfiles);
 </script>
-
-<!-- Turnstile CAPTCHA widget (invisible) -->
-<div id="turnstile-widget"></div>
 
 </body>
 </html>
