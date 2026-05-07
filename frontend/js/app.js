@@ -675,7 +675,10 @@ function showTab(tab, el, mobEl) {
     const host = n.parentElement && n.parentElement.classList.contains('subnav-wrap') ? n.parentElement : n;
     host.style.setProperty('display', 'none', 'important');
   });
-  const subnavMap = { docs: 'docsSubnav', calendar: 'calSubnav', reminders: 'remSubnav', settings: 'settSubnav' };
+  // For docs tab, pick subnav based on account type (business uses a different nav)
+  const isBusiness = (typeof getAccountType === 'function') && getAccountType() === 'business';
+  const docsSubnavId = isBusiness ? 'docsSubnavBusiness' : 'docsSubnav';
+  const subnavMap = { docs: docsSubnavId, calendar: 'calSubnav', reminders: 'remSubnav', settings: 'settSubnav' };
   const activeSubnav = document.getElementById(subnavMap[tab]);
   if (activeSubnav) {
     const host = activeSubnav.parentElement && activeSubnav.parentElement.classList.contains('subnav-wrap') ? activeSubnav.parentElement : activeSubnav;
