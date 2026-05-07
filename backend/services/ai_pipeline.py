@@ -70,13 +70,16 @@ def run_pipeline(
     categories: list[str] | None = None,
     people: list[dict] | None = None,
     account_type: str = "personal",
+    subcategories_map: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     """Full pipeline: hash → render → classify → guard → extract → merge.
 
     `categories` is the user's current branch list; forwarded to the Extractor.
     `people`     is the user's people list ({name, id_number}); forwarded to
                  the Extractor for medical/personal document attribution.
-    `account_type` is 'personal' or 'business' — affects AI prompts."""
+    `account_type` is 'personal' or 'business' — affects AI prompts.
+    `subcategories_map` is a {category: [sub-branches]} dict so the AI can
+    PREFER one of the user's existing sub-branches when classifying."""
     pipeline_t0 = time.perf_counter()
     result = _full_skeleton()
     result["file_hash"] = _file_hash(data)
@@ -126,6 +129,7 @@ def run_pipeline(
         categories=categories,
         people=people,
         account_type=account_type,
+        subcategories_map=subcategories_map,
     )
     ext_ms = int((time.perf_counter() - t_ext) * 1000)
     for k, v in extraction.items():

@@ -728,14 +728,27 @@ function sbNav(page, el, tab) {
 }
 
 // ─── FILTER CHIPS ───
+// Note: many call sites historically pass the FILTER ROW id as `listId` (e.g.
+// `aptFilter`) rather than the list id. We resolve robustly: if listId points
+// to a `.doc-list`, use it directly; otherwise fall back to the docpage's
+// own `.doc-list`. This keeps every existing call site working.
 function filterChip(cat, el, listId) {
   const row = el.closest('.filter-row');
-  row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  if (row) row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  const list = listId ? document.getElementById(listId) : el.closest('.docpage').querySelector('.doc-list');
+  let list = null;
+  if (listId) {
+    const node = document.getElementById(listId);
+    if (node && node.classList.contains('doc-list')) list = node;
+  }
+  if (!list) {
+    const page = el.closest('.docpage') || (row && row.closest('.docpage'));
+    if (page) list = page.querySelector('.doc-list');
+  }
   if (!list) return;
   list.querySelectorAll('.doc-card').forEach(c => {
-    c.style.display = (cat === 'הכל' || c.dataset.cat === cat || c.dataset.sub === cat) ? '' : 'none';
+    const ok = (cat === 'הכל' || c.dataset.cat === cat || c.dataset.sub === cat);
+    c.style.display = ok ? '' : 'none';
   });
 }
 
@@ -1191,9 +1204,31 @@ async function runAnalyze(docId) {
       getCategoryNames().forEach(n => { if (n) catSet.add(n); });
     }
     const userCats = Array.from(catSet);
+    // Build sub-branches map per category (default subs + user-added subs).
+    // The AI is instructed to PREFER one of these names for sub_category.
+    const subsMap = {};
+    if (typeof getSubcategories === 'function') {
+      userCats.forEach(c => {
+        const names = (getSubcategories(c) || [])
+          .map(s => (s && s.name) ? s.name : (typeof s === 'string' ? s : null))
+          .filter(n => n && n !== '+');
+        if (names.length) subsMap[c] = names;
+      });
+    }
+    // Fall back / merge with the legacy `subBranches_<cat>` storage used by
+    // custom-tab pages so AI sees ALL existing sub-branches.
+    userCats.forEach(c => {
+      try {
+        const legacy = JSON.parse(localStorage.getItem('subBranches_' + c) || '[]');
+        if (Array.isArray(legacy) && legacy.length) {
+          const merged = new Set([...(subsMap[c] || []), ...legacy.filter(s => s && s !== '+')]);
+          if (merged.size) subsMap[c] = Array.from(merged);
+        }
+      } catch {}
+    });
     const people = getPeople();
     const accountType = getAccountType(); // 'personal' or 'business'
-    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType);
+    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType, subsMap);
     // החלף את המסמך ברשימה ב-data החדש
     const idx = docs.findIndex(d => d.id === docId);
     if (idx >= 0) docs[idx] = fromApi(updated);

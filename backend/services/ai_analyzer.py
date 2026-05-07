@@ -20,6 +20,7 @@ def analyze_file(
     categories: list[str] | None = None,
     people: list[dict] | None = None,
     account_type: str = "personal",
+    subcategories_map: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     """Run the full AI pipeline on a file. Returns the v4.1 unified shape.
 
@@ -27,11 +28,14 @@ def analyze_file(
     the extractor so newly-added user branches are recognized.
     `people` (optional) is a list of {name, id_number} so the extractor can
     associate medical/personal documents with the right family member.
-    `account_type` (optional) is 'personal' or 'business' — affects AI prompts."""
+    `account_type` (optional) is 'personal' or 'business' — affects AI prompts.
+    `subcategories_map` (optional) is {category: [sub-branches]} so the AI
+    knows which existing sub-branches to prefer when filling sub_category."""
     return ai_pipeline.run_pipeline(
         data,
         mime_type,
         categories=categories,
         people=people,
         account_type=account_type,
+        subcategories_map=subcategories_map,
     )

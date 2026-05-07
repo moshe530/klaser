@@ -49,10 +49,13 @@
       return res.json();
     },
     getFileUrl: (id) => request(`/documents/${id}/file-url`),
-    analyzeDocument: (id, categories = null, people = null, accountType = 'personal') => {
+    analyzeDocument: (id, categories = null, people = null, accountType = 'personal', subcategories = null) => {
       const body = { account_type: accountType };
       if (categories) body.categories = categories;
       if (people && people.length) body.people = people;
+      if (subcategories && typeof subcategories === 'object' && Object.keys(subcategories).length) {
+        body.subcategories = subcategories;
+      }
       return request(`/documents/${id}/analyze`, {
         method: 'POST',
         body: JSON.stringify(body),

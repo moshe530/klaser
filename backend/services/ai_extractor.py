@@ -410,6 +410,7 @@ def extract(
     categories: list[str] | None = None,
     people: list[dict] | None = None,
     account_type: str = "personal",
+    subcategories_map: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     """Run the Extractor vision call. Always returns a full skeleton dict
     with normalized amounts, dates, and category clamped to CATEGORIES.
@@ -421,7 +422,10 @@ def extract(
     `people` is a list of {name, id_number} dicts. When provided, the model
     is instructed to identify the person the document belongs to (by name OR
     by ID number) and return it in the `person` field.
-    `account_type` is 'personal' or 'business' — affects category suggestions."""
+    `account_type` is 'personal' or 'business' — affects category suggestions.
+    `subcategories_map` is {category_name: [sub-branch names...]}. When given,
+    the model is told to PREFER one of the listed sub-branches when classifying
+    sub_category, including ones the user added recently."""
     # Build the effective category list: built-ins + account-specific + user-added.
     effective_categories = list(CATEGORIES)
 
@@ -470,6 +474,31 @@ def extract(
                 "אם לא ניתן לזהות בוודאות — החזר null.\n\n"
             )
             dynamic_header = dynamic_header + people_block
+
+    # If sub-branches are provided, list them per-category so the AI can pick
+    # one of the user's existing sub-branches instead of inventing a new name.
+    if subcategories_map:
+        sub_lines = []
+        for cat_name, subs in subcategories_map.items():
+            if not cat_name or not isinstance(subs, list):
+                continue
+            cleaned = [s for s in subs if isinstance(s, str) and s.strip() and s != "+"]
+            if not cleaned:
+                continue
+            sub_lines.append(f"- {cat_name}: {' | '.join(cleaned)}")
+        if sub_lines:
+            sub_block = (
+                "תתי-ענפים נוכחיים לכל קטגוריה (כולל תתי-ענפים שהמשתמש הוסיף לאחרונה):\n"
+                + "\n".join(sub_lines)
+                + "\n\n"
+                "כלל #8 (תתי-ענפים): בעת מילוי שדה sub_category, **העדף בחזקה** "
+                "אחד מתתי-הענפים הרשומים למעלה תחת הקטגוריה שבחרת. אם אף אחד "
+                "לא מתאים בדיוק — בחר את הקרוב ביותר מבחינה סמנטית. רק אם אין "
+                "התאמה סבירה כלל — החזר תת-ענף חדש או null. אל תמציא וריאציות "
+                "של אותו שם (לדוגמה: אם קיים 'חוזה שכירות' — אל תחזיר 'חוזה' או "
+                "'חוזה דירה' אלא 'חוזה שכירות' המדויק).\n\n"
+            )
+            dynamic_header = dynamic_header + sub_block
 
     prompt = dynamic_header + prompt
     if doc_type_detected:

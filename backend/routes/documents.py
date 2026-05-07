@@ -241,6 +241,7 @@ def analyze_document(
     user_categories: list[str] | None = None
     user_people: list[dict] | None = None
     account_type: str = "personal"  # default to personal
+    user_subcategories: dict[str, list[str]] | None = None
     if isinstance(payload, dict):
         cats = payload.get("categories")
         if isinstance(cats, list):
@@ -252,6 +253,17 @@ def analyze_document(
         acct_type = payload.get("account_type")
         if acct_type in ("personal", "business"):
             account_type = acct_type
+        # Sub-categories per category, so the AI prefers existing sub-branches
+        subs = payload.get("subcategories")
+        if isinstance(subs, dict):
+            cleaned: dict[str, list[str]] = {}
+            for k, v in subs.items():
+                if not isinstance(k, str) or not isinstance(v, list):
+                    continue
+                vals = [str(s) for s in v if isinstance(s, str) and s.strip() and s != "+"]
+                if vals:
+                    cleaned[k] = vals
+            user_subcategories = cleaned or None
 
     # Mark as processing
     auth.client.table(TABLE).update({"ocr_status": "processing"}).eq(
@@ -266,6 +278,7 @@ def analyze_document(
             categories=user_categories,
             people=user_people,
             account_type=account_type,
+            subcategories_map=user_subcategories,
         )
     except Exception as e:
         import traceback
