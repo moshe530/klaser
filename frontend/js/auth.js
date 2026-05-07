@@ -32,36 +32,60 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
   }
 
   async function getCaptchaToken() {
-    return new Promise((resolve) => {
-      turnstile.render('#turnstile-widget', {
-        sitekey: '0x4AAAAAAAAADKm7CnBj4qQdKQh',
-        callback: function(token) {
-          resolve(token);
-          turnstile.reset('#turnstile-widget');
-        }
-      });
+    return new Promise((resolve, reject) => {
+      try {
+        turnstile.ready(function() {
+          turnstile.render('#turnstile-widget', {
+            sitekey: '0x4AAAAAAAAADKm7CnBj4qQdKQh',
+            size: 'invisible',
+            callback: function(token) {
+              console.log('captcha token received:', token);
+              resolve(token);
+              turnstile.reset('#turnstile-widget');
+            },
+            'error-callback': function() {
+              console.error('Turnstile error callback fired');
+              reject(new Error('Turnstile failed'));
+            }
+          });
+          turnstile.execute('#turnstile-widget');
+        });
+      } catch(e) {
+        console.error('getCaptchaToken exception:', e);
+        reject(e);
+      }
     });
   }
 
   async function signUp(email, password) {
+    console.log('signUp called');
     const token = await getCaptchaToken();
+    console.log('captcha token:', token);
     const { data, error } = await client.auth.signUp({
       email,
       password,
       options: { captchaToken: token }
     });
-    if (error) throw error;
+    if (error) {
+      console.error('signup error:', error);
+      throw error;
+    }
     return data;
   }
 
   async function signIn(email, password) {
+    console.log('signIn called');
     const token = await getCaptchaToken();
+    console.log('captcha token:', token);
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
       options: { captchaToken: token }
     });
-    if (error) throw error;
+    if (error) {
+      console.error('signin error:', error);
+      throw error;
+    }
     currentSession = data.session;
     return data;
   }
