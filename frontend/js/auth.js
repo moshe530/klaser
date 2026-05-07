@@ -41,15 +41,33 @@ window.onTurnstileSuccess = function(token) {
     return null; // Turnstile disabled temporarily (Error 400020)
   }
 
-  async function signUp(email, password) {
+  async function signUp(email, password, metadata) {
+    const options = {};
+    if (metadata && typeof metadata === 'object') {
+      options.data = metadata;
+    }
     const { data, error } = await client.auth.signUp({
       email,
-      password
+      password,
+      options
     });
     if (error) {
       console.error('signup error:', error);
       throw error;
     }
+    // Detect duplicate signup: when email confirmation is on, Supabase returns
+    // user with empty identities[] for existing emails (no error thrown).
+    if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      const err = new Error('USER_ALREADY_REGISTERED');
+      err.code = 'USER_ALREADY_REGISTERED';
+      throw err;
+    }
+    return data;
+  }
+
+  async function updateUserMetadata(metadata) {
+    const { data, error } = await client.auth.updateUser({ data: metadata });
+    if (error) throw error;
     return data;
   }
 
@@ -105,10 +123,31 @@ window.onTurnstileSuccess = function(token) {
     return data;
   }
 
+  // Delete the current user's account by calling backend endpoint that uses
+  // Supabase service role to fully remove the auth user + all their data.
+  async function deleteAccount() {
+    const token = getToken();
+    if (!token) throw new Error('Not signed in');
+    const apiBase = (cfg.API_URL || cfg.API_BASE_URL || '').replace(/\/$/, '');
+    const res = await fetch(apiBase + '/api/account/delete', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    if (!res.ok) {
+      let msg = 'Account deletion failed';
+      try { const j = await res.json(); if (j && j.detail) msg = j.detail; } catch {}
+      throw new Error(msg);
+    }
+    await client.auth.signOut();
+    currentSession = null;
+    return true;
+  }
+
   window.KlaserAuth = {
     init, signUp, signIn, signOut,
     getToken, getUser, isLoggedIn, refreshToken,
     sendPasswordResetEmail, updatePassword,
+    updateUserMetadata, deleteAccount,
     _client: client,
   };
 })();

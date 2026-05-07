@@ -1403,7 +1403,11 @@ async function authSubmit() {
   try {
     let isNewSignup = false;
     if (authMode === 'signup') {
-      const data = await KlaserAuth.signUp(email, password);
+      // Pass preselected account_type as user metadata so it persists across devices
+      const preselected = localStorage.getItem('account_type_preselected');
+      const metadata = (preselected === 'business' || preselected === 'personal')
+        ? { account_type: preselected } : undefined;
+      const data = await KlaserAuth.signUp(email, password, metadata);
       if (!data.session) {
         // Email confirmation required
         showAuthError('נשלח אימייל אימות. בדוק את תיבת הדואר.');
@@ -1413,7 +1417,12 @@ async function authSubmit() {
       }
       isNewSignup = true;
     } else {
-      await KlaserAuth.signIn(email, password);
+      const data = await KlaserAuth.signIn(email, password);
+      // Restore account_type from server-side user metadata (cross-device persistence)
+      const meta = data?.user?.user_metadata;
+      if (meta && (meta.account_type === 'business' || meta.account_type === 'personal')) {
+        localStorage.setItem(ACCOUNT_TYPE_KEY, meta.account_type);
+      }
     }
     // Success — hide modal and start app
     closeModal('auth');
@@ -1440,17 +1449,68 @@ async function authSubmit() {
     }
   } catch (e) {
     console.error(e);
-    showAuthError(e.message || 'שגיאה בהתחברות');
+    const msg = (e && e.message) || '';
+    const code = e && e.code;
+    if (code === 'USER_ALREADY_REGISTERED' || /already.*registered/i.test(msg) || /User already registered/i.test(msg)) {
+      // Show a friendlier message with login + reset password actions
+      const errEl = document.getElementById('authError');
+      if (errEl) {
+        errEl.innerHTML = 'משתמש רשום כבר במערכת. <a href="#" onclick="switchToLoginMode();return false;" style="color:var(--accent);font-weight:600;text-decoration:underline;">התחבר</a> או <a href="#" onclick="openForgotPassword();return false;" style="color:var(--accent);font-weight:600;text-decoration:underline;">שכחתי סיסמה</a>';
+        errEl.style.display = 'block';
+      }
+    } else if (/Invalid login credentials/i.test(msg)) {
+      showAuthError('פרטי התחברות שגויים. בדוק אימייל וסיסמה.');
+    } else {
+      showAuthError(msg || 'שגיאה בהתחברות');
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
   }
 }
 
+// Helper: switch from signup to login mode (used by inline error link)
+function switchToLoginMode() {
+  if (typeof authMode !== 'undefined' && authMode === 'signup' && typeof toggleAuthMode === 'function') {
+    toggleAuthMode();
+  }
+  showAuthError('');
+}
+
 async function doLogout() {
   if (!confirm('להתנתק?')) return;
   await KlaserAuth.signOut();
   location.reload();
+}
+
+async function confirmDeleteAccount() {
+  const first = confirm(
+    'האם אתה בטוח שברצונך למחוק את החשבון שלך?\n\n' +
+    'פעולה זו תמחק לצמיתות:\n' +
+    '• את כל המסמכים שהעלית\n' +
+    '• את כל התזכורות\n' +
+    '• את ההגדרות וההיסטוריה\n' +
+    '• את חשבון ההתחברות עצמו\n\n' +
+    'אי אפשר לשחזר את הנתונים.'
+  );
+  if (!first) return;
+  const typed = prompt('כדי לאשר, הקלד: מחק');
+  if ((typed || '').trim() !== 'מחק') {
+    alert('המחיקה בוטלה.');
+    return;
+  }
+  try {
+    await KlaserAuth.deleteAccount();
+    // Clear local cache so the next session starts clean
+    try {
+      localStorage.clear();
+    } catch {}
+    alert('החשבון נמחק בהצלחה. נתראה!');
+    location.reload();
+  } catch (e) {
+    console.error('deleteAccount failed:', e);
+    alert('שגיאה במחיקת החשבון: ' + (e.message || e));
+  }
 }
 
 function updateAuthUI() {
@@ -2051,6 +2111,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!session) {
     document.body.classList.add('locked');
     return;
+  }
+
+  // Restore account_type from server-side user metadata (cross-device persistence)
+  const meta = session.user && session.user.user_metadata;
+  if (meta && (meta.account_type === 'business' || meta.account_type === 'personal')) {
+    localStorage.setItem(ACCOUNT_TYPE_KEY, meta.account_type);
   }
 
   document.body.classList.remove('locked');
@@ -2924,6 +2990,13 @@ function confirmAccountType() {
   localStorage.removeItem('account_type_preselected');
   if (!localStorage.getItem('account_created')) {
     localStorage.setItem('account_created', String(Date.now()));
+  }
+
+  // Sync to Supabase user metadata (cross-device persistence) — best-effort
+  if (window.KlaserAuth && typeof window.KlaserAuth.updateUserMetadata === 'function') {
+    window.KlaserAuth.updateUserMetadata({ account_type: selectedAccountType }).catch(err => {
+      console.warn('Failed to sync account_type to user metadata:', err);
+    });
   }
 
   closeAccountTypeModal();
