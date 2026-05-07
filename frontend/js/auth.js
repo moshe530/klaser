@@ -32,7 +32,7 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
   }
 
   async function signUp(email, password) {
-    const token = await turnstile.execute(TURNSTILE_SITE_KEY, { action: 'signup' });
+    const token = await turnstile.execute('0x4AAAAAAAAADKm7CnBj4qQdKQh');
     const { data, error } = await client.auth.signUp({
       email,
       password,
@@ -43,7 +43,7 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
   }
 
   async function signIn(email, password) {
-    const token = await turnstile.execute(TURNSTILE_SITE_KEY, { action: 'login' });
+    const token = await turnstile.execute('0x4AAAAAAAAADKm7CnBj4qQdKQh');
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
