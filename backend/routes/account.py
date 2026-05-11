@@ -58,6 +58,75 @@ def _list_all_user_objects(client, user_id: str) -> list[str]:
     return paths
 
 
+# ─── Plan tiers (hard-coded for now, pluggable later) ────────────────────
+# Values intentionally generous — wire to Supabase `profiles.plan` column
+# later to make real tiers enforceable server-side.
+PLANS = {
+    "free":    {"label": "חינם",   "docs_limit": 100,   "storage_mb": 100},
+    "pro":     {"label": "Pro",    "docs_limit": 1000,  "storage_mb": 2048},
+    "business":{"label": "Business","docs_limit": 10000,"storage_mb": 20480},
+}
+
+
+@router.get("/usage")
+def account_usage(ctx: AuthContext = AuthDep) -> dict:
+    """Return plan + usage counters for the calling user.
+
+    Counts docs (via `count=exact`) and sums `file_size` so the account
+    panel can render a real usage bar — not a mock.
+    """
+    user_id = str(ctx.user_id)
+    client = ctx.client  # RLS-scoped client; won't leak other users' rows.
+
+    docs_count = 0
+    storage_bytes = 0
+    try:
+        # Pull id + file_size for this user. Plans cap at 10k docs, well
+        # under Supabase's default 1k-row page — but we paginate to be safe.
+        offset = 0
+        page = 1000
+        while True:
+            res = (
+                client.table("documents")
+                .select("id,file_size")
+                .eq("user_id", user_id)
+                .range(offset, offset + page - 1)
+                .execute()
+            )
+            rows = res.data or []
+            docs_count += len(rows)
+            for r in rows:
+                s = r.get("file_size") or 0
+                if isinstance(s, int) and s > 0:
+                    storage_bytes += s
+            if len(rows) < page:
+                break
+            offset += page
+    except Exception as e:  # noqa: BLE001
+        logger.warning("usage query failed for %s: %s", user_id, e)
+
+    # Plan is stored per-user. For now we read it off the auth user's
+    # user_metadata (set client-side) with a 'free' fallback.
+    plan_key = "free"
+    try:
+        admin = get_supabase()
+        u = admin.auth.admin.get_user_by_id(user_id)
+        md = (u.user.user_metadata or {}) if u and u.user else {}
+        if md.get("plan") in PLANS:
+            plan_key = md["plan"]
+    except Exception as e:  # noqa: BLE001
+        logger.debug("plan lookup failed for %s: %s", user_id, e)
+
+    plan = PLANS[plan_key]
+    return {
+        "plan": {"key": plan_key, **plan},
+        "docs_count": docs_count,
+        "storage_bytes": storage_bytes,
+        "docs_limit": plan["docs_limit"],
+        "storage_limit_bytes": plan["storage_mb"] * 1024 * 1024,
+    }
+
+
 @router.delete("/delete")
 def delete_account(ctx: AuthContext = AuthDep) -> dict:
     """Fully delete the calling user's data + auth record.

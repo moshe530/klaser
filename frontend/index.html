@@ -837,6 +837,78 @@ body.locked .landing-view{display:block;}
   box-shadow:0 4px 12px rgba(0,0,0,0.15);
 }
 .btn-cta:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.25);}
+
+/* ═══ BELL NOTIFICATIONS ═══ */
+.bell-btn{position:relative;width:36px;height:36px;border:none;border-radius:50%;background:rgba(255,255,255,0.08);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.bell-btn:hover{background:rgba(255,255,255,0.18);}
+.bell-dot{position:absolute;top:6px;left:6px;width:10px;height:10px;border-radius:50%;background:transparent;border:2px solid var(--accent);}
+.bell-dot.green{background:#10B981;border-color:#fff;}
+.bell-dot.yellow{background:#F59E0B;border-color:#fff;}
+.bell-dot.red{background:#EF4444;border-color:#fff;animation:bell-pulse 1.8s ease-in-out infinite;}
+@keyframes bell-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+
+.bell-panel{position:absolute;top:54px;left:16px;width:380px;max-width:calc(100vw - 32px);max-height:70vh;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.18);z-index:9999;display:flex;flex-direction:column;overflow:hidden;font-family:'Heebo',sans-serif;direction:rtl;}
+.bell-panel-head{padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.bell-panel-head h3{margin:0;font-size:15px;font-weight:600;color:var(--accent);}
+.bell-panel-sections{flex:1;overflow-y:auto;}
+.bell-section-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;padding:10px 18px 6px;}
+.bell-empty{padding:40px 20px;text-align:center;color:var(--text3);font-size:13px;}
+.alert-item{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.alert-item:last-child{border-bottom:none;}
+.alert-item.severity-red{border-right:3px solid #EF4444;}
+.alert-item.severity-yellow{border-right:3px solid #F59E0B;}
+.alert-item.severity-blue{border-right:3px solid #3B82F6;}
+.alert-item.is-pending{background:var(--accent2);opacity:0.85;}
+.alert-title{font-size:13px;font-weight:500;color:var(--accent);}
+.alert-meta{font-size:11px;color:var(--text3);display:flex;gap:8px;align-items:center;}
+.alert-actions{display:flex;gap:6px;margin-top:4px;}
+.alert-btn{flex:1;padding:5px 10px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text);font-family:inherit;transition:all .12s;}
+.alert-btn:hover{background:var(--surface2);}
+.alert-btn.primary{background:var(--green-bg);color:#1B5E20;border-color:#86EFAC;}
+.alert-btn.primary:hover{background:#BBF7D0;}
+.alert-btn.warning{background:var(--orange-bg);color:#BF360C;border-color:#FED7AA;}
+.alert-btn.warning:hover{background:#FFE5B4;}
+
+/* ═══ USER AVATAR BADGE ═══ */
+.avatar-btn{border:none;background:none;padding:0;cursor:pointer;width:36px;height:36px;}
+.avatar-circle{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#7C3AED;color:#fff;font-size:15px;font-weight:600;border:2px solid rgba(255,255,255,0.25);transition:transform .12s,box-shadow .15s;}
+.avatar-btn:hover .avatar-circle{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+
+/* ═══ USER PANEL (account overlay) ═══ */
+.user-panel{position:absolute;top:54px;left:16px;width:400px;max-width:calc(100vw - 32px);max-height:80vh;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.18);z-index:9999;overflow-y:auto;font-family:'Heebo',sans-serif;direction:rtl;}
+.up-head{padding:20px 18px;background:linear-gradient(135deg,#1A4A9E 0%,#7C3AED 100%);color:#fff;text-align:center;}
+.up-avatar-lg{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;color:#fff;font-size:26px;font-weight:700;margin:0 auto 10px;border:3px solid rgba(255,255,255,0.4);}
+.up-name{font-size:16px;font-weight:600;}
+.up-email{font-size:12px;opacity:0.85;margin-top:2px;}
+.up-section{padding:14px 18px;border-bottom:1px solid var(--border);}
+.up-section:last-child{border-bottom:none;}
+.up-section-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin-bottom:10px;}
+.up-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;}
+.up-row .label{color:var(--text2);}
+.up-row .value{color:var(--accent);font-weight:500;}
+.up-field{margin-bottom:10px;}
+.up-field label{display:block;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;}
+.up-field input,.up-field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);direction:rtl;}
+.up-btn{padding:8px 16px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s;}
+.up-btn.primary{background:var(--accent);color:#fff;}
+.up-btn.primary:hover{background:var(--accent-dark);}
+.up-btn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.up-btn.secondary:hover{background:var(--border);}
+.up-btn.danger{background:var(--red);color:#fff;}
+.up-btn.danger:hover{opacity:.9;}
+.up-colors{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.up-color{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .12s;}
+.up-color:hover{transform:scale(1.1);}
+.up-color.active{border-color:var(--text);}
+.progress-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:4px;}
+.progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;}
+.progress-fill.warn{background:#F59E0B;}
+.progress-fill.danger{background:#EF4444;}
+.progress-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px;}
+
+@media(max-width:768px){
+  .bell-panel,.user-panel{position:fixed;top:56px;left:8px;right:8px;width:auto;}
+}
 </style>
 </head>
 <body class="locked">
@@ -866,9 +938,14 @@ body.locked .landing-view{display:block;}
         <input class="search-input" type="text" placeholder="חיפוש..." oninput="doSearch(this.value)">
       </div>
       <button class="btn-primary" onclick="openModal('add')"><span>+ הוסף מסמך</span></button>
-      <span id="userEmail" style="font-size:12px;color:rgba(255,255,255,0.6);font-weight:500;display:none;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
-      <button class="icon-btn" id="logoutBtn" onclick="doLogout()" title="התנתק" style="display:none;">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <!-- Bell notifications (expires/reminders) -->
+      <button class="bell-btn" id="bellBtn" onclick="toggleBell(event)" title="התראות" style="display:none;">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2a5 5 0 00-5 5v3l-1.5 2.5h13L15 10V7a5 5 0 00-5-5zM7.5 15a2.5 2.5 0 005 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="bell-dot" id="bellDot"></span>
+      </button>
+      <!-- User avatar badge -->
+      <button class="avatar-btn" id="avatarBtn" onclick="toggleUserPanel(event)" title="החשבון שלי" style="display:none;">
+        <span class="avatar-circle" id="avatarCircle">?</span>
       </button>
     </div>
   </div>
@@ -1396,59 +1473,12 @@ body.locked .landing-view{display:block;}
 
   <!-- General -->
   <div class="settings-page active" id="st-general">
-    <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">פרטי משתמש</div></div></div>
-      <div class="sc-body">
-        <div class="form-group"><label>שם מלא</label><input class="form-input" id="user-fullname" placeholder="הזן שם מלא" /></div>
-        <div class="form-group"><label>אימייל</label><input class="form-input" id="user-email-display" placeholder="הזן כתובת אימייל" /></div>
-        <div class="form-group"><label>טלפון</label><input class="form-input" id="user-phone" placeholder="הזן מספר טלפון" /></div>
-        <button class="btn-sm accent">שמור</button>
-      </div>
+    <div class="alert-bar info" style="margin-bottom:12px">
+      ℹ️ פרטי משתמש, שפה, מצב כהה, ובחירה אוטומטית של AI עברו ל<strong>פאנל החשבון</strong> (לחיצה על התגית בצד ימין למעלה).
     </div>
-    <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">העדפות שפה ותצוגה</div></div></div>
-      <div class="sc-body">
-        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">שפה</div></div><select class="form-select"><option>עברית</option><option>English</option></select></div>
-        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">מצב כהה</div><div class="sc-row-sub">תצוגה בגוונים כהים</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
-        <div class="sc-row"><div class="sc-row-left"><div class="sc-row-label">קיצורי מקלדת</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      </div>
-    </div>
-
-    <!-- AI Suggestion Auto-Decision -->
-    <div class="settings-card">
-      <div class="sc-header"><div><div class="sc-title">הצעות AI - בחירה אוטומטית</div><div class="sc-sub">אם לא בחרת תוך הזמן שנקבע, המערכת תחליט בעצמה</div></div></div>
-      <div class="sc-body">
-        <div class="form-group">
-          <label>זמן עד החלטה אוטומטית (שניות, 0 = ביטול)</label>
-          <input class="form-input" type="number" min="0" max="120" step="1" id="user-ai-suggestion-timeout" placeholder="0" style="width:160px" />
-        </div>
-        <div class="form-group">
-          <label>פעולת ברירת מחדל כשהזמן נגמר</label>
-          <select class="form-select" id="user-ai-suggestion-default">
-            <option value="accept">קבל את הצעת ה-AI</option>
-            <option value="pending">השאר למיון בהמשך (אל תשנה)</option>
-          </select>
-        </div>
-        <button class="btn-sm accent" onclick="saveAiSuggestionSettings()">שמור</button>
-      </div>
-    </div>
-
-    <!-- Account Type Display (read-only) -->
-    <div class="settings-card" id="accountTypeCard">
-      <div class="sc-header"><div><div class="sc-title">סוג חשבון</div><div class="sc-sub">המצב הנוכחי של המערכת</div></div></div>
-      <div class="sc-body">
-        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--accent2);border-radius:var(--radius);border:2px solid var(--accent);">
-          <div style="font-size:40px;" id="accountTypeIcon">👤</div>
-          <div>
-            <div style="font-size:18px;font-weight:600;color:var(--accent);" id="accountTypeLabel">אישי / משפחה</div>
-            <div style="font-size:13px;color:var(--text2);margin-top:4px;">החשבון מותאם לניהול מסמכים אישיים ומשפחתיים</div>
-          </div>
-        </div>
-        <p style="font-size:12px;color:var(--text3);margin:12px 0 0 0;">
-          ℹ️ סוג החשבון נקבע בעת ההרשמה ואינו ניתן לשינוי. לפתיחת חשבון נוסף מסוג אחר, הירשם עם כתובת אימייל אחרת.
-        </p>
-      </div>
-    </div>
+    <!-- Hidden input retained so older code referencing #user-ai-suggestion-timeout still works -->
+    <input type="hidden" id="user-ai-suggestion-timeout" />
+    <input type="hidden" id="user-ai-suggestion-default" />
   </div>
 
   <!-- Reminder rules -->
@@ -1521,6 +1551,17 @@ body.locked .landing-view{display:block;}
 
   <!-- Privacy -->
   <div class="settings-page" id="st-privacy">
+    <!-- Change Password -->
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">החלפת סיסמה</div><div class="sc-sub">יש להזין את הסיסמה הנוכחית כדי להחליף</div></div></div>
+      <div class="sc-body">
+        <div class="form-group"><label>סיסמה נוכחית</label><input class="form-input" type="password" id="pw-current" autocomplete="current-password" /></div>
+        <div class="form-group"><label>סיסמה חדשה (מינימום 8 תווים)</label><input class="form-input" type="password" id="pw-new" autocomplete="new-password" /></div>
+        <div class="form-group"><label>אימות סיסמה חדשה</label><input class="form-input" type="password" id="pw-confirm" autocomplete="new-password" /></div>
+        <div id="pw-msg" style="font-size:12px;margin:6px 0;min-height:16px;"></div>
+        <button class="btn-sm accent" onclick="changePassword()">החלף סיסמה</button>
+      </div>
+    </div>
     <div class="settings-card">
       <div class="sc-header"><div><div class="sc-title">אבטחה</div></div></div>
       <div class="sc-body">
@@ -2041,6 +2082,7 @@ body.locked .landing-view{display:block;}
 <script src="js/api.js"></script>
 <script src="js/categories.js"></script>
 <script src="js/app.js"></script>
+<script src="js/user_panel.js"></script>
 <!-- Original inline script removed — moved to js/app.js. Kept here as reference comment -->
 <script type="text/plain" data-archived="true">
 // ─── DATA (archived) ───

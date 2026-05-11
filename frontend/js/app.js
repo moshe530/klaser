@@ -409,6 +409,8 @@ const CAT_TO_LIST = {
 function renderAll() {
   fillList('docList', docs);
   fillList('alertList', docs.filter(d => { const s = status(d.exp); return s?.urgent || s?.expiring; }));
+  // Refresh the bell notifications dot + panel (if open).
+  if (typeof renderBell === 'function') renderBell();
 
   // ── Utilities (חשבוניות): recurring bills
   const invCats = new Set([...allInvoiceCats(), 'תקשורת']);
@@ -1247,6 +1249,7 @@ async function loadReminders() {
       dot: REM_TYPE_DOT[r.type] || '#6B7280',
     }));
     renderReminders('all');
+    if (typeof renderBell === 'function') renderBell();
   } catch (e) {
     console.error('Failed to load reminders', e);
   }
@@ -1949,17 +1952,9 @@ async function confirmDeleteAccount() {
 }
 
 function updateAuthUI() {
-  const user = KlaserAuth.getUser();
-  const emailEl = document.getElementById('userEmail');
-  const logoutEl = document.getElementById('logoutBtn');
-  if (user) {
-    emailEl.textContent = user.email;
-    emailEl.style.display = '';
-    logoutEl.style.display = '';
-  } else {
-    emailEl.style.display = 'none';
-    logoutEl.style.display = 'none';
-  }
+  // Topbar now shows a bell + avatar badge instead of email + logout.
+  // The user_panel.js module owns their visibility and rendering.
+  if (typeof refreshTopbarForAuth === 'function') refreshTopbarForAuth();
 }
 
 async function startApp() {

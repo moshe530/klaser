@@ -62,6 +62,9 @@
       });
     },
 
+    // Account
+    getAccountUsage: () => request('/api/account/usage'),
+
     // Reminders
     listReminders: () => request('/reminders'),
     createReminder: (payload) => request('/reminders', { method: 'POST', body: JSON.stringify(payload) }),
