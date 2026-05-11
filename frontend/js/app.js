@@ -955,7 +955,13 @@ function showTab(tab, el, mobEl) {
   const target = document.getElementById('tab-' + tab);
   if (target) target.classList.add('active');
   // Re-load settings form values when entering Settings.
-  if (tab === 'settings') loadAiSuggestionSettingsForm();
+  if (tab === 'settings') {
+    loadAiSuggestionSettingsForm();
+    if (typeof renderSettingsColorPicker === 'function') renderSettingsColorPicker();
+    // Sync the settings dark-mode toggle with the persisted state.
+    const dt = document.getElementById('settings-dark-toggle');
+    if (dt) dt.classList.toggle('on', localStorage.getItem('klaser_dark_mode') === '1');
+  }
   document.querySelectorAll('.topnav-tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
   // Highlight matching topnav-tab even when called without `el` (e.g. from mobile sidebar)
@@ -982,7 +988,7 @@ function showTab(tab, el, mobEl) {
   // For docs tab, pick subnav based on account type (business uses a different nav)
   const isBusiness = (typeof getAccountType === 'function') && getAccountType() === 'business';
   const docsSubnavId = isBusiness ? 'docsSubnavBusiness' : 'docsSubnav';
-  const subnavMap = { docs: docsSubnavId, calendar: 'calSubnav', reminders: 'remSubnav', settings: 'settSubnav' };
+  const subnavMap = { docs: docsSubnavId, calendar: 'calSubnav', reminders: 'remSubnav' };
   const activeSubnav = document.getElementById(subnavMap[tab]);
   if (activeSubnav) {
     const host = activeSubnav.parentElement && activeSubnav.parentElement.classList.contains('subnav-wrap') ? activeSubnav.parentElement : activeSubnav;

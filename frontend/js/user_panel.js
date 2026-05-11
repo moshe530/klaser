@@ -142,11 +142,29 @@ function renderBell() {
   if (panel) renderBellPanel(panel);
 }
 
+// Compute the same stats shown on the documents page so we can mirror them
+// at the top of the bell panel.
+function _computeDocStats() {
+  let total = 0, soon = 0, expired = 0, valid = 0;
+  if (Array.isArray(window.docs)) {
+    total = docs.length;
+    docs.forEach(d => {
+      const s = (typeof status === 'function') ? status(d.exp) : null;
+      if (!s) { valid++; return; }
+      if (s.expired) expired++;
+      else if (s.urgent || s.expiring) soon++;
+      else valid++;
+    });
+  }
+  return { total, soon, expired, valid };
+}
+
 function renderBellPanel(panel) {
   const pending = getPendingAlerts();
   const alerts = _getActiveAlerts();
   const active = alerts.filter(a => !pending.has(a.id));
   const later = alerts.filter(a => pending.has(a.id));
+  const stats = _computeDocStats();
   const alertHtml = (a) => `
     <div class="alert-item severity-${a.severity} ${pending.has(a.id) ? 'is-pending' : ''}" data-id="${a.id}" data-doc-id="${a.docId || ''}">
       <div class="alert-title">${_escHtml(a.title)}</div>
@@ -161,6 +179,15 @@ function renderBellPanel(panel) {
   const sections = [];
   sections.push(`<div class="bell-panel-head"><h3>התראות</h3>
     <button class="alert-btn" onclick="closeBell()" style="flex:0;padding:4px 10px;">סגור</button></div>`);
+  // Stats summary (same numbers as the documents page).
+  sections.push(`
+    <div class="bell-stats">
+      <div class="bell-stat green"><div class="bs-v">${stats.valid}</div><div class="bs-l">בתוקף</div></div>
+      <div class="bell-stat red"><div class="bs-v">${stats.expired}</div><div class="bs-l">פג תוקף</div></div>
+      <div class="bell-stat orange"><div class="bs-v">${stats.soon}</div><div class="bs-l">פגים בקרוב</div></div>
+      <div class="bell-stat accent"><div class="bs-v">${stats.total}</div><div class="bs-l">סה"כ</div></div>
+    </div>
+  `);
   sections.push('<div class="bell-panel-sections">');
   if (active.length === 0 && later.length === 0) {
     sections.push(`<div class="bell-empty">אין התראות פעילות 🎉</div>`);
@@ -265,10 +292,6 @@ function renderUserPanel(panel) {
   const defaultAction = (typeof getUserSettings === 'function' && getUserSettings().aiSuggestionDefault === 'pending') ? 'pending' : 'accept';
   const darkOn = (localStorage.getItem('klaser_dark_mode') === '1');
 
-  const colorsHtml = AVATAR_COLORS.map(c => `
-    <span class="up-color ${c === color ? 'active' : ''}" style="background:${c}" data-color="${c}" title="${c}"></span>
-  `).join('');
-
   panel.innerHTML = `
     <div class="up-head">
       <div class="up-avatar-lg" id="upAvatarLg" style="background:${color}">${_avatarLetter()}</div>
@@ -286,56 +309,39 @@ function renderUserPanel(panel) {
       <div class="up-field"><label>שם מלא</label><input type="text" id="up-fullname" value="${_escHtml(fullName)}" /></div>
       <div class="up-field"><label>אימייל (לא ניתן לשינוי)</label><input type="email" value="${_escHtml(email)}" disabled /></div>
       <div class="up-field"><label>טלפון</label><input type="tel" id="up-phone" value="${_escHtml(phone)}" /></div>
-      <div class="up-field">
-        <label>צבע תגית</label>
-        <div class="up-colors" id="upColors">${colorsHtml}</div>
-      </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="up-btn primary" onclick="saveUserProfile()">שמור פרטים</button>
       </div>
     </div>
 
     <div class="up-section">
-      <div class="up-section-title">העדפות תצוגה</div>
-      <div class="up-row">
-        <div class="label">מצב כהה</div>
-        <div class="toggle ${darkOn ? 'on' : ''}" id="up-dark-toggle" onclick="toggleDarkMode(this)"></div>
-      </div>
-      <div class="up-field" style="margin-top:10px;">
-        <label>זמן בחירה אוטומטית להצעות AI (שניות, 0 = כבוי)</label>
-        <input type="number" min="0" max="120" id="up-ai-timeout" value="${timeout}" />
-      </div>
-      <div class="up-field">
-        <label>ברירת מחדל בסוף הספירה</label>
-        <select id="up-ai-default">
-          <option value="accept" ${defaultAction === 'accept' ? 'selected' : ''}>קבל הצעת AI</option>
-          <option value="pending" ${defaultAction === 'pending' ? 'selected' : ''}>השאר למיון בהמשך</option>
-        </select>
-      </div>
-      <button class="up-btn secondary" onclick="saveUserPreferences()">שמור העדפות</button>
-    </div>
-
-    <div class="up-section">
       <div class="up-section-title">חשבון</div>
       <div class="up-row"><div class="label">סוג חשבון</div><div class="value">${accountLabel}</div></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="up-btn secondary" onclick="showTab('settings',document.querySelectorAll('.topnav-tab')[4]);closeUserPanel();setTab('privacy',document.querySelector('#settingsTabs .st-tab:nth-child(4)'));">החלף סיסמה</button>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="up-btn secondary" onclick="openSettingsFromPanel()">⚙ הגדרות</button>
+        <button class="up-btn secondary" onclick="openSettingsFromPanel('privacy')">החלף סיסמה</button>
         <button class="up-btn danger" onclick="doLogout()">התנתק</button>
       </div>
     </div>
   `;
 
-  // Wire color swatches.
-  panel.querySelectorAll('#upColors .up-color').forEach(el => {
-    el.addEventListener('click', () => {
-      panel.querySelectorAll('#upColors .up-color').forEach(c => c.classList.remove('active'));
-      el.classList.add('active');
-      setAvatarColor(el.dataset.color);
-    });
-  });
-
   // Kick off async usage load.
   _loadAndRenderUsage();
+}
+
+// Open the settings tab from the user panel. Optionally select a sub-tab
+// (e.g. 'privacy' to land directly on the change-password card).
+function openSettingsFromPanel(subTab) {
+  closeUserPanel();
+  // The settings topnav-tab is the 5th button (index 4).
+  const settingsBtn = document.querySelectorAll('.topnav-tab')[4];
+  if (typeof showTab === 'function') showTab('settings', settingsBtn);
+  if (subTab) {
+    const subMap = { general: 1, remrules: 2, integrations: 3, privacy: 4 };
+    const idx = subMap[subTab] || 1;
+    const stBtn = document.querySelector(`#settingsTabs .st-tab:nth-child(${idx})`);
+    if (stBtn && typeof setTab === 'function') setTab(subTab, stBtn);
+  }
 }
 
 // Fetches plan + usage from the API and renders a progress bar + counters.
@@ -352,6 +358,9 @@ async function _loadAndRenderUsage() {
     const docsCls = docsPct >= 90 ? 'danger' : docsPct >= 70 ? 'warn' : '';
     host.innerHTML = `
       <div class="up-row"><div class="label">תוכנית נוכחית</div><div class="value">${_escHtml(data.plan.label)}</div></div>
+      <div style="text-align:center;margin:8px 0 4px;">
+        <button class="up-btn secondary" onclick="showUpgradePlan()" style="width:100%;">שינוי תוכנית</button>
+      </div>
       <div style="margin-top:12px;">
         <div class="up-row" style="padding:2px 0;"><div class="label">מסמכים</div><div class="value">${data.docs_count} / ${data.docs_limit}</div></div>
         <div class="progress-bar"><div class="progress-fill ${docsCls}" style="width:${docsPct.toFixed(1)}%"></div></div>
@@ -443,6 +452,32 @@ async function changePassword() {
   }
 }
 
+// ─── Plan upgrade placeholder ──────────────────────────────────────────────
+function showUpgradePlan() {
+  alert('תוכנית בתשלום — בהמשך\n\nבקרוב יתווספו תוכניות בתשלום עם יותר מסמכים, יותר אחסון, ותכונות מתקדמות.');
+}
+
+// ─── Settings color picker (renders into Settings → General) ───────────────
+function renderSettingsColorPicker() {
+  const host = document.getElementById('settingsColors');
+  const preview = document.getElementById('settingsAvatarPreview');
+  if (!host || !preview) return;
+  const current = getAvatarColor();
+  preview.style.background = current;
+  preview.textContent = _avatarLetter();
+  host.innerHTML = AVATAR_COLORS.map(c => `
+    <span class="up-color ${c === current ? 'active' : ''}" style="background:${c}" data-color="${c}" title="${c}"></span>
+  `).join('');
+  host.querySelectorAll('.up-color').forEach(el => {
+    el.addEventListener('click', () => {
+      host.querySelectorAll('.up-color').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      setAvatarColor(el.dataset.color);
+      preview.style.background = el.dataset.color;
+    });
+  });
+}
+
 // ─── Wiring on auth state change ───────────────────────────────────────────
 // Hook into whatever auth-ready signal exists; updateAuthUI() in app.js is
 // called after login and we augment its behaviour by showing/hiding the
@@ -475,5 +510,8 @@ window.toggleDarkMode = toggleDarkMode;
 window.refreshTopbarForAuth = refreshTopbarForAuth;
 window.applyDarkModeOnLoad = applyDarkModeOnLoad;
 window.renderBell = renderBell;
+window.showUpgradePlan = showUpgradePlan;
+window.openSettingsFromPanel = openSettingsFromPanel;
+window.renderSettingsColorPicker = renderSettingsColorPicker;
 
 document.addEventListener('DOMContentLoaded', applyDarkModeOnLoad);

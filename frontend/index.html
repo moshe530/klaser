@@ -900,6 +900,18 @@ body.locked .landing-view{display:block;}
 .up-color{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .12s;}
 .up-color:hover{transform:scale(1.1);}
 .up-color.active{border-color:var(--text);}
+.bell-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.bell-stat{padding:8px 4px;border-radius:8px;text-align:center;border:1px solid var(--border);background:var(--surface);}
+.bell-stat .bs-v{font-size:18px;font-weight:700;line-height:1.1;}
+.bell-stat .bs-l{font-size:10px;color:var(--text3);margin-top:2px;}
+.bell-stat.green .bs-v{color:#10B981;}
+.bell-stat.green{border-right:3px solid #10B981;}
+.bell-stat.red .bs-v{color:#EF4444;}
+.bell-stat.red{border-right:3px solid #EF4444;}
+.bell-stat.orange .bs-v{color:#F59E0B;}
+.bell-stat.orange{border-right:3px solid #F59E0B;}
+.bell-stat.accent .bs-v{color:var(--accent);}
+.bell-stat.accent{border-right:3px solid var(--accent);}
 .progress-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:4px;}
 .progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;}
 .progress-fill.warn{background:#F59E0B;}
@@ -1002,12 +1014,8 @@ body.locked .landing-view{display:block;}
     <button class="subnav-tab" onclick="filterRem('appt',null);setSubnavActive(this)">תורים</button>
     <button class="subnav-tab" onclick="filterRem('periodic',null);setSubnavActive(this)">תקופתי</button>
   </div>
-  <div class="topnav-subnav" id="settSubnav" style="display:none">
-    <button class="subnav-tab active" onclick="setTab('general',null);setSubnavActive(this)">כללי</button>
-    <button class="subnav-tab" onclick="setTab('remrules',null);setSubnavActive(this)">תזכורות</button>
-    <button class="subnav-tab" onclick="setTab('integrations',null);setSubnavActive(this)">חיבורים</button>
-    <button class="subnav-tab" onclick="setTab('privacy',null);setSubnavActive(this)">פרטיות</button>
-  </div>
+  <!-- Settings sub-nav removed — st-tabs inside the settings page replace it -->
+
 </header>
 
 <!-- MOBILE SIDEBAR -->
@@ -1474,11 +1482,57 @@ body.locked .landing-view{display:block;}
   <!-- General -->
   <div class="settings-page active" id="st-general">
     <div class="alert-bar info" style="margin-bottom:12px">
-      ℹ️ פרטי משתמש, שפה, מצב כהה, ובחירה אוטומטית של AI עברו ל<strong>פאנל החשבון</strong> (לחיצה על התגית בצד ימין למעלה).
+      ℹ️ פרטי המשתמש האישיים נמצאים ב<strong>פאנל החשבון</strong> (לחיצה על התגית בצד ימין למעלה).
     </div>
-    <!-- Hidden input retained so older code referencing #user-ai-suggestion-timeout still works -->
-    <input type="hidden" id="user-ai-suggestion-timeout" />
-    <input type="hidden" id="user-ai-suggestion-default" />
+
+    <!-- Display preferences -->
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">העדפות תצוגה</div><div class="sc-sub">איך התוכנה נראית והתנהגות התראות AI</div></div></div>
+      <div class="sc-body">
+        <div class="sc-row">
+          <div class="sc-row-left"><div class="sc-row-label">מצב כהה</div><div class="sc-row-sub">תצוגה בגוונים כהים</div></div>
+          <div class="toggle" id="settings-dark-toggle" onclick="toggleDarkMode(this)"></div>
+        </div>
+        <div class="form-group" style="margin-top:14px;">
+          <label>זמן בחירה אוטומטית להצעות AI (שניות, 0 = כבוי)</label>
+          <input class="form-input" type="number" min="0" max="120" id="user-ai-suggestion-timeout" placeholder="0" style="width:160px" />
+        </div>
+        <div class="form-group">
+          <label>ברירת מחדל בסוף הספירה</label>
+          <select class="form-select" id="user-ai-suggestion-default">
+            <option value="accept">קבל את הצעת ה-AI</option>
+            <option value="pending">השאר למיון בהמשך</option>
+          </select>
+        </div>
+        <button class="btn-sm accent" onclick="saveAiSuggestionSettings()">שמור</button>
+      </div>
+    </div>
+
+    <!-- Avatar color -->
+    <div class="settings-card">
+      <div class="sc-header"><div><div class="sc-title">צבע תגית המשתמש</div><div class="sc-sub">הצבע יופיע מאחורי האות הראשונה של השם בכל מקום</div></div></div>
+      <div class="sc-body">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div class="avatar-circle" id="settingsAvatarPreview" style="width:48px;height:48px;font-size:20px;border-color:rgba(0,0,0,0.08);">?</div>
+          <div class="up-colors" id="settingsColors" style="flex:1;min-width:200px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Type Display (read-only) -->
+    <div class="settings-card" id="accountTypeCard">
+      <div class="sc-header"><div><div class="sc-title">סוג חשבון</div><div class="sc-sub">המצב הנוכחי של המערכת</div></div></div>
+      <div class="sc-body">
+        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--accent2);border-radius:var(--radius);border:2px solid var(--accent);">
+          <div style="font-size:40px;" id="accountTypeIcon">👤</div>
+          <div>
+            <div style="font-size:18px;font-weight:600;color:var(--accent);" id="accountTypeLabel">אישי / משפחה</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:4px;">החשבון מותאם לניהול מסמכים אישיים ומשפחתיים</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin:12px 0 0 0;">ℹ️ סוג החשבון נקבע בעת ההרשמה ואינו ניתן לשינוי.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Reminder rules -->
