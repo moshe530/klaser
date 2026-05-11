@@ -438,19 +438,19 @@ function renderAll() {
   //   default/built-in category with a docpage, any custom tab, and any
   //   user-registered category). This prevents docs from appearing in both
   //   their proper tab AND the "other" catch-all.
+  // A category is "handled" only if it has a *visible navigation surface*:
+  //   - Aggregated default tabs: חשבוניות (invCats), עבודה (WORK_CATS), אישי
+  //   - Custom tabs added by the user
+  // CAT_TO_LIST entries are NOT included here: defaults like חינוך/רכב/ביטוח
+  // have list elements in the DOM but no default subnav-tab pointing to them.
+  // Without a tab, they're unreachable — so we let those docs fall into
+  // "אחר" until the user explicitly adds a custom tab with that name.
   const handledCats = new Set([
     ...invCats,
     ...WORK_CATS,
     'מסמכים אישיים',
-    ...Object.keys(CAT_TO_LIST),
     ...customTabNames,
   ]);
-  // NOTE: We intentionally do NOT add every name from `getCategoryNames()`
-  // here. A category is only "handled elsewhere" if it actually has a
-  // rendering surface (a default tab, custom tab, or CAT_TO_LIST entry).
-  // Otherwise the doc is invisible — see bug where docs assigned to
-  // 'חינוך' (a default category with no tab) disappeared from the UI.
-  // Such docs fall through to the "אחר" list so they remain visible.
   fillList('otherList', docs.filter(d => !handledCats.has(d.cat)));
 
   // ── Additional built-in tabs (if user adds them): route by CAT_TO_LIST
