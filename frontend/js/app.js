@@ -134,11 +134,25 @@ function makeCard(d) {
 
   const aiMetaHtml = aiMeta.length ? `<div class="ai-meta">${aiMeta.join('')}</div>` : '';
 
-  return `<div class="doc-card ${cls}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
+  // Per-card AI status (optimistic UI)
+  let aiStatusHtml = '';
+  let stateClass = '';
+  if (d._aiStatus === 'processing') {
+    aiStatusHtml = `<div class="doc-ai-status processing"><span class="spinner dark"></span>מנותח...</div>`;
+    stateClass = 'is-processing';
+  } else if (d._aiStatus === 'done') {
+    aiStatusHtml = `<div class="doc-ai-status done">✓ נותח בהצלחה</div>`;
+  } else if (d._aiStatus === 'failed') {
+    aiStatusHtml = `<div class="doc-ai-status failed">⚠️ הניתוח נכשל <button class="doc-ai-retry" data-act="retry">נסה שוב</button></div>`;
+    stateClass = 'is-failed';
+  }
+
+  return `<div class="doc-card ${cls} ${stateClass}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
     <div class="doc-icon" style="background:${ic.bg}"></div>
     <div class="doc-info">
       <div class="doc-name">${d.name}</div>
       <div class="doc-meta">${d.cat}${amountDisplay ? ' · ' + amountDisplay : ''}</div>
+      ${aiStatusHtml}
       ${aiMetaHtml}
     </div>
     <div class="doc-right">${tag}${dt}</div>
@@ -1291,7 +1305,10 @@ async function addDoc() {
       }
     }
 
-    docs.unshift(fromApi(created));
+    const newDocUi = fromApi(created);
+    // Mark as "being analyzed" so the card shows a spinner immediately.
+    if (pendingFile) newDocUi._aiStatus = 'processing';
+    docs.unshift(newDocUi);
     renderAll();
     // Record any preselect so runAnalyze() can protect the user's choice.
     if (currentAddPreselect) {
@@ -1390,9 +1407,21 @@ async function runAnalyze(docId) {
 
     // החלף את המסמך ברשימה ב-data החדש
     const idx = docs.findIndex(d => d.id === docId);
-    if (idx >= 0) docs[idx] = fromApi(finalDoc);
+    if (idx >= 0) {
+      const ui = fromApi(finalDoc);
+      ui._aiStatus = 'done'; // ✓ flash that fades away via CSS animation
+      docs[idx] = ui;
+    }
     renderAll();
     setStatusBadge(`נותח · ${docs.length} מסמכים`, 'ok');
+    // Clear the 'done' badge after the CSS fade so future re-renders don't show it.
+    setTimeout(() => {
+      const i = docs.findIndex(d => d.id === docId);
+      if (i >= 0 && docs[i]._aiStatus === 'done') {
+        docs[i]._aiStatus = null;
+        renderAll();
+      }
+    }, 2200);
 
     // If AI proposed a different category than the user's preselect, offer
     // a non-blocking banner that lets them switch with one click.
@@ -1411,9 +1440,25 @@ async function runAnalyze(docId) {
     setTimeout(() => setStatusBadge(`מחובר · ${docs.length} מסמכים`, 'ok'), 3000);
   } catch (e) {
     console.error(e);
+    // Mark the doc as 'failed' so the user sees ⚠️ + a retry button on its card.
+    // We never remove the doc from the list — its file is already uploaded.
+    const idx = docs.findIndex(d => d.id === docId);
+    if (idx >= 0) {
+      docs[idx]._aiStatus = 'failed';
+      renderAll();
+    }
     setStatusBadge('ניתוח AI נכשל', 'err');
     setTimeout(() => setStatusBadge(`מחובר · ${docs.length} מסמכים`, 'ok'), 4000);
   }
+}
+
+// Retry button on a failed doc card: restart analysis without re-uploading.
+function retryAnalyze(docId) {
+  const idx = docs.findIndex(d => String(d.id) === String(docId));
+  if (idx < 0) return;
+  docs[idx]._aiStatus = 'processing';
+  renderAll();
+  runAnalyze(docs[idx].id);
 }
 
 async function selectAmount(docId, selectedAmount) {
@@ -1494,11 +1539,17 @@ async function saveEdit() {
 
 // Click on a doc card: action button (edit/del) → handle; otherwise opens file
 document.addEventListener('click', (e) => {
+  const retryBtn = e.target.closest('.doc-ai-retry');
   const actBtn = e.target.closest('.doc-actions .ico-btn');
   const card = e.target.closest('.doc-card');
   if (!card) return;
   const id = card.dataset.id;
   if (!id) return;
+  if (retryBtn) {
+    e.stopPropagation();
+    retryAnalyze(id);
+    return;
+  }
   if (actBtn) {
     e.stopPropagation();
     const act = actBtn.dataset.act;

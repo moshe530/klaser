@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from . import ai_classifier, ai_extractor, groq_vision
@@ -99,10 +100,28 @@ def run_pipeline(
         result["needs_review"] = True
         return result
 
-    # 2. Classifier — single fast call.
-    t_cls = time.perf_counter()
-    classification = ai_classifier.classify(image_urls)
-    cls_ms = int((time.perf_counter() - t_cls) * 1000)
+    # 2-3. PARALLEL: run Classifier + Extractor at the same time.
+    # The Extractor starts with doc_type=None (no hint) so we don't have to
+    # wait for the Classifier. The Classifier still runs to produce
+    # confidence / needs_review / ocr_quality / language / structure metadata
+    # used by the Confidence Guard below.
+    t_par = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        cls_future = pool.submit(ai_classifier.classify, image_urls)
+        ext_future = pool.submit(
+            ai_extractor.extract,
+            image_urls,
+            None,  # doc_type_detected=None — Extractor uses its full prompt
+            categories,
+            people,
+            account_type,
+            subcategories_map,
+        )
+        classification = cls_future.result()
+        extraction = ext_future.result()
+    par_ms = int((time.perf_counter() - t_par) * 1000)
+
+    # Merge classification metadata first (doc_type, confidence, quality...)
     for k in (
         "doc_type_detected", "confidence", "confidence_reason",
         "needs_review", "ocr_quality", "language", "structure",
@@ -110,31 +129,25 @@ def run_pipeline(
         if classification.get(k) is not None:
             result[k] = classification[k]
 
-    # 3. Confidence guard — if Classifier is unsure, fall back to a generic
-    #    extraction pass and force needs_review=True.
-    extractor_doc_type: str | None = result["doc_type_detected"]
+    # Confidence guard — force needs_review when Classifier is unsure.
+    # (We can't re-route the Extractor anymore since it already ran in
+    # parallel, but the needs_review flag still surfaces low-confidence
+    # documents to the user for manual check.)
     if result["confidence"] == LOW_CONFIDENCE:
         logger.warning(
             "pipeline.low_confidence hash=%s reason=%r doc_type=%r",
-            result["file_hash"], result["confidence_reason"], extractor_doc_type,
+            result["file_hash"], result["confidence_reason"],
+            result["doc_type_detected"],
         )
-        extractor_doc_type = None  # tell Extractor to use generic rules
         result["needs_review"] = True
 
-    # 4. Extractor — heavy call.
-    t_ext = time.perf_counter()
-    extraction = ai_extractor.extract(
-        image_urls,
-        extractor_doc_type,
-        categories=categories,
-        people=people,
-        account_type=account_type,
-        subcategories_map=subcategories_map,
-    )
-    ext_ms = int((time.perf_counter() - t_ext) * 1000)
+    # Merge extraction fields.
     for k, v in extraction.items():
         if v is not None and v != []:
             result[k] = v
+    # Keep legacy variable names so the closing log line below still works.
+    cls_ms = par_ms
+    ext_ms = par_ms
 
     total_ms = int((time.perf_counter() - pipeline_t0) * 1000)
     logger.info(
