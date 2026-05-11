@@ -2,6 +2,75 @@
 let docs = [];
 let reminders = [];
 
+// ─── USER SETTINGS (persisted in localStorage) ───
+const USER_SETTINGS_KEY = 'klaser_user_settings';
+function getUserSettings() {
+  try { return JSON.parse(localStorage.getItem(USER_SETTINGS_KEY) || '{}'); }
+  catch { return {}; }
+}
+function setUserSetting(key, value) {
+  const s = getUserSettings();
+  s[key] = value;
+  localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(s));
+}
+// Returns 0 if disabled, otherwise seconds (>=3)
+function getAiSuggestionTimeout() {
+  const v = Number(getUserSettings().aiSuggestionTimeout);
+  return Number.isFinite(v) && v >= 3 ? v : 0;
+}
+// 'accept' = auto-apply AI's suggestion, 'pending' = dismiss (leave for manual sort)
+function getAiSuggestionDefault() {
+  return getUserSettings().aiSuggestionDefault === 'pending' ? 'pending' : 'accept';
+}
+
+// Settings tab — read current values into the form fields.
+function loadAiSuggestionSettingsForm() {
+  const t = document.getElementById('user-ai-suggestion-timeout');
+  const d = document.getElementById('user-ai-suggestion-default');
+  if (!t || !d) return;
+  const s = getUserSettings();
+  t.value = Number.isFinite(Number(s.aiSuggestionTimeout)) ? Number(s.aiSuggestionTimeout) : 0;
+  d.value = s.aiSuggestionDefault === 'pending' ? 'pending' : 'accept';
+}
+
+// Settings tab — persist the form values.
+function saveAiSuggestionSettings() {
+  const t = document.getElementById('user-ai-suggestion-timeout');
+  const d = document.getElementById('user-ai-suggestion-default');
+  if (!t || !d) return;
+  const sec = Math.max(0, Math.min(120, Math.round(Number(t.value) || 0)));
+  setUserSetting('aiSuggestionTimeout', sec);
+  setUserSetting('aiSuggestionDefault', d.value === 'pending' ? 'pending' : 'accept');
+  if (typeof showToast === 'function') showToast('ההגדרות נשמרו');
+  else alert('ההגדרות נשמרו');
+}
+
+// Attach a countdown timer + opacity fade to a banner. Calls onExpire when done.
+// Returns a cancel() function the banner buttons should call.
+function attachBannerCountdown(banner, seconds, onExpire) {
+  if (!banner || seconds <= 0) return () => {};
+  const counter = document.createElement('div');
+  counter.className = 'banner-countdown';
+  counter.style.cssText = 'font-size:11px;color:var(--text3);margin-top:6px;text-align:center;';
+  banner.appendChild(counter);
+  banner.style.transition = `opacity ${seconds}s linear`;
+  // Force a reflow so the transition starts.
+  void banner.offsetWidth;
+  banner.style.opacity = '0.35';
+  let remaining = seconds;
+  counter.textContent = `⏱ ${remaining}s — בחירה אוטומטית בעוד`;
+  const interval = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) { counter.textContent = '⏱ מבצע...'; return; }
+    counter.textContent = `⏱ ${remaining}s — בחירה אוטומטית בעוד`;
+  }, 1000);
+  const timer = setTimeout(() => {
+    clearInterval(interval);
+    try { onExpire(); } catch (e) { console.error('banner timeout handler:', e); }
+  }, seconds * 1000);
+  return () => { clearInterval(interval); clearTimeout(timer); banner.style.opacity = '1'; banner.style.transition = ''; };
+}
+
 const REM_TYPE_DOT = {
   birthday: '#EC4899', anniv: '#7C3AED', appt: '#0D9488',
   periodic: '#1A56DB', warranty: '#D97706', other: '#6B7280',
@@ -147,21 +216,70 @@ function makeCard(d) {
     stateClass = 'is-failed';
   }
 
+  // Build the per-column cells matching the table header:
+  // [שם המסמך] [קטגוריה] [הוסף] [תוקף] [סטטוס] [פעולות]
+  const subTxt = d.sub ? `<span class="sub">${d.sub}</span>` : '';
+  const buyTxt = d.buy ? `<div class="doc-date">${d.buy}</div>` : '<div class="doc-date" style="color:var(--text3)">—</div>';
+  const expTxt = tag || (d.exp ? `<div class="doc-date">${d.exp}</div>` : '<div class="doc-date" style="color:var(--text3)">—</div>');
+
+  // Status column: AI status badge + needs_review + confidence + AI metas
+  const statusBits = [];
+  if (aiStatusHtml) statusBits.push(aiStatusHtml);
+  if (d.needs_review) statusBits.push(`<span class="ai-badge ai-review">צריך בדיקה</span>`);
+  if (d.confidence != null) {
+    const confColor = d.confidence >= 80 ? '#10B981' : d.confidence >= 60 ? '#F59E0B' : '#EF4444';
+    statusBits.push(`<span class="ai-badge ai-confidence" style="color:${confColor}">${d.confidence}%</span>`);
+  }
+
   return `<div class="doc-card ${cls} ${stateClass}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
-    <div class="doc-icon" style="background:${ic.bg}"></div>
-    <div class="doc-info">
-      <div class="doc-name">${d.name}</div>
-      <div class="doc-meta">${d.cat}${amountDisplay ? ' · ' + amountDisplay : ''}</div>
-      ${aiStatusHtml}
-      ${aiMetaHtml}
+    <div class="doc-name-cell">
+      <div class="doc-icon" style="background:${ic.bg}"></div>
+      <div class="doc-info">
+        <div class="doc-name">${d.name}</div>
+        ${amountDisplay ? `<div class="doc-meta">${amountDisplay}</div>` : ''}
+        ${aiMetaHtml}
+      </div>
     </div>
-    <div class="doc-right">${tag}${dt}</div>
+    <div><button class="doc-cat-cell" data-act="goto-cat" type="button">${d.cat}${subTxt}</button></div>
+    <div>${buyTxt}</div>
+    <div>${expTxt}</div>
+    <div class="doc-status-cell">${statusBits.join('')}</div>
     <div class="doc-actions">
       <button class="ico-btn" data-act="view" title="הצג"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1.5 8s2-4 6.5-4 6.5 4 6.5 4-2 4-6.5 4S1.5 8 1.5 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg></button>
       <button class="ico-btn" data-act="edit" title="עריכה"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>
       <button class="ico-btn danger" data-act="del" title="מחיקה"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 4h8M5.5 4V3h3v1M6 6.5v4M8 6.5v4M4 4l.5 6.5h5l.5-6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
   </div>`;
+}
+
+// Navigate to a category from a doc card. Switches to the Documents tab,
+// shows the "all" sub-page, and applies a chip filter for the category.
+function navigateToCategory(cat) {
+  if (!cat) return;
+  // Switch to docs tab (topnav-tab[0] is "מסמכים" by convention)
+  const docsBtn = document.querySelector('.topnav-tab');
+  if (typeof showTab === 'function') showTab('docs', docsBtn);
+  // Show the "all" docpage and filter its cards by the category.
+  if (typeof sbNav === 'function') sbNav('all', null, 'docs');
+  // Activate matching chip in #docFilters if present, otherwise apply manual filter.
+  const filters = document.getElementById('docFilters');
+  if (filters) {
+    const chips = filters.querySelectorAll('.chip');
+    chips.forEach(c => c.classList.remove('active'));
+    const match = Array.from(chips).find(c => c.textContent.trim() === cat.trim());
+    if (match) match.classList.add('active');
+    else if (chips[0]) chips[0].classList.add('active');
+  }
+  const list = document.getElementById('docList');
+  if (list) {
+    list.querySelectorAll('.doc-card').forEach(c => {
+      const ok = (c.dataset.cat === cat) || (c.dataset.sub === cat);
+      c.style.display = ok ? '' : 'none';
+    });
+  }
+  // Scroll the first matching card into view for a clear "you landed here" cue.
+  const firstCard = list && list.querySelector('.doc-card:not([style*="display: none"])');
+  if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function fillList(id, arr) {
@@ -588,20 +706,51 @@ function _showAICategorySuggestion(docId, userChoice, aiChoice) {
       ה-AI מציע: <strong>${aiChoice.cat}${aiSubTxt}</strong>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button type="button" class="btn-primary" style="padding:6px 14px;font-size:13px;"
-        onclick="acceptAICategorySuggestion('${String(docId)}','${String(aiChoice.cat).replace(/'/g, "\\'")}','${String(aiChoice.sub || '').replace(/'/g, "\\'")}')">העבר לקטגוריה של ה-AI</button>
-      <button type="button" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;"
-        onclick="document.getElementById('aiCatSuggestBanner')?.remove()">השאר כמו שהגדרתי</button>
+      <button type="button" class="btn-primary" data-act="accept" style="padding:6px 14px;font-size:13px;">העבר לקטגוריה של ה-AI</button>
+      <button type="button" data-act="dismiss" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">השאר כמו שהגדרתי</button>
     </div>
   `;
   document.body.appendChild(el);
-  setTimeout(() => { const b = document.getElementById('aiCatSuggestBanner'); if (b && b.dataset.docId === String(docId)) b.remove(); }, 30000);
+
+  // Wire buttons (replaces inline onclick so countdown can cancel cleanly).
+  const safeCat = String(aiChoice.cat);
+  const safeSub = String(aiChoice.sub || '');
+  let cancelCountdown = () => {};
+  el.querySelector('[data-act="accept"]').onclick = () => { cancelCountdown(); acceptAICategorySuggestion(String(docId), safeCat, safeSub); };
+  el.querySelector('[data-act="dismiss"]').onclick = () => { cancelCountdown(); el.remove(); };
+
+  // Optional countdown — auto-decision per user setting.
+  const timeout = getAiSuggestionTimeout();
+  if (timeout > 0) {
+    cancelCountdown = attachBannerCountdown(el, timeout, () => {
+      const decision = getAiSuggestionDefault();
+      if (decision === 'accept') {
+        acceptAICategorySuggestion(String(docId), safeCat, safeSub);
+      } else {
+        // 'pending' → leave doc as-is (user's preselect), dismiss banner.
+        el.remove();
+      }
+    });
+    // Hover pauses the countdown so the user can read.
+    el.addEventListener('mouseenter', () => { cancelCountdown(); cancelCountdown = () => {}; });
+  } else {
+    setTimeout(() => { const b = document.getElementById('aiCatSuggestBanner'); if (b && b.dataset.docId === String(docId)) b.remove(); }, 30000);
+  }
 }
 
 async function acceptAICategorySuggestion(docId, aiCat, aiSub) {
   const banner = document.getElementById('aiCatSuggestBanner');
   if (banner) banner.remove();
   try {
+    // 1. If the AI's category is new, add it to the user's category list.
+    if (aiCat && typeof addCategory === 'function') {
+      addCategory(aiCat, { source: 'ai' });
+    }
+    // 2. If the AI's sub-category is new under that cat, add it too.
+    if (aiCat && aiSub && typeof addSubcategory === 'function') {
+      addSubcategory(aiCat, aiSub, { source: 'ai' });
+    }
+    // 3. Move the document to the AI's category on the backend.
     const updated = await KlaserAPI.updateDocument(docId, {
       category: aiCat || null,
       sub_category: aiSub || null,
@@ -803,6 +952,8 @@ function showTab(tab, el, mobEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById('tab-' + tab);
   if (target) target.classList.add('active');
+  // Re-load settings form values when entering Settings.
+  if (tab === 'settings') loadAiSuggestionSettingsForm();
   document.querySelectorAll('.topnav-tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
   // Highlight matching topnav-tab even when called without `el` (e.g. from mobile sidebar)
@@ -1540,6 +1691,7 @@ async function saveEdit() {
 // Click on a doc card: action button (edit/del) → handle; otherwise opens file
 document.addEventListener('click', (e) => {
   const retryBtn = e.target.closest('.doc-ai-retry');
+  const catBtn = e.target.closest('.doc-cat-cell');
   const actBtn = e.target.closest('.doc-actions .ico-btn');
   const card = e.target.closest('.doc-card');
   if (!card) return;
@@ -1548,6 +1700,11 @@ document.addEventListener('click', (e) => {
   if (retryBtn) {
     e.stopPropagation();
     retryAnalyze(id);
+    return;
+  }
+  if (catBtn) {
+    e.stopPropagation();
+    navigateToCategory(card.dataset.cat);
     return;
   }
   if (actBtn) {

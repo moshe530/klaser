@@ -370,15 +370,59 @@ function syncAICategory(aiResult) {
   if (!cat) return;
   const cats = getCategories();
   if (!cats[cat]) {
-    if (confirm(`🤖 ה-AI זיהה קטגוריה חדשה: "${cat}"\n\nלהוסיף לרשימה?`)) {
-      addCategory(cat, { source: 'ai' });
-      if (sub) addSubcategory(cat, sub, { source: 'ai' });
-    }
+    showAddCategoryPrompt(cat, sub);
     return;
   }
   if (sub && !cats[cat].subcategories.some(s => s.name === sub)) {
     showAddSubcategoryPrompt(cat, sub);
   }
+}
+
+// Shared helper that wraps attachBannerCountdown when available (defined in app.js).
+function _bannerCountdown(banner, onExpire) {
+  if (typeof getAiSuggestionTimeout !== 'function' || typeof attachBannerCountdown !== 'function') return () => {};
+  const sec = getAiSuggestionTimeout();
+  if (sec <= 0) return () => {};
+  const cancel = attachBannerCountdown(banner, sec, onExpire);
+  banner.addEventListener('mouseenter', () => cancel());
+  return cancel;
+}
+
+function showAddCategoryPrompt(cat, sub) {
+  removeAISuggestionBanner();
+  const banner = document.createElement('div');
+  banner.id = 'ai-suggestion-banner';
+  banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:2px solid var(--accent,#3B82F6);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.18);padding:16px 20px;z-index:9999;max-width:420px;direction:rtl;';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="font-size:24px;">🤖</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;margin-bottom:4px;">ה-AI זיהה קטגוריה חדשה</div>
+        <div style="font-size:13px;color:var(--text2,#666);margin-bottom:10px;">
+          <strong>"${_esc(cat)}"</strong>${sub ? ` → ${_esc(sub)}` : ''}<br/>להוסיף לרשימת הקטגוריות?
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button data-act="accept" class="btn-primary" style="padding:6px 14px;font-size:13px;">הוסף לרשימה</button>
+          <button data-act="dismiss" style="padding:6px 10px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">לא תודה</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(banner);
+
+  const acceptFn = () => {
+    addCategory(cat, { source: 'ai' });
+    if (sub) addSubcategory(cat, sub, { source: 'ai' });
+    removeAISuggestionBanner();
+    if (typeof showToast === 'function') showToast(`נוספה קטגוריה: ${cat}`);
+  };
+  banner.querySelector('[data-act="accept"]').onclick = acceptFn;
+  banner.querySelector('[data-act="dismiss"]').onclick = removeAISuggestionBanner;
+
+  _bannerCountdown(banner, () => {
+    const decision = (typeof getAiSuggestionDefault === 'function') ? getAiSuggestionDefault() : 'accept';
+    if (decision === 'accept') acceptFn();
+    else removeAISuggestionBanner();
+  }) || setTimeout(removeAISuggestionBanner, 30000);
 }
 
 function showAddSubcategoryPrompt(cat, sub) {
@@ -395,14 +439,23 @@ function showAddSubcategoryPrompt(cat, sub) {
           ${_esc(cat)} → <strong>"${_esc(sub)}"</strong>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button onclick="acceptAISubcategory('${_attr(cat)}','${_attr(sub)}')" class="btn-primary" style="padding:6px 14px;font-size:13px;">הוסף</button>
-          <button onclick="renameAISubcategory('${_attr(cat)}','${_attr(sub)}')" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">שנה שם</button>
-          <button onclick="removeAISuggestionBanner()" style="padding:6px 10px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">✕</button>
+          <button data-act="accept" class="btn-primary" style="padding:6px 14px;font-size:13px;">הוסף</button>
+          <button data-act="rename" style="padding:6px 14px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">שנה שם</button>
+          <button data-act="dismiss" style="padding:6px 10px;font-size:13px;border:1px solid var(--border,#ccc);background:#fff;border-radius:8px;cursor:pointer;">✕</button>
         </div>
       </div>
     </div>`;
   document.body.appendChild(banner);
-  setTimeout(removeAISuggestionBanner, 30000);
+
+  banner.querySelector('[data-act="accept"]').onclick = () => acceptAISubcategory(cat, sub);
+  banner.querySelector('[data-act="rename"]').onclick = () => renameAISubcategory(cat, sub);
+  banner.querySelector('[data-act="dismiss"]').onclick = removeAISuggestionBanner;
+
+  _bannerCountdown(banner, () => {
+    const decision = (typeof getAiSuggestionDefault === 'function') ? getAiSuggestionDefault() : 'accept';
+    if (decision === 'accept') acceptAISubcategory(cat, sub);
+    else removeAISuggestionBanner();
+  }) || setTimeout(removeAISuggestionBanner, 30000);
 }
 
 function acceptAISubcategory(cat, sub) {
