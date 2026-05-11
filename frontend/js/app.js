@@ -445,12 +445,12 @@ function renderAll() {
     ...Object.keys(CAT_TO_LIST),
     ...customTabNames,
   ]);
-  // Include all user-registered categories (categories.js). Built-in names
-  // like 'אחר' are intentionally treated as "not handled elsewhere" so the
-  // "אחר" tab still collects explicitly-other docs.
-  if (typeof getCategoryNames === 'function') {
-    getCategoryNames().forEach(n => { if (n && n !== 'אחר') handledCats.add(n); });
-  }
+  // NOTE: We intentionally do NOT add every name from `getCategoryNames()`
+  // here. A category is only "handled elsewhere" if it actually has a
+  // rendering surface (a default tab, custom tab, or CAT_TO_LIST entry).
+  // Otherwise the doc is invisible — see bug where docs assigned to
+  // 'חינוך' (a default category with no tab) disappeared from the UI.
+  // Such docs fall through to the "אחר" list so they remain visible.
   fillList('otherList', docs.filter(d => !handledCats.has(d.cat)));
 
   // ── Additional built-in tabs (if user adds them): route by CAT_TO_LIST
@@ -744,13 +744,23 @@ async function acceptAICategorySuggestion(docId, aiCat, aiSub) {
   const banner = document.getElementById('aiCatSuggestBanner');
   if (banner) banner.remove();
   try {
-    // 1. If the AI's category is new, add it to the user's category list.
-    if (aiCat && typeof addCategory === 'function') {
-      addCategory(aiCat, { source: 'ai' });
-    }
-    // 2. If the AI's sub-category is new under that cat, add it too.
-    if (aiCat && aiSub && typeof addSubcategory === 'function') {
-      addSubcategory(aiCat, aiSub, { source: 'ai' });
+    // 1. Ensure the AI's category has a real visible tab. If no tab yet,
+    //    create one (which also registers the category + sub).
+    if (aiCat) {
+      const existingTabs = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)'))
+        .map(t => t.textContent.trim());
+      if (!existingTabs.includes(aiCat) && typeof addNewTabWithData === 'function') {
+        try { addNewTabWithData(aiCat, aiSub ? [aiSub] : [], false); }
+        catch (e) {
+          console.warn('addNewTabWithData failed in acceptAICategorySuggestion', e);
+          if (typeof addCategory === 'function') addCategory(aiCat, { source: 'ai' });
+          if (aiSub && typeof addSubcategory === 'function') addSubcategory(aiCat, aiSub, { source: 'ai' });
+        }
+      } else {
+        // Tab already exists — just make sure category + subcategory are registered.
+        if (typeof addCategory === 'function') addCategory(aiCat, { source: 'ai' });
+        if (aiSub && typeof addSubcategory === 'function') addSubcategory(aiCat, aiSub, { source: 'ai' });
+      }
     }
     // 3. Move the document to the AI's category on the backend.
     const updated = await KlaserAPI.updateDocument(docId, {
@@ -2142,6 +2152,10 @@ function addNewTabWithData(name, subBranches = [], hasPeople = false) {
   // Refresh arrows and reindex draggables
   if (typeof updateSubnavArrows === 'function') updateSubnavArrows();
   reindexDraggables();
+
+  // Re-render: docs whose category matches this new tab name should now
+  // move out of "אחר" into the new tab.
+  if (typeof renderAll === 'function') renderAll();
 
   // Switch to the new tab
   newBtn.click();

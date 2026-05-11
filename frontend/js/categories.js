@@ -410,9 +410,32 @@ function showAddCategoryPrompt(cat, sub) {
   document.body.appendChild(banner);
 
   const acceptFn = () => {
-    addCategory(cat, { source: 'ai' });
-    if (sub) addSubcategory(cat, sub, { source: 'ai' });
+    // Create a real visible tab so the doc actually appears under it
+    // (not just registered as a category and dumped into "אחר").
+    // addNewTabWithData also calls addCategory/addSubcategory internally.
+    if (typeof addNewTabWithData === 'function') {
+      try {
+        // Suppress the "tab already exists" alert by checking first.
+        const existing = Array.from(document.querySelectorAll('#docsSubnav .subnav-tab:not(.add-branch-tab)'))
+          .map(t => t.textContent.trim());
+        if (!existing.includes(cat)) {
+          addNewTabWithData(cat, sub ? [sub] : [], false);
+        } else {
+          addCategory(cat, { source: 'ai' });
+          if (sub) addSubcategory(cat, sub, { source: 'ai' });
+        }
+      } catch (e) {
+        console.warn('addNewTabWithData failed, falling back', e);
+        addCategory(cat, { source: 'ai' });
+        if (sub) addSubcategory(cat, sub, { source: 'ai' });
+      }
+    } else {
+      addCategory(cat, { source: 'ai' });
+      if (sub) addSubcategory(cat, sub, { source: 'ai' });
+    }
     removeAISuggestionBanner();
+    // Re-render docs so the doc moves out of "אחר" into its new tab.
+    if (typeof renderAll === 'function') renderAll();
     if (typeof showToast === 'function') showToast(`נוספה קטגוריה: ${cat}`);
   };
   banner.querySelector('[data-act="accept"]').onclick = acceptFn;
