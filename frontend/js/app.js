@@ -45,6 +45,42 @@ function saveAiSuggestionSettings() {
   else alert('ההגדרות נשמרו');
 }
 
+// ─── Theme (light / dark / auto) ────────────────────────────────────────
+// Stored in the existing user-settings blob as `theme` (persisted + synced
+// to Supabase via prefs_sync). Values:
+//   'light' | 'dark' | 'auto' (default)
+// `auto` follows the system preference and updates live.
+function getThemePref() {
+  const v = getUserSettings().theme;
+  return v === 'dark' || v === 'light' ? v : 'auto';
+}
+function _resolvedTheme(pref) {
+  if (pref === 'light' || pref === 'dark') return pref;
+  const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  return mq && mq.matches ? 'dark' : 'light';
+}
+function applyTheme() {
+  const pref = getThemePref();
+  const resolved = _resolvedTheme(pref);
+  document.documentElement.setAttribute('data-theme', resolved);
+}
+function setThemePref(pref) {
+  if (!['light', 'dark', 'auto'].includes(pref)) pref = 'auto';
+  setUserSetting('theme', pref);
+  applyTheme();
+  if (typeof showToast === 'function') showToast(pref === 'auto' ? 'מצב עיצוב: אוטומטי' : pref === 'dark' ? 'מצב כהה הופעל' : 'מצב בהיר הופעל');
+}
+// Apply saved theme as early as possible so there's no white-flash on
+// dark-mode users. Runs at script parse time.
+try { applyTheme(); } catch {}
+// React to OS theme changes when the user is on 'auto'.
+try {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener && mq.addEventListener('change', () => {
+    if (getThemePref() === 'auto') applyTheme();
+  });
+} catch {}
+
 // Attach a countdown timer + opacity fade to a banner. Calls onExpire when done.
 // Returns a cancel() function the banner buttons should call.
 function attachBannerCountdown(banner, seconds, onExpire) {
@@ -1026,9 +1062,9 @@ function showTab(tab, el, mobEl) {
   if (tab === 'settings') {
     loadAiSuggestionSettingsForm();
     if (typeof renderSettingsColorPicker === 'function') renderSettingsColorPicker();
-    // Sync the settings dark-mode toggle with the persisted state.
+    // Sync the settings dark-mode toggle with the resolved theme state.
     const dt = document.getElementById('settings-dark-toggle');
-    if (dt) dt.classList.toggle('on', localStorage.getItem('klaser_dark_mode') === '1');
+    if (dt) dt.classList.toggle('on', document.documentElement.getAttribute('data-theme') === 'dark');
   }
   document.querySelectorAll('.topnav-tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');

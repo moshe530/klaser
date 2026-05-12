@@ -141,6 +141,17 @@ function renderBell() {
   if (dot) {
     dot.classList.remove('green', 'yellow', 'red');
     dot.classList.add(_bellSeverity());
+    // Numeric count of actionable (non-pending, non-handled) alerts. When
+    // > 0 we show the number; otherwise we show the empty colored dot.
+    const pending = getPendingAlerts();
+    const activeCount = _getActiveAlerts().filter(a => !pending.has(a.id)).length;
+    if (activeCount > 0) {
+      dot.classList.add('numeric');
+      dot.textContent = activeCount > 99 ? '99+' : String(activeCount);
+    } else {
+      dot.classList.remove('numeric');
+      dot.textContent = '';
+    }
   }
   // Re-render the panel if open.
   const panel = document.getElementById('bellPanel');
@@ -296,7 +307,7 @@ function renderUserPanel(panel) {
   const accountLabel = accountType === 'business' ? 'עסקי' : 'אישי / משפחה';
   const timeout = (typeof getUserSettings === 'function') ? (getUserSettings().aiSuggestionTimeout || 0) : 0;
   const defaultAction = (typeof getUserSettings === 'function' && getUserSettings().aiSuggestionDefault === 'pending') ? 'pending' : 'accept';
-  const darkOn = (localStorage.getItem('klaser_dark_mode') === '1');
+  const darkOn = document.documentElement.getAttribute('data-theme') === 'dark';
 
   panel.innerHTML = `
     <div class="up-head">
@@ -413,13 +424,18 @@ function saveUserPreferences() {
   else alert('ההעדפות נשמרו');
 }
 
-// Toggle dark mode from the panel. Persists to localStorage and applies class.
+// Toggle dark mode from the panel. Delegates to `setThemePref` (app.js),
+// which writes to the unified user-settings blob and applies the CSS
+// variables via `html[data-theme]`. The legacy `body.dark-mode` class is
+// no longer used — all dark styling lives in the `html[data-theme="dark"]`
+// rule block in index.html.
 function toggleDarkMode(toggleEl) {
   if (!toggleEl) return;
   toggleEl.classList.toggle('on');
   const on = toggleEl.classList.contains('on');
-  localStorage.setItem('klaser_dark_mode', on ? '1' : '0');
-  document.body.classList.toggle('dark-mode', on);
+  if (typeof setThemePref === 'function') {
+    setThemePref(on ? 'dark' : 'light');
+  }
 }
 
 // ─── Password change (Privacy tab) ─────────────────────────────────────────
@@ -497,11 +513,21 @@ function refreshTopbarForAuth() {
   if (logged) { applyAvatarColor(); renderBell(); }
 }
 
-// Apply dark mode on load if the user had it on before.
+// Kept for backwards-compat — the theme is now applied at script parse
+// time in app.js via `applyTheme()`. This function now just re-applies
+// to cover the case where app.js hasn't loaded yet when this is called.
 function applyDarkModeOnLoad() {
-  if (localStorage.getItem('klaser_dark_mode') === '1') {
-    document.body.classList.add('dark-mode');
-  }
+  // Migrate the legacy `klaser_dark_mode` key if present.
+  try {
+    const legacy = localStorage.getItem('klaser_dark_mode');
+    if (legacy !== null) {
+      if (typeof setUserSetting === 'function') {
+        setUserSetting('theme', legacy === '1' ? 'dark' : 'light');
+      }
+      localStorage.removeItem('klaser_dark_mode');
+    }
+  } catch {}
+  if (typeof applyTheme === 'function') applyTheme();
 }
 
 // Expose helpers that other scripts in the page expect.
