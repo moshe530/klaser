@@ -993,6 +993,33 @@ body.locked .landing-view{display:block;}
   .bell-panel,.user-panel{position:fixed;top:56px;left:8px;right:8px;width:auto;}
 }
 
+/* ─── Camera capture row ─────────────────────────────────────────────────
+   Only shown on devices that report touch + a camera-capable input
+   (heuristic: mobile via media query). Desktops use drag-and-drop. */
+.upload-camera-row{margin-top:10px;display:none;}
+@media(max-width:900px){.upload-camera-row{display:block;}}
+
+/* ─── Mobile FAB (Floating Action Button) ────────────────────────────────
+   Big bottom-right button on mobile that opens the add-document modal.
+   Hidden on desktop where the topbar "+ הוסף מסמך" button is enough. */
+.mobile-fab{
+  display:none;position:fixed;bottom:18px;left:18px;z-index:300;
+  width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--accent);color:#fff;
+  box-shadow:0 8px 24px rgba(0,0,0,0.25);
+  align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .15s;
+}
+.mobile-fab:hover,.mobile-fab:focus{transform:scale(1.05);box-shadow:0 10px 28px rgba(0,0,0,0.35);}
+.mobile-fab:active{transform:scale(0.95);}
+.mobile-fab svg{width:28px;height:28px;}
+@media(max-width:900px){
+  .mobile-fab{display:flex;}
+  /* Hide the topbar add button on mobile to free space — FAB replaces it. */
+  .topnav-right .btn-primary{display:none;}
+}
+body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
+
 /* ─── Command Palette (Ctrl+K / Cmd+K) ───────────────────────────────────── */
 .cmdk-overlay{
   position:fixed;inset:0;background:rgba(13,43,94,0.45);backdrop-filter:blur(4px);
@@ -1058,6 +1085,11 @@ body.locked .landing-view{display:block;}
   <div class="app-loader-logo">📁</div>
   <div class="app-loader-spin"></div>
 </div>
+
+<!-- Mobile FAB — opens the add-document modal. Shown on screens <900px. -->
+<button class="mobile-fab" id="mobileFab" onclick="openModal('add')" aria-label="הוסף מסמך" title="הוסף מסמך">
+  <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+</button>
 
 <!-- TOP NAV -->
 <header class="topnav">
@@ -1979,6 +2011,15 @@ body.locked .landing-view{display:block;}
     <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
       <div class="uz-icon">📄</div><p>גרור קובץ או לחץ להעלאה</p><small>PNG · JPG · PDF עד 10MB</small>
       <input type="file" id="fi" style="display:none" accept="image/*,.pdf" onchange="handleFile(this)">
+    </div>
+    <!-- Camera capture — separate input with `capture=environment` opens the
+         rear camera directly on mobile. Hidden on desktop via CSS. -->
+    <div class="upload-camera-row" id="uploadCameraRow">
+      <button type="button" class="btn-sm accent" onclick="event.stopPropagation();document.getElementById('fi-cam').click()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 7h3l2-2h8l2 2h3a1 1 0 011 1v11a1 1 0 01-1 1H3a1 1 0 01-1-1V8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="1.6"/></svg>
+        צלם מסמך עכשיו
+      </button>
+      <input type="file" id="fi-cam" style="display:none" accept="image/*" capture="environment" onchange="handleFile(this)">
     </div>
     <p class="upload-helper-text">העלו כל מסמך — Klaser יזהה, ימיין, יתייק, ויעקוב אחר כל תאריך חשוב.</p>
     <div class="form-group"><label>שם המסמך</label><input class="form-input" id="fm-name" placeholder="למשל: מקרר בוש KGE36" /></div>

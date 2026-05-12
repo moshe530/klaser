@@ -267,7 +267,7 @@ function makeCard(d) {
     statusBits.push(`<span class="ai-badge ai-confidence" style="color:${confColor}">${d.confidence}%</span>`);
   }
 
-  return `<div class="doc-card ${cls} ${stateClass}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}">
+  return `<div class="doc-card ${cls} ${stateClass}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}" data-person="${d.person || ''}">
     <div class="doc-name-cell">
       <div class="doc-icon" style="background:${ic.bg}"></div>
       <div class="doc-info">
@@ -2552,11 +2552,13 @@ function filterByPerson(name, btn) {
   const row = document.getElementById('personFilter');
   if (row) row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  // Filter medical docs
-  const list = document.getElementById('medicalList');
-  if (!list) return;
-  list.querySelectorAll('.doc-card').forEach(c => {
-    c.style.display = (name === 'הכל' || c.dataset.person === name) ? '' : 'none';
+  // Apply the filter to every doc-card on the page (across all tabs/lists),
+  // so the "by person" chip strip works regardless of which docs tab is
+  // currently visible. Cards without a person assigned only show when
+  // "הכל" is selected.
+  document.querySelectorAll('.doc-card').forEach(c => {
+    const p = c.dataset.person || '';
+    c.style.display = (name === 'הכל' || p === name) ? '' : 'none';
   });
 }
 
