@@ -523,6 +523,9 @@ function updateStats() {
       alertBadge.style.display = 'none';
     }
   }
+  // Keep the bell panel (dot color + open-panel stats) in sync with the
+  // same numbers we just rendered on the documents page.
+  if (typeof renderBell === 'function') renderBell();
 }
 
 // ─── Invoice page filter ───
@@ -2380,6 +2383,12 @@ function loadCustomTabs() {
     addBtn.parentNode.insertBefore(newBtn, addBtn);
     createCustomTabPageWithBranches(tab.name, tab.subBranches || [], tab.hasPeople || false);
   });
+  // Re-render now that the custom-tab list elements exist in the DOM.
+  // Without this, the initial renderAll() (triggered from loadDocs before
+  // DOMContentLoaded reached loadCustomTabs) couldn't fill list-<name>
+  // and docs belonging to custom tabs appeared nowhere until a later
+  // user action re-triggered renderAll.
+  if (orderedTabs.length && typeof renderAll === 'function') renderAll();
 }
 
 function getSubBranchesForCat(cat) {
