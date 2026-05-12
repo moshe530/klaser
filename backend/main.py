@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from .config import settings
 from .database import ping
 from .limiter import limiter
-from .routes import account, admin, documents, reminders
+from .routes import account, admin, documents, preferences, reminders
 
 app = FastAPI(title="Klaser API", version="0.1.0")
 app.state.limiter = limiter
@@ -88,3 +88,4 @@ app.include_router(documents.router)
 app.include_router(reminders.router)
 app.include_router(admin.router)
 app.include_router(account.router)
+app.include_router(preferences.router)

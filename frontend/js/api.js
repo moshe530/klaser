@@ -64,6 +64,15 @@
 
     // Account
     getAccountUsage: () => request('/api/account/usage'),
+    deleteAccount: () => request('/api/account/delete', { method: 'DELETE' }),
+
+    // Preferences (cross-device persisted user state)
+    listPreferences: () => request('/api/preferences'),
+    getPreference: (key) => request(`/api/preferences/${encodeURIComponent(key)}`),
+    putPreference: (key, value) => request(`/api/preferences/${encodeURIComponent(key)}`, {
+      method: 'PUT', body: JSON.stringify({ value }),
+    }),
+    deletePreference: (key) => request(`/api/preferences/${encodeURIComponent(key)}`, { method: 'DELETE' }),
 
     // Reminders
     listReminders: () => request('/reminders'),

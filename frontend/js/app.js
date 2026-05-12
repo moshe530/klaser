@@ -385,6 +385,13 @@ function deleteBranch(e, branchName) {
 // - Other: everything else (מוצרים, דירה, רפואי, רכב, ביטוח, חינוך, משפטי, אישורים, בנק, אשראי)
 const WORK_CATS = new Set(['תלוש שכר', 'פנסיה', 'מיסים']);
 const UTILITIES_CATS = new Set(['חשמל', 'מים', 'גז', 'ארנונה', 'תקשורת']);
+// Categories that have their own dedicated visible subnav tab in BUSINESS
+// mode (`#docsSubnavBusiness`). Used to keep their docs out of "אחר" when
+// a business user views the list. The labels here must match what `d.cat`
+// will be after AI classification / user edit.
+const BUSINESS_TAB_CATS = new Set([
+  'עובדים', 'לקוחות', 'ספקים', 'רישיונות', 'ביטוח', 'משפטי',
+]);
 
 // Full category to list mapping (for additional tabs that can be added)
 const CAT_TO_LIST = {
@@ -439,16 +446,19 @@ function renderAll() {
   //   user-registered category). This prevents docs from appearing in both
   //   their proper tab AND the "other" catch-all.
   // A category is "handled" only if it has a *visible navigation surface*:
-  //   - Aggregated default tabs: חשבוניות (invCats), עבודה (WORK_CATS), אישי
+  //   - Aggregated default tabs (personal mode): חשבוניות, עבודה, אישי
+  //   - Dedicated default tabs (business mode): עובדים, לקוחות, ספקים, ...
   //   - Custom tabs added by the user
-  // CAT_TO_LIST entries are NOT included here: defaults like חינוך/רכב/ביטוח
-  // have list elements in the DOM but no default subnav-tab pointing to them.
+  // CAT_TO_LIST entries are NOT auto-included here: defaults like חינוך/רכב
+  // have list elements in the DOM but no default subnav-tab in PERSONAL mode.
   // Without a tab, they're unreachable — so we let those docs fall into
   // "אחר" until the user explicitly adds a custom tab with that name.
+  const isBusiness = (typeof getAccountType === 'function' && getAccountType() === 'business');
   const handledCats = new Set([
     ...invCats,
     ...WORK_CATS,
     'מסמכים אישיים',
+    ...(isBusiness ? BUSINESS_TAB_CATS : []),
     ...customTabNames,
   ]);
   fillList('otherList', docs.filter(d => !handledCats.has(d.cat)));
@@ -802,6 +812,10 @@ async function loadDocs() {
   try {
     const data = await KlaserAPI.listDocuments();
     docs = data.map(fromApi);
+    // Explicitly mirror onto `window` so cross-script consumers (e.g.
+    // `user_panel.js` for bell stats) see the latest array. `let` at script
+    // scope does NOT auto-attach to window in classic scripts.
+    window.docs = docs;
     renderAll();
     setStatusBadge(`מחובר · ${docs.length} מסמכים`, 'ok');
   } catch (e) {
@@ -1267,6 +1281,7 @@ async function loadReminders() {
       doc_id: r.doc_id, channel: r.channel,
       dot: REM_TYPE_DOT[r.type] || '#6B7280',
     }));
+    window.reminders = reminders; // mirror for cross-script readers
     renderReminders('all');
     if (typeof renderBell === 'function') renderBell();
   } catch (e) {
@@ -1936,6 +1951,15 @@ function switchToLoginMode() {
 
 async function doLogout() {
   if (!confirm('להתנתק?')) return;
+  try {
+    // Flush any pending preference writes before signing out so a quick
+    // logout right after a setting change doesn't lose the change.
+    if (window.KlaserPrefs && KlaserPrefs.flushNow) await KlaserPrefs.flushNow();
+  } catch {}
+  // Clear local cache so the next user's hydrate starts from a clean slate.
+  // (Keys that aren't synced — like dark mode — are intentionally cleared.)
+  try { localStorage.clear(); } catch {}
+  if (window.KlaserPrefs) KlaserPrefs.reset();
   await KlaserAuth.signOut();
   location.reload();
 }
@@ -1985,6 +2009,11 @@ async function startApp() {
   } catch {
     setStatusBadge('השרת לא רץ', 'err');
     return;
+  }
+  // Pull cross-device preferences (categories, custom tabs, sub-branches,
+  // avatar color, settings, etc.) BEFORE any renderer reads localStorage.
+  if (window.KlaserPrefs) {
+    try { await KlaserPrefs.hydrate(); } catch (e) { console.warn('prefs hydrate:', e); }
   }
   await loadDocs();
   await loadReminders();
