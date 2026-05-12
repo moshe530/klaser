@@ -536,6 +536,47 @@ function updateStats() {
   // Keep the bell panel (dot color + open-panel stats) in sync with the
   // same numbers we just rendered on the documents page.
   if (typeof renderBell === 'function') renderBell();
+  // Refresh the plan-usage hint bar (shows up at ≥70% of plan doc limit).
+  refreshPlanUsageBar();
+}
+
+// ─── Plan usage hint bar ────────────────────────────────────────────────
+// Fetches /api/account/usage and shows a yellow progress bar on the docs
+// page when the user is ≥70% of their plan limit. Cached so we don't hit
+// the API on every `updateStats` call.
+let _planUsageCache = null;
+let _planUsageInFlight = null;
+function refreshPlanUsageBar(force = false) {
+  if (!window.KlaserAPI || !KlaserAPI.getAccountUsage) return;
+  if (!force && _planUsageCache && Date.now() - _planUsageCache.at < 60000) {
+    _renderPlanUsageBar(_planUsageCache.data);
+    return;
+  }
+  if (_planUsageInFlight) return;
+  _planUsageInFlight = KlaserAPI.getAccountUsage()
+    .then(data => {
+      _planUsageCache = { at: Date.now(), data };
+      _renderPlanUsageBar(data);
+    })
+    .catch(() => { /* silent — no UI on failure */ })
+    .finally(() => { _planUsageInFlight = null; });
+}
+function _renderPlanUsageBar(data) {
+  const bar = document.getElementById('planUsageBar');
+  const txt = document.getElementById('planUsageText');
+  const fill = document.getElementById('planUsageFill');
+  if (!bar || !txt || !fill) return;
+  const limit = (data && data.docs_limit) || 0;
+  const used = (data && data.docs_count) || 0;
+  if (!limit) { bar.style.display = 'none'; return; }
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  // Only show once we cross the 70% threshold. Hidden otherwise to keep
+  // the docs page clean for everyday use.
+  if (pct < 70) { bar.style.display = 'none'; return; }
+  txt.textContent = `השתמשת ב-${used} מתוך ${limit} מסמכים (${pct}%)`;
+  fill.style.width = pct + '%';
+  fill.className = 'progress-fill ' + (pct >= 90 ? 'danger' : 'warn');
+  bar.style.display = '';
 }
 
 // ─── Invoice page filter ───
@@ -2600,6 +2641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Wait for Supabase auth init
   if (!window.KlaserAuth) {
     setStatusBadge('שגיאה בטעינת Supabase', 'err');
+    document.body.classList.remove('app-loading');
     return;
   }
   const session = await KlaserAuth.init();
@@ -2609,6 +2651,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') authSubmit(); });
   });
+
+  // Auth is resolved → show the correct view (landing or app), no more flash.
+  document.body.classList.remove('app-loading');
 
   if (!session) {
     document.body.classList.add('locked');
@@ -3154,50 +3199,80 @@ const ONBOARDING_KEY = 'klaser_onboarding';
 const ONBOARDING_STEP_KEY = 'klaser_onboarding_step';
 const ONBOARDING_SKIPPED_KEY = 'klaser_onboarding_skipped';
 
-const ONBOARDING_STEPS = [
-  {
-    id: 'welcome',
-    title: 'ברוכים הבאים לקלסר',
-    desc: 'המערכת שתעזור לך לנהל את כל המסמכים שלך במקום אחד. בואו נתחיל!',
-    icon: '',
-    cta: 'הוסף מסמך ראשון',
-    skip: 'אני רוצה להסתכל קודם',
-    onComplete: () => openModal('add')
-  },
-  {
-    id: 'notifications',
-    title: 'תזכורות חכמות',
-    desc: 'קבל התראות לפני שמסמכים פגי תוקף. לא תפספס שום דדליין!',
-    icon: '',
-    cta: 'אפשר התראות',
-    skip: 'אולי אחר כך',
-    onComplete: () => requestNotificationPermission()
-  },
-  {
-    id: 'family',
-    title: 'הוסף את המשפחה',
-    desc: 'נהל מסמכים לכל בני הבית - ילדים, בן/בת זוג, הורים.',
-    icon: '👨‍👩‍👧',
-    cta: 'הוסף בן משפחה',
-    skip: 'אני לבד',
-    onComplete: () => openModal('person')
-  },
-  {
-    id: 'done',
-    title: 'הכל מוכן!',
-    desc: 'אתה מוכם להתחיל. זכור: אתה יכול להוסיף מסמכים בכל עת.',
-    icon: '✅',
-    cta: 'בואו נתחיל',
-    skip: null,
-    onComplete: () => completeOnboarding()
-  }
+// Shared first/last steps used by both account types.
+const _ONBOARDING_WELCOME = {
+  id: 'welcome',
+  title: 'ברוכים הבאים לקלסר',
+  desc: 'המערכת שתעזור לך לנהל את כל המסמכים שלך במקום אחד. בואו נתחיל!',
+  icon: '',
+  cta: 'הוסף מסמך ראשון',
+  skip: 'אני רוצה להסתכל קודם',
+  onComplete: () => openModal('add')
+};
+const _ONBOARDING_NOTIFICATIONS = {
+  id: 'notifications',
+  title: 'תזכורות חכמות',
+  desc: 'קבל התראות לפני שמסמכים פגי תוקף. לא תפספס שום דדליין!',
+  icon: '',
+  cta: 'אפשר התראות',
+  skip: 'אולי אחר כך',
+  onComplete: () => requestNotificationPermission()
+};
+const _ONBOARDING_DONE = {
+  id: 'done',
+  title: 'הכל מוכן!',
+  desc: 'אתה מוכן להתחיל. זכור: אתה יכול להוסיף מסמכים בכל עת.',
+  icon: '✅',
+  cta: 'בואו נתחיל',
+  skip: null,
+  onComplete: () => completeOnboarding()
+};
+
+// Personal-mode third step: add a family member.
+const _ONBOARDING_FAMILY = {
+  id: 'family',
+  title: 'הוסף את המשפחה',
+  desc: 'נהל מסמכים לכל בני הבית - ילדים, בן/בת זוג, הורים.',
+  icon: '👨‍👩‍👧',
+  cta: 'הוסף בן משפחה',
+  skip: 'אני לבד',
+  onComplete: () => openModal('person')
+};
+// Business-mode third step: add a custom tab for clients/suppliers/etc.
+const _ONBOARDING_BUSINESS_TAB = {
+  id: 'business_tab',
+  title: 'התאם לעסק שלך',
+  desc: 'הוסף ענפים מותאמים: לקוחות, ספקים, חוזים — כל מה שצריך.',
+  icon: '🏢',
+  cta: 'הוסף ענף',
+  skip: 'אולי אחר כך',
+  onComplete: () => { if (typeof showAddTabMenu === 'function') showAddTabMenu(); }
+};
+
+// Built lazily so we can read the current account type at show time.
+// `initOnboarding()` rebuilds this on each invocation.
+let ONBOARDING_STEPS = [
+  _ONBOARDING_WELCOME, _ONBOARDING_NOTIFICATIONS, _ONBOARDING_FAMILY, _ONBOARDING_DONE,
 ];
+
+function _buildOnboardingSteps() {
+  const isBiz = (typeof getAccountType === 'function' && getAccountType() === 'business');
+  ONBOARDING_STEPS = [
+    _ONBOARDING_WELCOME,
+    _ONBOARDING_NOTIFICATIONS,
+    isBiz ? _ONBOARDING_BUSINESS_TAB : _ONBOARDING_FAMILY,
+    _ONBOARDING_DONE,
+  ];
+}
 
 let currentOnboardingStep = 0;
 let skippedSteps = [];
 
 // Initialize onboarding on app load
 function initOnboarding() {
+  // Rebuild step list based on current account type — business users see
+  // a custom-tab step instead of "add family member".
+  _buildOnboardingSteps();
   // Load skipped steps
   try {
     skippedSteps = JSON.parse(localStorage.getItem(ONBOARDING_SKIPPED_KEY) || '[]');
