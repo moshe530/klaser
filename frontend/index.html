@@ -1999,6 +1999,14 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
       <div class="form-group"><label>תפוגת אחריות / תוקף</label><input class="form-input" type="date" id="ed-exp" /></div>
     </div>
     <div class="form-group"><label>סכום (₪)</label><input class="form-input" type="number" step="0.01" id="ed-amount" /></div>
+    <!-- Profile assignment — same options as the add modal. Populated by
+         `openEditModal` via `renderProfileSelect('ed-assigned')`. -->
+    <div class="form-group" id="ed-assigned-container">
+      <label>שיוך</label>
+      <select class="form-input" id="ed-assigned">
+        <option value="">כללי (ללא שיוך)</option>
+      </select>
+    </div>
     <button class="btn-full" onclick="saveEdit()">שמור שינויים</button>
   </div>
 </div>

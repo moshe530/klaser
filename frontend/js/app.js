@@ -159,6 +159,13 @@ function fromApi(d) {
     buy: d.purchase_date || '',
     exp: d.warranty_end || null,
     note: d.amount != null ? `₪${d.amount}` : '',
+    // Family-profile assignment (see migration 005).
+    // `assigned_to` keeps the legacy local-only field name used by the
+    // family-profiles UI, mapped from the new server-side column. We also
+    // expose `person` as the denormalized name, used by the chip filter
+    // (`filterByPerson` matches against `data-person`).
+    assigned_to: d.assigned_profile_id || null,
+    person: d.assigned_profile_name || '',
     // New AI fields
     confidence: d.confidence,
     needs_review: d.needs_review,
@@ -176,7 +183,7 @@ function fromApi(d) {
 }
 
 function toApi(ui) {
-  return {
+  const out = {
     name: ui.name,
     category: ui.cat || null,
     sub_category: ui.sub || null,
@@ -184,6 +191,14 @@ function toApi(ui) {
     warranty_end: ui.exp || null,
     amount: ui.amount != null && ui.amount !== '' ? Number(ui.amount) : null,
   };
+  // Only include assignment fields if the caller explicitly set them —
+  // this lets callers patch (e.g. only `amount`) without clobbering the
+  // existing assignment. `null` is a meaningful "clear assignment".
+  if (Object.prototype.hasOwnProperty.call(ui, 'assigned_to')) {
+    out.assigned_profile_id = ui.assigned_to || null;
+    out.assigned_profile_name = ui.person || null;
+  }
+  return out;
 }
 
 // ─── STATUS BADGE ───
@@ -1489,7 +1504,16 @@ function setTab(t, el) {
 }
 
 // ─── MODAL ───
-function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function openModal(id) {
+  // Refresh the profile selector on the add modal each time it opens, so
+  // newly-added profiles appear without needing a full page reload.
+  if (id === 'add' && typeof renderProfileSelect === 'function') {
+    renderProfileSelect('fm-assigned');
+    const sel = document.getElementById('fm-assigned');
+    if (sel) sel.value = '';
+  }
+  document.getElementById('modal-' + id).classList.add('open');
+}
 function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
 
 // Holds the currently-selected file for the add-doc modal
@@ -1529,6 +1553,16 @@ async function addDoc() {
 
   const subSelEl = document.getElementById('fm-subcat');
   const subVal = subSelEl ? subSelEl.value : '';
+  // Read the assigned profile (family member / business contact) from the
+  // selector. The select stores the profile *id*; we also resolve to the
+  // name (denormalized snapshot — see migration 005).
+  const assignedEl = document.getElementById('fm-assigned');
+  const assignedId = assignedEl ? assignedEl.value : '';
+  let assignedName = '';
+  if (assignedId && typeof getProfileById === 'function') {
+    const p = getProfileById(assignedId);
+    if (p) assignedName = p.name || '';
+  }
   const payload = toApi({
     name,
     cat: document.getElementById('fm-cat').value,
@@ -1536,6 +1570,8 @@ async function addDoc() {
     buy: document.getElementById('fm-buy').value,
     exp: document.getElementById('fm-exp').value || null,
     amount: document.getElementById('fm-note').value, // השדה הזה במודל הוא "הערות" — נשמר כסכום אם נומרי
+    assigned_to: assignedId || null,
+    person: assignedName,
   });
 
   // אם הערות לא נומרי — נכניס כ-tag ולא כסכום
@@ -1772,6 +1808,14 @@ function openEdit(id) {
   document.getElementById('ed-exp').value = d.exp || '';
   const amt = d._raw && d._raw.amount != null ? d._raw.amount : '';
   document.getElementById('ed-amount').value = amt;
+  // Populate the assigned-profile select with current profiles and the
+  // doc's saved assignment. Uses the same renderer as the add modal but
+  // targeted to the edit select.
+  if (typeof renderProfileSelect === 'function') {
+    renderProfileSelect('ed-assigned');
+  }
+  const assignedSel = document.getElementById('ed-assigned');
+  if (assignedSel) assignedSel.value = d.assigned_to || '';
   openModal('edit');
 }
 
@@ -1783,13 +1827,23 @@ async function saveEdit() {
   const amountStr = document.getElementById('ed-amount').value;
   const subRaw = document.getElementById('ed-sub').value;
   const subVal = (subRaw && subRaw !== '__add__') ? subRaw.trim() : '';
+  // Resolve the assigned profile (if any) for the denormalized name snapshot.
+  const assignedSel = document.getElementById('ed-assigned');
+  const assignedId = assignedSel ? assignedSel.value : '';
+  let assignedName = '';
+  if (assignedId && typeof getProfileById === 'function') {
+    const p = getProfileById(assignedId);
+    if (p) assignedName = p.name || '';
+  }
   const patch = {
     name,
-    category:      document.getElementById('ed-cat').value || null,
-    sub_category:  subVal || null,
-    purchase_date: document.getElementById('ed-buy').value || null,
-    warranty_end:  document.getElementById('ed-exp').value || null,
+    category:              document.getElementById('ed-cat').value || null,
+    sub_category:          subVal || null,
+    purchase_date:         document.getElementById('ed-buy').value || null,
+    warranty_end:          document.getElementById('ed-exp').value || null,
     amount: amountStr === '' ? null : Number(amountStr),
+    assigned_profile_id:   assignedId || null,
+    assigned_profile_name: assignedName || null,
   };
   try {
     const updated = await KlaserAPI.updateDocument(id, patch);
@@ -2565,12 +2619,30 @@ function filterByPerson(name, btn) {
 function renderPeople() {
   const row = document.getElementById('personFilter');
   if (!row) return;
-  const people = getPeople();
+  // Build the chip list from the *unified* set of names: family profiles
+  // (the rich system, synced via user_preferences) PLUS any legacy entries
+  // from the simple `klaser_people` chip list. This way the filter strip
+  // mirrors whichever person UI the user is actually populating.
+  const profiles = (typeof getFamilyProfiles === 'function') ? getFamilyProfiles() : [];
+  const simple = getPeople();
+  const seen = new Set();
+  const entries = [];
+  profiles.forEach(p => {
+    if (p && p.name && !seen.has(p.name)) { seen.add(p.name); entries.push({ name: p.name, emoji: p.emoji || '', fromProfile: true }); }
+  });
+  simple.forEach(p => {
+    if (p && p.name && !seen.has(p.name)) { seen.add(p.name); entries.push({ name: p.name, emoji: '', id_number: p.id_number || '', fromProfile: false }); }
+  });
+
   let html = `<button class="chip ${activePerson==='הכל'?'active':''}" onclick="filterByPerson('הכל',this)">כולם</button>`;
-  people.forEach(p => {
+  entries.forEach(p => {
     const active = activePerson === p.name ? 'active' : '';
     const tooltip = p.id_number ? `title="ת.ז.: ${p.id_number}"` : '';
-    html += `<button class="chip ${active}" ${tooltip} onclick="filterByPerson('${p.name}',this)" oncontextmenu="deletePerson(event,'${p.name}')">${p.name}</button>`;
+    const emojiPrefix = p.emoji ? `${p.emoji} ` : '';
+    // Only the legacy "simple" entries have a right-click delete action —
+    // family profiles are managed from the dedicated profile modal.
+    const del = p.fromProfile ? '' : `oncontextmenu="deletePerson(event,'${p.name}')"`;
+    html += `<button class="chip ${active}" ${tooltip} onclick="filterByPerson('${p.name}',this)" ${del}>${emojiPrefix}${p.name}</button>`;
   });
   html += `<button class="chip add-sub-branch" onclick="addPerson()">+</button>`;
   row.innerHTML = html;
@@ -2808,6 +2880,8 @@ function setFamilyProfiles(profiles) {
   localStorage.setItem(FAMILY_PROFILES_KEY, JSON.stringify(profiles));
   renderProfileChips();
   renderProfileSelect();
+  // Keep the simple person chip strip in sync with the rich profile list.
+  if (typeof renderPeople === 'function') renderPeople();
 }
 
 function createProfile(data) {
@@ -2860,18 +2934,23 @@ function updateProfile(id, updates) {
   return profiles[idx];
 }
 
-function deleteProfile(id) {
+async function deleteProfile(id) {
   const profiles = getFamilyProfiles();
   const filtered = profiles.filter(p => p.id !== id);
   setFamilyProfiles(filtered);
 
-  // Unassign docs from this profile
-  docs.forEach(doc => {
-    if (doc.assigned_to === id) {
-      doc.assigned_to = null;
-    }
-  });
-  saveDocs();
+  // Unassign docs from this profile, both locally (optimistic) and on the
+  // server. We fire-and-forget the API calls in parallel — if one fails
+  // the next sync will heal it.
+  const affected = docs.filter(d => d.assigned_to === id);
+  affected.forEach(d => { d.assigned_to = null; d.person = ''; });
+  renderAll();
+  await Promise.allSettled(
+    affected.map(d => KlaserAPI.updateDocument(d.id, {
+      assigned_profile_id: null,
+      assigned_profile_name: null,
+    }).catch(e => console.warn('unassign failed for', d.id, e)))
+  );
 }
 
 // Photo handling
@@ -2938,12 +3017,32 @@ function addBirthdayReminder(profile) {
 }
 
 // Document assignment
-function assignDocToProfile(docId, profileId) {
-  const doc = docs.find(d => d.id === docId);
-  if (doc) {
-    doc.assigned_to = profileId;
-    saveDocs();
+// Assign a doc to a family/business profile. Persists through the API so
+// the assignment survives reloads and syncs across devices.
+async function assignDocToProfile(docId, profileId) {
+  const doc = docs.find(d => String(d.id) === String(docId));
+  if (!doc) return;
+  // Resolve the profile name for the denormalized snapshot column.
+  let profileName = '';
+  if (profileId && typeof getProfileById === 'function') {
+    const p = getProfileById(profileId);
+    if (p) profileName = p.name || '';
+  }
+  // Optimistic update — apply locally first for snappy UI, then save.
+  doc.assigned_to = profileId || null;
+  doc.person = profileName;
+  renderAll();
+  try {
+    const updated = await KlaserAPI.updateDocument(docId, {
+      assigned_profile_id: profileId || null,
+      assigned_profile_name: profileName || null,
+    });
+    const idx = docs.findIndex(d => String(d.id) === String(docId));
+    if (idx >= 0) docs[idx] = fromApi(updated);
     renderAll();
+  } catch (e) {
+    console.error('Failed to assign doc to profile:', e);
+    if (typeof showToast === 'function') showToast('שגיאה בשמירת השיוך');
   }
 }
 
@@ -3004,10 +3103,11 @@ function filterByProfile(profileId, btn) {
   });
 }
 
-// UI: Profile selector in document form
-function renderProfileSelect() {
-  const container = document.getElementById('fm-assigned-container');
-  const select = document.getElementById('fm-assigned');
+// UI: Profile selector in document form.
+// Accepts an optional select id so the same renderer powers both the add
+// modal (`fm-assigned`) and the edit modal (`ed-assigned`).
+function renderProfileSelect(selectId = 'fm-assigned') {
+  const select = document.getElementById(selectId);
   if (!select) return;
 
   const profiles = getFamilyProfiles();
@@ -3017,7 +3117,8 @@ function renderProfileSelect() {
   let html = `<option value="">${labels.noProfile}</option>`;
   profiles.forEach(p => {
     const role = p.role ? ` (${p.role})` : '';
-    html += `<option value="${p.id}">${p.emoji} ${p.name}${role}</option>`;
+    const emoji = p.emoji ? `${p.emoji} ` : '';
+    html += `<option value="${p.id}">${emoji}${p.name}${role}</option>`;
   });
 
   select.innerHTML = html;

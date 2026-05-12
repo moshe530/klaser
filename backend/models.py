@@ -24,6 +24,14 @@ class DocumentBase(BaseModel):
     amount: Optional[float] = None
     tags: list[str] = Field(default_factory=list)
 
+    # Assignment to a family profile / business contact. The id is the
+    # client-side profile id from `klaser_family_profiles` (synced via
+    # user_preferences). The name is stored as a denormalized snapshot so
+    # the UI can still render the chip if the profile was deleted on
+    # another device. Both are nullable.
+    assigned_profile_id: Optional[str] = None
+    assigned_profile_name: Optional[str] = None
+
     # Extractor output (per-document details)
     document_type: Optional[str] = None
     merchant: Optional[str] = None
@@ -44,6 +52,9 @@ class DocumentUpdate(BaseModel):
     warranty_end: Optional[date] = None
     amount: Optional[float] = None
     tags: Optional[list[str]] = None
+    # Assignment to a family profile (see DocumentBase for the rationale).
+    assigned_profile_id: Optional[str] = None
+    assigned_profile_name: Optional[str] = None
     document_type: Optional[str] = None
     merchant: Optional[str] = None
     amount_candidates: Optional[list[float]] = None

@@ -26,6 +26,8 @@
     'klaser_alerts_pending': 'alerts_pending',
     'klaser_avatar_color':   'avatar_color',
     'klaser_people':         'people',
+    'klaser_family_profiles': 'family_profiles',
+    'klaser_doc_color_map':  'doc_color_map',
   };
   // All `subBranches_<cat>` keys roll up into one server key `sub_branches`.
   const SUB_BRANCHES_PREFIX = 'subBranches_';
