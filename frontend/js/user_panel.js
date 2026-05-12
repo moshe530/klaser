@@ -71,8 +71,12 @@ function _gatherAlerts() {
   const now = new Date();
   const in30 = new Date(Date.now() + 30 * 86400000);
   // From docs — expired or expiring-soon via warranty_end.
-  if (Array.isArray(window.docs)) {
-    for (const d of docs) {
+  // Note: app.js declares `let docs` at top-level which lives in the shared
+  // script global lexical env but is NOT mirrored on `window`. Read it by
+  // name with a typeof guard.
+  const _docs = (typeof docs !== 'undefined' && Array.isArray(docs)) ? docs : [];
+  if (_docs.length) {
+    for (const d of _docs) {
       if (!d.exp) continue;
       const exp = new Date(d.exp);
       if (isNaN(exp.getTime())) continue;
@@ -95,8 +99,9 @@ function _gatherAlerts() {
     }
   }
   // From reminders — active + in the future (or past but not yet handled).
-  if (Array.isArray(window.reminders)) {
-    for (const r of reminders) {
+  const _rems = (typeof reminders !== 'undefined' && Array.isArray(reminders)) ? reminders : [];
+  if (_rems.length) {
+    for (const r of _rems) {
       if (!r.remind_at || r.status === 'done' || r.status === 'archived') continue;
       const when = new Date(r.remind_at);
       if (isNaN(when.getTime())) continue;
@@ -146,9 +151,10 @@ function renderBell() {
 // at the top of the bell panel.
 function _computeDocStats() {
   let total = 0, soon = 0, expired = 0, valid = 0;
-  if (Array.isArray(window.docs)) {
-    total = docs.length;
-    docs.forEach(d => {
+  const _docs = (typeof docs !== 'undefined' && Array.isArray(docs)) ? docs : [];
+  if (_docs.length) {
+    total = _docs.length;
+    _docs.forEach(d => {
       const s = (typeof status === 'function') ? status(d.exp) : null;
       if (!s) { valid++; return; }
       if (s.expired) expired++;
