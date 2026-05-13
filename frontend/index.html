@@ -17,6 +17,19 @@
   try { fetch('https://klaser.onrender.com/health', { cache: 'no-store', mode: 'cors' }).catch(()=>{}); } catch(e) {}
 </script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<!-- Vercel Web Analytics — vanilla-HTML integration.
+     Vercel auto-injects the actual tracker script at /_vercel/insights/script.js
+     when the project has Web Analytics enabled in the dashboard. We define the
+     queue stub first so any `window.va()` calls before the script loads are
+     buffered and replayed once it's ready. Defer keeps it out of the critical
+     render path; the script ships zero cookies and is GDPR-friendly.
+     If/when we move off Vercel, simply remove these two lines. -->
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<!-- Vercel Speed Insights — Core Web Vitals (LCP, FID, CLS) measured per
+     deploy. Free for hobby tier. Same lifecycle as Web Analytics above. -->
+<script>window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments);};</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
 :root {
   --bg: #F4F6F9;
@@ -2448,6 +2461,11 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
     const overlay = document.getElementById('waitlistOverlay');
     const frame = document.getElementById('waitlistFrame');
     if (!overlay || !frame) return;
+    // Track the conversion event in Vercel Analytics. This is the single
+    // most important number for the waitlist campaign: how many of the
+    // landing-page visitors actually opened the signup form. The `va()`
+    // function is a no-op if Vercel Analytics isn't loaded (e.g. local dev).
+    try { if (window.va) window.va('event', { name: 'waitlist_open' }); } catch(e) {}
     // Lazy-load: only set src the first time. Subsequent opens reuse the
     // already-loaded iframe so the form state (typed text) isn't lost.
     if (!frame.src || frame.src === 'about:blank' || !frame.src.includes('docs.google.com')) {
