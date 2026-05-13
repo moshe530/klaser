@@ -2001,6 +2001,11 @@ function toggleAuthMode() {
   // Show "forgot password" only in login mode
   const forgotRow = document.getElementById('authForgotRow');
   if (forgotRow) forgotRow.style.display = authMode === 'login' ? '' : 'none';
+  // Show the Terms & Privacy consent checkbox only in signup mode.
+  // Required for legally-valid consent; bypassed for returning logins
+  // where consent was already given at original signup.
+  const consentRow = document.getElementById('authConsentRow');
+  if (consentRow) consentRow.classList.toggle('active', authMode === 'signup');
   showAuthError('');
 }
 
@@ -2009,6 +2014,20 @@ async function authSubmit() {
   const password = document.getElementById('auth-password').value;
   if (!email || !password) { showAuthError('נא למלא אימייל וסיסמה'); return; }
   if (password.length < 6) { showAuthError('סיסמה חייבת לפחות 6 תווים'); return; }
+  // Signup-only: require explicit consent to Terms & Privacy. We also
+  // persist a local timestamp on success so future "consent audit"
+  // requests can show *when* consent was given by this device.
+  if (authMode === 'signup') {
+    const consentEl = document.getElementById('authConsent');
+    if (!consentEl || !consentEl.checked) {
+      showAuthError('יש לאשר את תנאי השימוש ומדיניות הפרטיות כדי להירשם');
+      return;
+    }
+    try {
+      localStorage.setItem('klaser_consent_accepted_at', new Date().toISOString());
+      localStorage.setItem('klaser_consent_version', '2026-05');
+    } catch (e) {}
+  }
   const btn = document.getElementById('authSubmit');
   btn.disabled = true;
   const originalText = btn.textContent;

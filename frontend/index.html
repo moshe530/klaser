@@ -873,6 +873,73 @@ body.locked .landing-view{display:block;}
 }
 .lv-waitlist-link:hover{opacity:0.8;}
 
+/* ─── Beta Banner ──────────────────────────────────────────────────────────
+   Thin notification strip at the top of the landing page. Two purposes:
+     1. Sets user expectations honestly (it's a Beta).
+     2. Legal protection — the "as-is" language and "keep originals" tip
+        are the foundation of the limited-liability clause in /terms.
+   Dismissible with localStorage memory so returning visitors aren't nagged. */
+.beta-banner{
+  background:linear-gradient(90deg, #FEF3C7 0%, #FDE68A 100%);
+  color:#78350F;border-bottom:1px solid #FCD34D;
+  padding:10px 16px;font-size:14px;line-height:1.45;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  position:relative;z-index:50;
+}
+.beta-banner-text{max-width:720px;text-align:center;}
+.beta-banner-text strong{color:#7C2D12;}
+.beta-banner-text a{color:#78350F;text-decoration:underline;font-weight:600;}
+.beta-banner-close{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  background:transparent;border:none;cursor:pointer;color:#92400E;
+  font-size:18px;line-height:1;padding:4px 8px;border-radius:4px;
+  transition:background .15s;
+}
+.beta-banner-close:hover{background:rgba(146,64,14,0.15);}
+@media(max-width:600px){
+  .beta-banner{font-size:12.5px;padding:9px 32px;}
+  .beta-banner-text{text-align:start;}
+}
+
+/* ─── Landing Footer ───────────────────────────────────────────────────────
+   Subtle 3-link strip at the bottom of the landing page. Required so the
+   Terms and Privacy pages are "reasonably accessible" — courts in Israel
+   have held that buried links don't count as proper consent. */
+.lv-footer{
+  background:var(--surface2);border-top:1px solid var(--border);
+  padding:28px 24px 32px;text-align:center;color:var(--text2);font-size:13px;
+}
+.lv-footer-links{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;
+  margin-bottom:12px;
+}
+.lv-footer-links a{
+  color:var(--text2);text-decoration:none;font-weight:500;
+  transition:color .15s;
+}
+.lv-footer-links a:hover{color:var(--accent);text-decoration:underline;}
+.lv-footer-copy{font-size:12px;color:var(--text3);}
+
+/* Small disclaimer text rendered just under the hero CTA — acts as the
+   in-context "as-is" notice for visitors who skip the top banner. */
+.lv-hero-disclaimer{
+  margin-top:14px;font-size:12.5px;color:rgba(255,255,255,0.7);
+  max-width:480px;margin-left:auto;margin-right:auto;line-height:1.45;
+}
+.lv-hero-disclaimer a{color:rgba(255,255,255,0.95);text-decoration:underline;}
+
+/* Terms-consent checkbox inside the signup modal. Visible only when in
+   signup mode (toggled by JS). Required to be checked before submitting. */
+.auth-consent-row{
+  display:none;margin:8px 0 12px;font-size:13px;color:var(--text2);
+  align-items:flex-start;gap:8px;line-height:1.5;
+}
+.auth-consent-row.active{display:flex;}
+.auth-consent-row input[type="checkbox"]{
+  margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;
+}
+.auth-consent-row a{color:var(--accent);text-decoration:underline;font-weight:600;}
+
 /* ─── Feedback Widget ──────────────────────────────────────────────────────
    Floating circle in the bottom-left corner of the landing page. Clicking
    opens a compact 1-question survey. Submissions are POSTed to the same
@@ -1382,7 +1449,32 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
     <div class="logo">קלסר</div>
     <button class="lv-cta" onclick="openModal('auth')">התחבר / הירשם</button>
   </div>
-  <div class="landing-content">
+  <!-- Beta banner — appears below the fixed header so visitors immediately
+       see the "Beta / as-is" disclosure. Dismissible; preference is
+       stored in localStorage so returning visitors aren't nagged. -->
+  <div class="beta-banner" id="betaBanner" style="margin-top:64px;">
+    <span class="beta-banner-text">
+      🚀 <strong>אנחנו בתקופת הרצה</strong> — השירות מוצע במצבו הנוכחי (Beta) ואנחנו משפרים אותו לפי המשוב שלכם. תמיד מומלץ <strong>לשמור עותק מקורי</strong> של מסמכים חשובים. <a href="/terms">פרטים</a>
+    </span>
+    <button class="beta-banner-close" onclick="dismissBetaBanner()" aria-label="סגור">✕</button>
+  </div>
+  <script>
+    // Honor dismissal across sessions. Stored timestamp = when dismissed.
+    (function(){
+      try {
+        if (localStorage.getItem('klaser_beta_banner_dismissed')) {
+          var el = document.getElementById('betaBanner');
+          if (el) el.style.display = 'none';
+        }
+      } catch(e) {}
+    })();
+    function dismissBetaBanner(){
+      try { localStorage.setItem('klaser_beta_banner_dismissed', String(Date.now())); } catch(e) {}
+      var el = document.getElementById('betaBanner');
+      if (el) el.style.display = 'none';
+    }
+  </script>
+  <div class="landing-content" style="padding-top:0;">
 
     <!-- HERO -->
     <section class="lv-hero">
@@ -1401,6 +1493,12 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
           <a href="#" onclick="openWaitlistModal();return false;" class="lv-waitlist-link">
             הצטרפו לרשימת ההמתנה ←
           </a>
+        </p>
+        <!-- In-hero legal disclaimer. Repeats the as-is notice for visitors
+             who dismissed the top banner, and links to the full terms. -->
+        <p class="lv-hero-disclaimer">
+          בהרשמה אתם מסכימים <a href="/terms">לתנאי השימוש</a> ול<a href="/privacy">מדיניות הפרטיות</a>.
+          השירות בגרסת ניסיון, ניתן כמות שהוא — מומלץ לשמור עותק מקורי של מסמכים חשובים.
         </p>
       </div>
     </section>
@@ -1498,6 +1596,20 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
         <p class="lv-waitlist-cta-fine">או, אם אתם מעדיפים, <a href="#" onclick="openModal('auth');return false;">הירשמו עכשיו</a> וקבלו גישה מיידית.</p>
       </div>
     </section>
+
+    <!-- ══ FOOTER ══
+         Required for legal-link accessibility (Israeli courts have ruled
+         that buried/hidden Terms links do not constitute proper notice).
+         All three legal pages reachable from every page of the landing. -->
+    <footer class="lv-footer">
+      <div class="lv-footer-links">
+        <a href="/terms">תנאי שימוש</a>
+        <a href="/privacy">מדיניות פרטיות</a>
+        <a href="/accessibility">הצהרת נגישות</a>
+        <a href="#" onclick="openFeedback('footer');return false;">צור קשר</a>
+      </div>
+      <div class="lv-footer-copy">© 2026 קלסר. כל הזכויות שמורות.</div>
+    </footer>
 
   </div>
 </div>
@@ -2310,6 +2422,16 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
       <input class="form-input" type="password" id="auth-password" placeholder="לפחות 6 תווים" autocomplete="current-password">
     </div>
     <div id="turnstile-widget" class="cf-turnstile" data-sitekey="0x4AAAAAAAAADKm7CnBj4qQdKQh" data-callback="onTurnstileSuccess" data-size="compact" style="margin-bottom:12px;"></div>
+    <!-- Terms consent — required in signup mode. CSS controls visibility
+         based on the .active class which is toggled by toggleAuthMode(). -->
+    <label class="auth-consent-row" id="authConsentRow">
+      <input type="checkbox" id="authConsent">
+      <span>
+        אני מסכים/ה <a href="/terms" target="_blank" rel="noopener">לתנאי השימוש</a>
+        ול<a href="/privacy" target="_blank" rel="noopener">מדיניות הפרטיות</a>,
+        ומבין/ה שהשירות בגרסת ניסיון.
+      </span>
+    </label>
     <button class="btn-full" id="authSubmit" onclick="authSubmit()">התחבר</button>
     <p style="text-align:center;margin-top:10px;font-size:13px;" id="authForgotRow">
       <a href="#" onclick="openForgotPassword();return false;" style="color:var(--text2);text-decoration:none;">שכחתי סיסמה</a>
