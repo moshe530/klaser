@@ -873,6 +873,74 @@ body.locked .landing-view{display:block;}
 }
 .lv-waitlist-link:hover{opacity:0.8;}
 
+/* ─── Feedback Widget ──────────────────────────────────────────────────────
+   Floating circle in the bottom-left corner of the landing page. Clicking
+   opens a compact 1-question survey. Submissions are POSTed to the same
+   Google Form as waitlist signups (different field) so the responses land
+   in the same spreadsheet — distinguishable by an empty name+email row. */
+.fb-launcher{
+  position:fixed;bottom:20px;left:20px;z-index:1900;
+  width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--accent);color:#fff;font-size:24px;
+  box-shadow:0 6px 20px rgba(26,58,107,0.35);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .2s, box-shadow .2s;
+}
+.fb-launcher:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 10px 28px rgba(26,58,107,0.45);}
+/* Only show the launcher on the landing page — hide it once the user is
+   logged in (i.e. `body.locked` is removed and `.app-body` becomes visible). */
+.fb-launcher{display:none;}
+body.locked .fb-launcher{display:flex;}
+
+/* Feedback modal — small, focused, low-friction */
+.fb-overlay{
+  display:none;position:fixed;inset:0;z-index:2100;
+  background:rgba(13,43,94,0.55);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:16px;
+}
+.fb-overlay.open{display:flex;}
+.fb-panel{
+  background:var(--surface);border-radius:16px;width:100%;max-width:440px;
+  overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.35);
+  direction:rtl;
+}
+.fb-panel-head{padding:18px 20px;background:var(--accent);color:#fff;}
+.fb-panel-head h3{font-size:17px;font-weight:700;margin:0 0 4px;}
+.fb-panel-head p{font-size:13px;opacity:0.9;margin:0;line-height:1.4;}
+.fb-panel-body{padding:18px 20px 6px;}
+.fb-panel-body textarea{
+  width:100%;min-height:100px;max-height:220px;resize:vertical;
+  border:1px solid var(--border);border-radius:8px;
+  background:var(--surface2);color:var(--text);
+  padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.5;
+  outline:none;transition:border-color .15s;
+}
+.fb-panel-body textarea:focus{border-color:var(--accent);}
+.fb-panel-foot{
+  padding:14px 20px 18px;display:flex;gap:10px;justify-content:flex-end;align-items:center;
+}
+.fb-btn-skip{
+  background:transparent;border:none;color:var(--text2);cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:14px;padding:8px 14px;border-radius:6px;
+  transition:background .15s;
+}
+.fb-btn-skip:hover{background:var(--surface2);}
+.fb-btn-send{
+  background:var(--accent);color:#fff;border:none;cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;
+  padding:10px 22px;border-radius:8px;transition:all .15s;
+}
+.fb-btn-send:hover{background:var(--accent-dark, #14305A);transform:translateY(-1px);}
+.fb-btn-send:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.fb-thanks{padding:32px 20px;text-align:center;}
+.fb-thanks .fb-check{
+  width:56px;height:56px;border-radius:50%;background:#10B981;color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:30px;margin-bottom:14px;
+}
+.fb-thanks h3{font-size:18px;color:var(--accent);margin:0 0 6px;}
+.fb-thanks p{font-size:14px;color:var(--text2);margin:0;}
+
 /* ─── Waitlist Modal (embeds the Google Form via iframe) ───────────────────
    Kept in its own overlay (not the existing modal stack) because we want
    it to be tall and content-heavy without disrupting other modals' sizing. */
@@ -2435,6 +2503,195 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
   #modal-account-type .modal{padding:24px!important;}
 }
 </style>
+
+<!-- ══ FEEDBACK WIDGETS ══
+     Two entry points to the same micro-survey:
+       1. Floating launcher button (always-on, bottom-left of landing)
+       2. Exit-intent / time-on-page modal (auto-triggered once per session)
+     Both POST anonymously to the existing Google Form, using a dedicated
+     "feedback" question (entry.1492535224) and placeholder values for the
+     required signup fields so submissions are accepted but clearly
+     distinguishable in the Sheet (name = "(פידבק מהאתר)"). -->
+<button class="fb-launcher" id="fbLauncher" onclick="openFeedback('button')" aria-label="שלח פידבק" title="מה דעתך על האתר?">
+  💬
+</button>
+<div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)closeFeedback()">
+  <div class="fb-panel" role="dialog" aria-label="פידבק על האתר">
+    <!-- Question state -->
+    <div id="fbStateQuestion">
+      <div class="fb-panel-head">
+        <h3 id="fbTitle">מה לדעתך כדאי לשפר באתר?</h3>
+        <p id="fbSubtitle">ההערה שלך אנונימית ועוזרת לנו מאוד. תוכלו לכתוב כמה משפטים או רק מילה אחת.</p>
+      </div>
+      <div class="fb-panel-body">
+        <textarea id="fbText" placeholder="לדוגמה: 'לא הבנתי איך מתחילים', 'הסבר לא ברור על המחיר', 'חסר פיצ'ר X'..."></textarea>
+      </div>
+      <div class="fb-panel-foot">
+        <button class="fb-btn-skip" onclick="closeFeedback('skip')">דלג</button>
+        <button class="fb-btn-send" id="fbSendBtn" onclick="submitFeedback()">שליחה</button>
+      </div>
+    </div>
+    <!-- Thank-you state (replaces question after submit) -->
+    <div id="fbStateThanks" style="display:none;">
+      <div class="fb-thanks">
+        <div class="fb-check">✓</div>
+        <h3>תודה רבה!</h3>
+        <p>הפידבק שלך נשלח. נשמח אם תרצה גם להירשם לרשימת ההמתנה.</p>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
+          <button class="fb-btn-skip" onclick="closeFeedback()">סגור</button>
+          <button class="fb-btn-send" onclick="closeFeedback();setTimeout(openWaitlistModal,200);">הצטרפו לרשימה</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  /* ── Feedback widget logic ────────────────────────────────────────────
+     Submits to Google Forms via fetch(no-cors). The response is opaque
+     (we can't read status), but Google Forms reliably stores anything
+     POSTed with the right entry IDs even with mode:'no-cors'. */
+  const FB_FORM_ID = '1FAIpQLScpet6fU7Xp86bt9aW9_SnCyDq1Er0aZNijca-v_3gHUxbBQw';
+  const FB_FIELD_ID = 'entry.1492535224';      // "פידבק נוסף" — paragraph, optional
+  const FB_NAME_ID = 'entry.701312338';        // "שם מלא" — required
+  const FB_EMAIL_ID = 'entry.897546394';       // "אימייל" — required + email validator
+  const FB_USETYPE_ID = 'entry.1790962485';    // "סוג שימוש" — required, multiple choice
+  // localStorage key — once a user has submitted/dismissed feedback we don't
+  // bother them again on the same browser. They can still click the launcher.
+  const FB_SEEN_KEY = 'klaser_fb_dismissed';
+
+  function openFeedback(source) {
+    const ov = document.getElementById('fbOverlay');
+    if (!ov) return;
+    // Reset to the question state in case it was previously left on "thanks".
+    document.getElementById('fbStateQuestion').style.display = '';
+    document.getElementById('fbStateThanks').style.display = 'none';
+    // Customize the prompt based on how the widget was triggered.
+    if (source === 'exit') {
+      document.getElementById('fbTitle').textContent = 'רגע לפני שאתה הולך…';
+      document.getElementById('fbSubtitle').textContent = 'מה היה חסר לך באתר? תגובה אחת קצרה תעזור לנו לשפר.';
+    } else {
+      document.getElementById('fbTitle').textContent = 'מה לדעתך כדאי לשפר באתר?';
+      document.getElementById('fbSubtitle').textContent = 'ההערה שלך אנונימית ועוזרת לנו מאוד. תוכלו לכתוב כמה משפטים או רק מילה אחת.';
+    }
+    ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    // Track open event in Vercel Analytics so we can see how many people
+    // engage with the feedback prompt vs. ignore it.
+    try { if (window.va) window.va('event', { name: 'feedback_open', source: source || 'unknown' }); } catch(e) {}
+    // Focus the textarea so the user can type immediately.
+    setTimeout(() => { try { document.getElementById('fbText').focus(); } catch(e) {} }, 50);
+  }
+
+  function closeFeedback(reason) {
+    const ov = document.getElementById('fbOverlay');
+    if (ov) ov.classList.remove('open');
+    document.body.style.overflow = '';
+    // Remember the user's interaction so exit-intent doesn't re-fire.
+    try { localStorage.setItem(FB_SEEN_KEY, String(Date.now())); } catch(e) {}
+    if (reason === 'skip') {
+      try { if (window.va) window.va('event', { name: 'feedback_skip' }); } catch(e) {}
+    }
+  }
+
+  async function submitFeedback() {
+    const txt = (document.getElementById('fbText').value || '').trim();
+    if (!txt) {
+      // Empty submission — just close like a skip.
+      closeFeedback('skip');
+      return;
+    }
+    const btn = document.getElementById('fbSendBtn');
+    btn.disabled = true;
+    btn.textContent = '...שולח';
+    // Build form-encoded body with placeholders for required fields.
+    // Using `(פידבק מהאתר)` as the name makes anonymous feedback rows
+    // easy to spot in the response Sheet.
+    const params = new URLSearchParams();
+    params.append(FB_NAME_ID, '(פידבק מהאתר)');
+    params.append(FB_EMAIL_ID, 'anonymous@klaser.app');
+    params.append(FB_USETYPE_ID, 'שימוש אישי ומשפחתי');  // arbitrary default
+    params.append(FB_FIELD_ID, txt);
+    params.append('fvv', '1');
+    params.append('pageHistory', '0');
+    try {
+      await fetch(`https://docs.google.com/forms/d/e/${FB_FORM_ID}/formResponse`, {
+        method: 'POST',
+        mode: 'no-cors',           // opaque response, but Google accepts the data
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+    } catch (e) {
+      // Silent — we can't read status anyway. UI flow continues regardless.
+      console.warn('Feedback submission error (likely benign):', e);
+    }
+    // Switch to the thank-you state regardless of network outcome.
+    document.getElementById('fbStateQuestion').style.display = 'none';
+    document.getElementById('fbStateThanks').style.display = '';
+    try { localStorage.setItem(FB_SEEN_KEY, String(Date.now())); } catch(e) {}
+    try { if (window.va) window.va('event', { name: 'feedback_submit' }); } catch(e) {}
+    btn.disabled = false;
+    btn.textContent = 'שליחה';
+  }
+
+  /* ── Exit-intent + time-on-page trigger ────────────────────────────────
+     We pop the feedback modal the FIRST time one of these conditions is
+     met (and the user hasn't already interacted with feedback):
+       a) Desktop: mouse leaves the top edge of the viewport ("about to
+          close the tab"). Detected via `mouseleave` on document with
+          clientY <= 0.
+       b) Mobile / fallback: after 35 seconds on the page with NO recent
+          scrolling activity (proxy for "thinking about leaving"). */
+  (function setupExitIntent() {
+    let triggered = false;
+    function shouldSkip() {
+      // Don't show if user is logged in (no .locked class on body) or if
+      // they've already engaged with feedback in any way.
+      if (!document.body.classList.contains('locked')) return true;
+      try {
+        if (localStorage.getItem(FB_SEEN_KEY)) return true;
+      } catch(e) {}
+      // Don't interrupt if any other modal is open.
+      if (document.querySelector('.waitlist-overlay.open')) return true;
+      if (document.querySelector('.fb-overlay.open')) return true;
+      return false;
+    }
+    function trigger() {
+      if (triggered) return;
+      if (shouldSkip()) return;
+      triggered = true;
+      openFeedback('exit');
+    }
+    // Desktop exit-intent: mouse moves toward the browser chrome.
+    document.addEventListener('mouseleave', (e) => {
+      if (e.clientY <= 0) trigger();
+    });
+    // Mobile/tablet fallback: idle timer. Resets on scroll.
+    let idleTimer = null;
+    function resetIdle() {
+      if (triggered) return;
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(trigger, 35000);
+    }
+    window.addEventListener('scroll', resetIdle, { passive: true });
+    window.addEventListener('touchstart', resetIdle, { passive: true });
+    // Kick off the initial idle countdown after the page has settled.
+    setTimeout(resetIdle, 1000);
+  })();
+
+  // ESC also closes feedback
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const ov = document.getElementById('fbOverlay');
+    if (ov && ov.classList.contains('open')) {
+      e.preventDefault();
+      closeFeedback();
+    }
+  });
+
+  window.openFeedback = openFeedback;
+  window.closeFeedback = closeFeedback;
+  window.submitFeedback = submitFeedback;
+</script>
 
 <!-- ══ WAITLIST MODAL ══
      Embeds the Google Form via iframe. The iframe `src` is empty on initial
