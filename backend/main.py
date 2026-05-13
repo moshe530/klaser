@@ -57,12 +57,14 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    # Auto-allow all Netlify previews, Cloudflare Pages, and Cloudflare Workers
-    # subdomains so deploy-preview URLs work without manual env changes.
+    # Auto-allow all Netlify previews, Cloudflare Pages, Cloudflare Workers,
+    # and Vercel deployments so deploy-preview URLs work without manual env
+    # changes. Vercel uses patterns like `klaser.vercel.app` (production) or
+    # `klaser-git-branch-team.vercel.app` (preview branches).
     allow_origin_regex=(
         # Match any number of subdomain levels — Cloudflare Workers use
         # patterns like `app.account.workers.dev` (two levels).
-        r"^https://([a-zA-Z0-9-]+\.)*(netlify\.app|pages\.dev|workers\.dev)$"
+        r"^https://([a-zA-Z0-9-]+\.)*(netlify\.app|pages\.dev|workers\.dev|vercel\.app)$"
     ),
     allow_credentials=True,
     allow_methods=["*"],
