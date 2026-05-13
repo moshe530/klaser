@@ -206,10 +206,11 @@
     if (!r) return;
     closeCommandPalette();
     if (r.kind === 'doc') {
-      // Open the doc's edit modal if that function exists; otherwise
-      // fall back to scrolling to the docs tab and filtering by id.
-      if (typeof openEditModal === 'function') {
-        openEditModal(r.doc.id);
+      // Open the doc's edit modal. The function is `openEdit` in app.js
+      // (not `openEditModal` — the latter never existed). Falls back to
+      // a tab switch if app.js hasn't loaded for some reason.
+      if (typeof openEdit === 'function') {
+        openEdit(r.doc.id);
       } else if (typeof showTab === 'function') {
         showTab('docs');
       }

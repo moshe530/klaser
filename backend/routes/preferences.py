@@ -35,11 +35,13 @@ ALLOWED_KEYS = {
     "custom_tabs",       # ordered list of custom subnav tabs
     "sub_branches",      # per-category sub-branch lists
     "tab_order",         # explicit tab display order
-    "user_settings",     # misc UI settings (AI banner timeout, etc.)
+    "user_settings",     # misc UI settings (AI banner timeout, theme, etc.)
     "alerts_handled",    # bell-panel handled ids
     "alerts_pending",    # bell-panel "later" ids
     "avatar_color",      # avatar color picker selection
-    "people",            # family members (personal account)
+    "people",            # simple family-member chip list (legacy)
+    "family_profiles",   # rich family/business profiles (with avatars, roles)
+    "doc_color_map",     # per-doc color tag overrides
 }
 
 

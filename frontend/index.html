@@ -80,6 +80,20 @@ html[data-theme="dark"] select{
   background:var(--surface2);color:var(--text);border-color:var(--border);
 }
 html[data-theme="dark"] .landing-view{background:var(--bg);color:var(--text);}
+/* Specific overrides for components whose CSS hard-codes #fff. Keeping
+   the hard-codes in the light theme (so light-mode users see the same
+   visuals as before) and patching them here. */
+html[data-theme="dark"] .sidebar{background:var(--surface);color:var(--text);}
+html[data-theme="dark"] .add-tab-menu{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+html[data-theme="dark"] .doc-card.is-failed{border-color:#7F1D1D;background:#2A1010;}
+/* The topbar "+ הוסף מסמך" button is white-on-navy in light mode and
+   needs to become slightly dimmed in dark mode so it doesn't blind. */
+html[data-theme="dark"] .btn-primary{background:var(--surface2);color:var(--text);}
+html[data-theme="dark"] .btn-primary:hover{background:var(--surface3);}
+/* Subnav active state — white pill on navy. In dark the navy is darker
+   so a plain white pill is OK, but soften slightly. */
+html[data-theme="dark"] .subnav-tab.active{background:var(--surface);color:var(--text);}
+/* Toggle switch knob — the #fff circle is fine on a dark track, no fix. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);font-size:17px;line-height:1.55;}
@@ -1003,7 +1017,12 @@ body.locked .landing-view{display:block;}
    Big bottom-right button on mobile that opens the add-document modal.
    Hidden on desktop where the topbar "+ הוסף מסמך" button is enough. */
 .mobile-fab{
-  display:none;position:fixed;bottom:18px;left:18px;z-index:300;
+  display:none;position:fixed;
+  /* Sit ABOVE the mobile bottom-nav (height = --bottom-h = 60px) and
+     respect the iOS home-indicator safe area on iPhone X+. Otherwise the
+     FAB would be hidden under the nav bar. */
+  bottom:calc(var(--bottom-h) + 14px + env(safe-area-inset-bottom, 0px));
+  left:18px;z-index:300;
   width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
   background:var(--accent);color:#fff;
   box-shadow:0 8px 24px rgba(0,0,0,0.25);

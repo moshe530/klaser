@@ -3375,7 +3375,13 @@ const _ONBOARDING_FAMILY = {
   icon: '👨‍👩‍👧',
   cta: 'הוסף בן משפחה',
   skip: 'אני לבד',
-  onComplete: () => openModal('person')
+  // `openProfileModal()` is the rich family-profiles dialog (with
+  // avatar/color/role). The earlier `openModal('person')` referenced a
+  // modal that never existed — this threw silently during onboarding.
+  onComplete: () => {
+    if (typeof openProfileModal === 'function') openProfileModal();
+    else if (typeof addPerson === 'function') addPerson();
+  }
 };
 // Business-mode third step: add a custom tab for clients/suppliers/etc.
 const _ONBOARDING_BUSINESS_TAB = {
