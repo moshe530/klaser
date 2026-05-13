@@ -7,6 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<!-- Wake-up ping for the Render free-tier backend.
+     The dyno sleeps after ~15min of inactivity and takes ~25-30s to cold-start.
+     Firing this *before any other script* means the server starts warming up
+     while the user is still reading the landing page or typing credentials.
+     By the time they hit "התחבר", the API is usually ready.
+     Fire-and-forget — failures are silent, the user-flow doesn't depend on it. -->
+<script>
+  try { fetch('https://klaser.onrender.com/health', { cache: 'no-store', mode: 'cors' }).catch(()=>{}); } catch(e) {}
+</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
 :root {

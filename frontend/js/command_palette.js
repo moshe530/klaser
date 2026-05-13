@@ -226,11 +226,17 @@
     const overlay = document.getElementById('cmdkOverlay');
     const isOpen = overlay && overlay.classList.contains('open');
 
-    // Global Ctrl/Cmd+K opens the palette from anywhere. Skip while typing
-    // in a content-editable / textarea to avoid stealing keystrokes in the
-    // middle of document editing.
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+    // Global Ctrl/Cmd+K opens the palette from anywhere.
+    //
+    // IMPORTANT: we match on `e.code` (physical key location, e.g. "KeyK")
+    // rather than `e.key` (the produced character). On a Hebrew layout the
+    // physical K key produces the character 'ל', so an `e.key === 'k'` check
+    // would silently miss Hebrew users — and the browser would then handle
+    // Ctrl+K as its own shortcut (focus the address bar with a search prefix
+    // in Chrome/Firefox). `e.code` is layout-independent.
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
+      e.stopPropagation();
       if (isOpen) closeCommandPalette(); else openCommandPalette();
       return;
     }

@@ -1512,6 +1512,16 @@ function openModal(id) {
     const sel = document.getElementById('fm-assigned');
     if (sel) sel.value = '';
   }
+  // Wake-up ping for the auth modal: if the user just opened the login form,
+  // pre-warm the Render backend so the post-login data fetch is fast. The
+  // initial <head> ping covers fresh page loads; this covers users who
+  // opened the page hours ago and only now decided to sign in.
+  if (id === 'auth') {
+    try {
+      const url = (window.KLASER_CONFIG && window.KLASER_CONFIG.API_URL) || 'https://klaser.onrender.com';
+      fetch(url + '/health', { cache: 'no-store', mode: 'cors' }).catch(() => {});
+    } catch (e) {}
+  }
   document.getElementById('modal-' + id).classList.add('open');
 }
 function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
@@ -2003,6 +2013,17 @@ async function authSubmit() {
   btn.disabled = true;
   const originalText = btn.textContent;
   btn.textContent = '...';
+  // Cold-start UX: if the Render free-tier backend was sleeping, the first
+  // request after sign-in can take 25-30s. We've already pre-warmed it on
+  // page load (see <head>), but if the user opened the modal long ago the
+  // dyno may have re-slept. After 4s of waiting, swap the button label to
+  // tell them what's happening so it doesn't feel broken.
+  const slowHintTimer = setTimeout(() => {
+    if (btn.disabled) btn.textContent = '⏳ מתעורר...';
+  }, 4000);
+  const verySlowHintTimer = setTimeout(() => {
+    if (btn.disabled) btn.textContent = '⏳ עוד רגע (כניסה ראשונה)';
+  }, 12000);
   try {
     let isNewSignup = false;
     if (authMode === 'signup') {
@@ -2067,6 +2088,8 @@ async function authSubmit() {
       showAuthError(msg || 'שגיאה בהתחברות');
     }
   } finally {
+    clearTimeout(slowHintTimer);
+    clearTimeout(verySlowHintTimer);
     btn.disabled = false;
     btn.textContent = originalText;
   }
