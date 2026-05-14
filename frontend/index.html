@@ -16,7 +16,6 @@
 <script>
   try { fetch('https://klaser.onrender.com/health', { cache: 'no-store', mode: 'cors' }).catch(()=>{}); } catch(e) {}
 </script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <!-- Vercel Web Analytics — vanilla-HTML integration.
      Vercel auto-injects the actual tracker script at /_vercel/insights/script.js
      when the project has Web Analytics enabled in the dashboard. We define the
@@ -2421,7 +2420,6 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
       <label>סיסמה</label>
       <input class="form-input" type="password" id="auth-password" placeholder="לפחות 6 תווים" autocomplete="current-password">
     </div>
-    <div id="turnstile-widget" class="cf-turnstile" data-sitekey="0x4AAAAAAAAADKm7CnBj4qQdKQh" data-callback="onTurnstileSuccess" data-size="compact" style="margin-bottom:12px;"></div>
     <!-- Terms consent — required in signup mode. CSS controls visibility
          based on the .active class which is toggled by toggleAuthMode(). -->
     <label class="auth-consent-row" id="authConsentRow">

@@ -1,14 +1,6 @@
 // ─── Klaser Auth (Supabase) ───
 // Manages user session, login, signup, logout. Exposes window.KlaserAuth.
 
-const TURNSTILE_SITE_KEY = '0x4AAAAAAAAADKm7CnBj4qQdKQh';
-
-let captchaToken = null;
-
-window.onTurnstileSuccess = function(token) {
-  captchaToken = token;
-};
-
 (function () {
   const cfg = window.KLASER_CONFIG;
   if (!window.supabase) {
@@ -35,10 +27,6 @@ window.onTurnstileSuccess = function(token) {
       if (typeof window.onAuthChange === 'function') window.onAuthChange(session);
     });
     return currentSession;
-  }
-
-  async function getCaptchaToken() {
-    return null; // Turnstile disabled temporarily (Error 400020)
   }
 
   async function signUp(email, password, metadata) {
