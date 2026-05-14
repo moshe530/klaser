@@ -5,6 +5,7 @@ window.KLASER_CONFIG = {
   API_URL: 'https://klaser.onrender.com',
 
   // Supabase Auth (ערכים פומביים — בטוחים ב-frontend)
-  SUPABASE_URL: 'https://vhxessqwgclivcubpjop.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoeGVzc3F3Z2NsaXZjdWJwam9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDg3OTEsImV4cCI6MjA5MzAyNDc5MX0.ITd2dnFecjx8dh_4eoSdmno0_cv9ubfCjm1Ie9SS6Ro',
+  // EU region: eu-central-1 (Frankfurt) — migrated from ap-southeast-1
+  SUPABASE_URL: 'https://gfabedpkckvrrptbzxhs.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYWJlZHBrY2t2cnJwdGJ6eGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTk4MTcsImV4cCI6MjA5NDI3NTgxN30.-c5mAyyzmP6m-9V_5qjihCT9-Xg91LxmTIl-QkMye3I',
 };
