@@ -126,16 +126,31 @@ def _year_label(d: date | None) -> str:
 
 def _best_period(result: dict[str, Any]) -> tuple[date | None, date | None]:
     """Pick the most informative date for naming. Preference order:
-    purchase_date → document_period.from → warranty_end."""
-    pd = _parse_iso_date(result.get("purchase_date"))
-    if pd:
-        return pd, None
+    purchase_date → document_period.from → warranty_end.
+
+    Exception: for categories where `purchase_date` and `document_period.from`
+    typically refer to DIFFERENT real-world events (payslip: payment-date
+    vs salary-month; recurring bills: due-date vs billing-period), prefer
+    `document_period.from` because that's the period the document
+    *describes*, which is what the user expects in the name."""
+    category = (result.get("category") or "").strip()
     period = result.get("document_period") or {}
-    if isinstance(period, dict):
-        f = _parse_iso_date(period.get("from"))
-        t = _parse_iso_date(period.get("to"))
-        if f or t:
-            return f or t, t
+    period_from = _parse_iso_date(period.get("from")) if isinstance(period, dict) else None
+    period_to   = _parse_iso_date(period.get("to"))   if isinstance(period, dict) else None
+    purchase    = _parse_iso_date(result.get("purchase_date"))
+
+    PERIOD_FIRST = {
+        "תלוש שכר",  # purchase_date=payment, document_period=salary month
+        "חשמל", "מים", "גז", "תקשורת",  # bills: due-date vs billing window
+        "ארנונה", "ועד בית",
+    }
+    if category in PERIOD_FIRST and period_from:
+        return period_from, period_to
+
+    if purchase:
+        return purchase, None
+    if period_from or period_to:
+        return period_from or period_to, period_to
     we = _parse_iso_date(result.get("warranty_end"))
     return we, None
 
