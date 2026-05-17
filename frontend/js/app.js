@@ -1926,6 +1926,16 @@ document.addEventListener('click', (e) => {
   if (!card) return;
   const id = card.dataset.id;
   if (!id) return;
+  // ─── Interactive-element guard ────────────────────────────────────
+  // If the user clicked on a form control inside the card (the amount
+  // picker <select>, an input, a label/option, etc.) we must NOT also
+  // open the document — they're trying to interact with the control,
+  // not view the file. Buttons are handled by the specific matchers
+  // above; this catches everything else (select, input, textarea,
+  // option, label) so the click doesn't bubble into openDocFile().
+  if (e.target.closest('select, input, textarea, option, label, .amount-picker')) {
+    return;
+  }
   if (assignBtn) {
     e.stopPropagation();
     const act = assignBtn.dataset.act;
