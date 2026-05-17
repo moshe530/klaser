@@ -364,6 +364,8 @@ EXTRACTOR_PROMPT_TEMPLATE = f"""אתה מחלץ מידע ממסמך עבור מ�
   "document_type": "string or null",
   "merchant": "string or null",
   "person": "string or null (שם הנפש מהרשימה אם המסמך אישי/רפואי)",
+  "extracted_person_name": "string or null (שם הנפש כפי שמופיע במסמך — לא בהכרח מהרשימה)",
+  "extracted_id_number": "string or null (ספרות בלבד, מספר ת.ז שמופיע במסמך)",
   "purchase_date": "YYYY-MM-DD or null",
   "warranty_end": "YYYY-MM-DD or null",
   "amount": number_or_null,
@@ -383,6 +385,8 @@ def _empty_extraction() -> dict[str, Any]:
         "document_type": None,
         "merchant": None,
         "person": None,
+        "extracted_person_name": None,
+        "extracted_id_number": None,
         "purchase_date": None,
         "warranty_end": None,
         "amount": None,
@@ -451,6 +455,21 @@ def extract(
     )
 
     # If people are provided, append people block + rule #7 (person attribution).
+    # We always ask the AI to extract raw person/ID signals from the document
+    # — even if the user has no people configured yet. The backend matcher
+    # uses these raw fields to score confidence and suggest matches later.
+    person_extraction_block = (
+        "כלל #7 (חילוץ נפש מהמסמך): "
+        "**תמיד** נסה לחלץ מהמסמך את שם האדם שהמסמך עוסק בו (חולה, מבוטח, "
+        "עובד, לקוח) ואת מספר תעודת הזהות שלו אם מופיע. "
+        "החזר אותם בשדות:\n"
+        "  - `extracted_person_name`: השם המלא של האדם במסמך (כפי שמופיע) או null.\n"
+        "  - `extracted_id_number`: רק ספרות (9 ספרות בדרך כלל) או null. "
+        "    התעלם מ'ת.ז.' / 'ID:' / 'מס' זהות:' שלפניו והחזר רק את המספר.\n"
+        "אל תמציא — אם לא מופיע במסמך, החזר null.\n\n"
+    )
+    dynamic_header = dynamic_header + person_extraction_block
+
     if people:
         people_lines = []
         for p in people:
@@ -467,11 +486,13 @@ def extract(
                 "נפשות במערכת (משפחה/לקוחות):\n"
                 + "\n".join(people_lines)
                 + "\n\n"
-                "כלל #7 (זיהוי נפש): אם המסמך הוא אישי/רפואי, נסה לזהות "
-                "למי מהנפשות הוא שייך, **גם לפי שם המופיע במסמך וגם לפי "
-                "מספר תעודת זהות (ת.ז. / מס' זהות / ת.ז.)**. "
+                "כלל #7א (זיהוי נפש מהרשימה): אם המסמך הוא אישי/רפואי, "
+                "נסה לזהות **בנוסף** למי מהנפשות הוא שייך, **גם לפי שם וגם "
+                "לפי מספר תעודת זהות**. "
                 "החזר את שם הנפש המדויק כפי שמופיע ברשימה למעלה בשדה `person`. "
-                "אם לא ניתן לזהות בוודאות — החזר null.\n\n"
+                "אם לא ניתן לזהות בוודאות — החזר null. "
+                "(שדות `extracted_person_name` ו-`extracted_id_number` נשארים "
+                "תמיד כפי שחילצת מהמסמך — לא בהכרח מהרשימה.)\n\n"
             )
             dynamic_header = dynamic_header + people_block
 

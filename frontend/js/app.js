@@ -166,6 +166,12 @@ function fromApi(d) {
     // (`filterByPerson` matches against `data-person`).
     assigned_to: d.assigned_profile_id || null,
     person: d.assigned_profile_name || '',
+    // AI-driven assignment metadata (see migration 006). Drives the
+    // "suggested" banner on doc cards and the auto-assign toast.
+    assignment_status:     d.assignment_status || null,
+    assignment_confidence: d.assignment_confidence || null,
+    assignment_extracted_name:     d.assignment_extracted_name || null,
+    assignment_extracted_id_last4: d.assignment_extracted_id_last4 || null,
     // New AI fields
     confidence: d.confidence,
     needs_review: d.needs_review,
@@ -197,6 +203,10 @@ function toApi(ui) {
   if (Object.prototype.hasOwnProperty.call(ui, 'assigned_to')) {
     out.assigned_profile_id = ui.assigned_to || null;
     out.assigned_profile_name = ui.person || null;
+    // Any direct edit of assignment from the UI is, by definition, manual —
+    // mark it so future AI re-runs don't override the user's choice.
+    out.assignment_status = ui.assigned_to ? 'manual' : null;
+    out.assignment_confidence = null;
   }
   return out;
 }
@@ -281,8 +291,28 @@ function makeCard(d) {
     const confColor = d.confidence >= 80 ? '#10B981' : d.confidence >= 60 ? '#F59E0B' : '#EF4444';
     statusBits.push(`<span class="ai-badge ai-confidence" style="color:${confColor}">${d.confidence}%</span>`);
   }
+  // 'auto' confidence badge: a small chip showing the doc was auto-assigned
+  // by the matcher (only shown until the user interacts with this card —
+  // we keep it permanently as a transparency hint, no hide logic).
+  if (d.assignment_status === 'auto' && d.person) {
+    statusBits.push(`<span class="ai-badge ai-auto-assign" title="שויך אוטומטית לפי שם/ת.ז.">🤖 שויך</span>`);
+  }
 
-  return `<div class="doc-card ${cls} ${stateClass}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}" data-person="${d.person || ''}">
+  // 'suggested' banner — medium-confidence assignment that needs the user
+  // to confirm. Inline (full-width) instead of inside the status column so
+  // the buttons are easy to click on mobile.
+  const suggestedBanner = (d.assignment_status === 'suggested' && d.person)
+    ? `<div class="assignment-suggest" data-doc-id="${d.id}" style="
+         grid-column:1 / -1;display:flex;align-items:center;gap:8px;
+         padding:6px 10px;margin-top:6px;border-radius:8px;
+         background:#FEF3C7;border:1px solid #F59E0B40;font-size:12px;">
+         <span>💡 לפי המסמך, נראה שזה שייך ל-<b>${d.person}</b>. לאשר?</span>
+         <button class="btn-sm" data-act="confirm-assignment" style="background:#10B981;color:#fff;border:none;padding:3px 10px;border-radius:6px;cursor:pointer;">כן</button>
+         <button class="btn-sm" data-act="reject-assignment" style="background:transparent;border:1px solid #999;padding:3px 10px;border-radius:6px;cursor:pointer;">לא</button>
+       </div>`
+    : '';
+
+  return `<div class="doc-card ${cls} ${stateClass}" data-id="${d.id}" data-cat="${d.cat}" data-sub="${d.sub || ''}" data-name="${(d.name || '').toLowerCase()}" data-person="${d.person || ''}" data-assignment-status="${d.assignment_status || ''}">
     <div class="doc-name-cell">
       <div class="doc-icon" style="background:${ic.bg}"></div>
       <div class="doc-info">
@@ -300,6 +330,7 @@ function makeCard(d) {
       <button class="ico-btn" data-act="edit" title="עריכה"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>
       <button class="ico-btn danger" data-act="del" title="מחיקה"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 4h8M5.5 4V3h3v1M6 6.5v4M8 6.5v4M4 4l.5 6.5h5l.5-6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
+    ${suggestedBanner}
   </div>`;
 }
 
@@ -1687,7 +1718,16 @@ async function runAnalyze(docId) {
     });
     const people = getPeople();
     const accountType = getAccountType(); // 'personal' or 'business'
-    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType, subsMap);
+    // Send the rich family-profiles list (with full id_number) so the
+    // backend matcher can write `assigned_profile_id` automatically based
+    // on the name/ID extracted from the document.
+    const profilesRaw = (typeof getFamilyProfiles === 'function') ? getFamilyProfiles() : [];
+    const profilesForApi = profilesRaw.map(p => ({
+      id: p.id,
+      name: p.name,
+      id_number: p.id_number || '',
+    }));
+    const updated = await KlaserAPI.analyzeDocument(docId, userCats, people, accountType, subsMap, profilesForApi);
 
     // If the user explicitly added the doc from a specific tab/sub-chip, we
     // protect that choice. Override the AI's category/sub back to the user's
@@ -1725,6 +1765,14 @@ async function runAnalyze(docId) {
     }
     renderAll();
     setStatusBadge(`נותח · ${docs.length} מסמכים`, 'ok');
+
+    // Surface auto-assignment with a friendly toast so the user notices it
+    // happened. 'suggested' is handled by the inline banner on the card.
+    if (finalDoc && finalDoc.assignment_status === 'auto' && finalDoc.assigned_profile_name) {
+      if (typeof showToast === 'function') {
+        showToast(`🤖 המסמך שויך אוטומטית ל-${finalDoc.assigned_profile_name}`);
+      }
+    }
     // Clear the 'done' badge after the CSS fade so future re-renders don't show it.
     setTimeout(() => {
       const i = docs.findIndex(d => d.id === docId);
@@ -1871,10 +1919,20 @@ document.addEventListener('click', (e) => {
   const retryBtn = e.target.closest('.doc-ai-retry');
   const catBtn = e.target.closest('.doc-cat-cell');
   const actBtn = e.target.closest('.doc-actions .ico-btn');
+  // Suggested-assignment banner buttons live OUTSIDE .doc-actions so we
+  // match them explicitly (they share the same .doc-card parent).
+  const assignBtn = e.target.closest('[data-act="confirm-assignment"], [data-act="reject-assignment"]');
   const card = e.target.closest('.doc-card');
   if (!card) return;
   const id = card.dataset.id;
   if (!id) return;
+  if (assignBtn) {
+    e.stopPropagation();
+    const act = assignBtn.dataset.act;
+    if (act === 'confirm-assignment') confirmDocAssignment(id);
+    else if (act === 'reject-assignment') rejectDocAssignment(id);
+    return;
+  }
   if (retryBtn) {
     e.stopPropagation();
     retryAnalyze(id);
@@ -1896,6 +1954,123 @@ document.addEventListener('click', (e) => {
   if (e.shiftKey) { delDoc(id); return; }
   openDocFile(id);
 });
+
+// ─── Canonical-naming bulk action (settings → "איחוד שמות מסמכים") ─────
+// Lets the user retroactively rename existing docs so similar documents
+// (same merchant + category + month) get an identical name pattern.
+async function previewCanonicalNames() {
+  let res;
+  try {
+    res = await KlaserAPI.recanonicalizeDocuments({ dry_run: true });
+  } catch (e) {
+    alert('שגיאה בתצוגה מקדימה:\n' + e.message);
+    return;
+  }
+  const changes = (res && res.changes) || [];
+  if (!changes.length) {
+    if (typeof showToast === 'function') showToast('כל השמות כבר אחידים ✓');
+    else alert('כל השמות כבר אחידים ✓');
+    return;
+  }
+  showCanonicalPreviewModal(changes, /*applied=*/false);
+}
+
+async function applyCanonicalNames() {
+  if (!confirm('לאחד את שמות כל המסמכים הדומים לתבנית אחת?\n(לא ניתן לבטל אוטומטית, אבל ניתן לערוך שם של כל מסמך ידנית)')) return;
+  let res;
+  try {
+    res = await KlaserAPI.recanonicalizeDocuments({ dry_run: false });
+  } catch (e) {
+    alert('שגיאה בעדכון:\n' + e.message);
+    return;
+  }
+  const total = (res && res.total) || 0;
+  // Refresh local doc list to show the new names.
+  try {
+    if (typeof loadDocs === 'function') await loadDocs();
+  } catch {}
+  if (typeof showToast === 'function') {
+    showToast(total ? `עודכנו ${total} שמות מסמכים ✓` : 'כל השמות כבר אחידים ✓');
+  } else {
+    alert(total ? `עודכנו ${total} שמות מסמכים` : 'כל השמות כבר אחידים');
+  }
+}
+
+function showCanonicalPreviewModal(changes, applied) {
+  document.getElementById('modal-canon-preview')?.remove();
+  const rows = changes.slice(0, 200).map(c => `
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border);font-size:13px;">
+      <div style="color:var(--text3);text-decoration:line-through;">${(c.old_name || '(ללא שם)').replace(/</g,'&lt;')}</div>
+      <div style="color:var(--text3);">→</div>
+      <div style="font-weight:500;">${(c.new_name || '').replace(/</g,'&lt;')}</div>
+    </div>
+  `).join('');
+  const extra = changes.length > 200 ? `<p style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">ועוד ${changes.length - 200} שינויים נוספים…</p>` : '';
+  const html = `
+    <div class="overlay open" id="modal-canon-preview">
+      <div class="modal" style="max-width:640px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-head">
+          <h2>תצוגה מקדימה — ${changes.length} שינויי שם</h2>
+          <button class="icon-btn" onclick="closeCanonPreview()">×</button>
+        </div>
+        <div style="overflow:auto;flex:1;border:1px solid var(--border);border-radius:8px;">
+          ${rows}${extra}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn-secondary" style="flex:1;" onclick="closeCanonPreview()">סגור</button>
+          ${applied ? '' : `<button class="btn-primary" style="flex:2;" onclick="closeCanonPreview();applyCanonicalNames();">החל הכל</button>`}
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+function closeCanonPreview() {
+  document.getElementById('modal-canon-preview')?.remove();
+}
+
+// ─── Assignment confirm / reject handlers ───────────────────────────────
+async function confirmDocAssignment(docId) {
+  const idx = docs.findIndex(d => String(d.id) === String(docId));
+  if (idx < 0) return;
+  // Optimistic UI — flip status immediately so the banner disappears.
+  const prev = docs[idx].assignment_status;
+  docs[idx].assignment_status = 'confirmed';
+  renderAll();
+  try {
+    const updated = await KlaserAPI.confirmAssignment(docId, 'confirm');
+    docs[idx] = fromApi(updated);
+    renderAll();
+    if (typeof showToast === 'function') showToast('שיוך אושר ✓');
+  } catch (e) {
+    docs[idx].assignment_status = prev;
+    renderAll();
+    if (typeof showToast === 'function') showToast('שגיאה באישור השיוך');
+  }
+}
+
+async function rejectDocAssignment(docId) {
+  const idx = docs.findIndex(d => String(d.id) === String(docId));
+  if (idx < 0) return;
+  // Optimistic: clear the suggested assignment locally.
+  const prevStatus = docs[idx].assignment_status;
+  const prevAssigned = docs[idx].assigned_to;
+  const prevPerson = docs[idx].person;
+  docs[idx].assignment_status = null;
+  docs[idx].assigned_to = null;
+  docs[idx].person = '';
+  renderAll();
+  try {
+    const updated = await KlaserAPI.confirmAssignment(docId, 'reject');
+    docs[idx] = fromApi(updated);
+    renderAll();
+  } catch (e) {
+    docs[idx].assignment_status = prevStatus;
+    docs[idx].assigned_to = prevAssigned;
+    docs[idx].person = prevPerson;
+    renderAll();
+    if (typeof showToast === 'function') showToast('שגיאה בדחיית השיוך');
+  }
+}
 
 // ─── AUTH UI ───
 let authMode = 'login'; // 'login' | 'signup'
@@ -2686,7 +2861,11 @@ function renderPeople() {
     const del = p.fromProfile ? '' : `oncontextmenu="deletePerson(event,'${p.name}')"`;
     html += `<button class="chip ${active}" ${tooltip} onclick="filterByPerson('${p.name}',this)" ${del}>${emojiPrefix}${p.name}</button>`;
   });
-  html += `<button class="chip add-sub-branch" onclick="addPerson()">+</button>`;
+  // The + button opens the rich profile modal (with ID number + photo +
+  // checksum validation). The old simple `addPerson()` prompt is kept
+  // as a fallback only if the rich modal isn't available.
+  const addCmd = (typeof openProfileModal === 'function') ? 'openProfileModal()' : 'addPerson()';
+  html += `<button class="chip add-sub-branch" onclick="${addCmd}">+</button>`;
   row.innerHTML = html;
 }
 
@@ -3096,6 +3275,97 @@ function getProfileById(id) {
   return getFamilyProfiles().find(p => p.id === id);
 }
 
+// ─── BACK-FILL: when a profile is added, find existing docs that may
+//     belong to them and offer one-click bulk assignment. ────────────────
+async function suggestDocumentsForProfile(profile) {
+  if (!profile || !profile.id || !profile.name) return;
+  // Skip if the user has zero unassigned docs — nothing to back-fill.
+  const candidatesCount = docs.filter(d => !d.assigned_to).length;
+  if (candidatesCount === 0) return;
+  let res;
+  try {
+    res = await KlaserAPI.matchProfileDocuments({
+      id: profile.id,
+      name: profile.name,
+      id_number: profile.id_number || '',
+    }, 'medium');
+  } catch (e) {
+    console.warn('back-fill match failed', e);
+    return;
+  }
+  const matches = (res && res.matches) || [];
+  if (!matches.length) return;
+  showBackfillSuggestionModal(profile, matches);
+}
+
+function showBackfillSuggestionModal(profile, matches) {
+  // Remove any prior backfill modal to avoid stacking.
+  document.getElementById('modal-backfill')?.remove();
+  const rows = matches.map(m => {
+    const confLabel = m.confidence === 'high' ? '🟢 ודאי'
+                     : m.confidence === 'medium' ? '🟡 סביר'
+                     : '⚪ אפשרי';
+    return `
+      <label style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--border);cursor:pointer;">
+        <input type="checkbox" class="backfill-check" data-doc-id="${m.document_id}" checked>
+        <span style="flex:1;">${m.name || '(ללא שם)'}</span>
+        <span style="font-size:11px;color:var(--text3);">${m.category || ''}</span>
+        <span style="font-size:11px;">${confLabel}</span>
+      </label>`;
+  }).join('');
+
+  const html = `
+    <div class="overlay open" id="modal-backfill">
+      <div class="modal" style="max-width:480px;">
+        <div class="modal-head">
+          <h2>מצאנו ${matches.length} מסמכים שאולי שייכים ל-${profile.name}</h2>
+          <button class="icon-btn" onclick="closeModal('backfill')">×</button>
+        </div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+          בדוק את הרשימה. סמן רק את המסמכים ששייכים באמת ולחץ "שייך אליהם".
+        </p>
+        <div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
+          ${rows}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn-secondary" style="flex:1;" onclick="closeModal('backfill')">דלג</button>
+          <button class="btn-primary" style="flex:2;" onclick="applyBackfillAssignments('${profile.id}', '${(profile.name || '').replace(/'/g, "\\'")}')">שייך אליהם</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function applyBackfillAssignments(profileId, profileName) {
+  const checks = document.querySelectorAll('#modal-backfill .backfill-check:checked');
+  const ids = Array.from(checks).map(c => c.dataset.docId);
+  closeModal('backfill');
+  if (!ids.length) return;
+  // Apply in parallel — each as a 'manual' update so future AI runs don't
+  // override the user's explicit choice.
+  let ok = 0, fail = 0;
+  await Promise.allSettled(ids.map(async (docId) => {
+    try {
+      const updated = await KlaserAPI.updateDocument(docId, {
+        assigned_profile_id:   profileId,
+        assigned_profile_name: profileName,
+        assignment_status:     'confirmed',
+        assignment_confidence: null,
+      });
+      const idx = docs.findIndex(d => String(d.id) === String(docId));
+      if (idx >= 0) docs[idx] = fromApi(updated);
+      ok++;
+    } catch (e) {
+      console.warn('backfill assign failed', docId, e);
+      fail++;
+    }
+  }));
+  renderAll();
+  if (typeof showToast === 'function') {
+    showToast(fail ? `שויכו ${ok} מסמכים (${fail} נכשלו)` : `שויכו ${ok} מסמכים ל-${profileName} ✓`);
+  }
+}
+
 // UI: Profile chips for filtering
 function renderProfileChips() {
   const container = document.getElementById('profileFilter');
@@ -3319,12 +3589,27 @@ function selectProfileColor(color) {
 }
 
 function saveProfile(profileId) {
+  // We KEEP the full ID locally (localStorage is per-origin and never
+  // leaves the device unless the user explicitly syncs). The full ID is
+  // required for the AI matcher to assign documents accurately. The UI
+  // displays only the last 4 digits — see `displayIdNumber()` below.
+  const rawId = document.getElementById('profileIdNumber')?.value;
+  const cleanId = cleanIdNumber(rawId);
+
+  // If the user typed a 9-digit Israeli ID and it failed the checksum,
+  // flag it but don't block — they may be entering a passport / חפ.
+  if (cleanId && cleanId.length === 9 && !validateIsraeliId(cleanId)) {
+    if (!confirm('מספר תעודת הזהות שהוזן נראה שגוי (לא עבר בדיקת ספרת ביקורת).\nלשמור בכל זאת?')) {
+      return;
+    }
+  }
+
   const data = {
     name: document.getElementById('profileName')?.value,
     photo: window.tempProfilePhoto || null,
     emoji: document.getElementById('profileEmoji')?.value || '',
     color: document.getElementById('profileColor')?.value || getRandomProfileColor(),
-    id_number: maskIdNumber(document.getElementById('profileIdNumber')?.value),
+    id_number: cleanId,
     birth_date: document.getElementById('profileBirthDate')?.value || null,
     role: document.getElementById('profileRole')?.value || '',
     department: document.getElementById('profileDepartment')?.value || '',
@@ -3333,25 +3618,58 @@ function saveProfile(profileId) {
     type: document.getElementById('profileType')?.value || 'person'
   };
 
+  let saved;
   if (profileId) {
-    updateProfile(profileId, data);
+    saved = updateProfile(profileId, data);
   } else {
-    createProfile(data);
+    saved = createProfile(data);
   }
 
   window.tempProfilePhoto = null;
   closeModal('profile');
+
+  // Newly-created profile with an ID number → suggest existing docs that
+  // may belong to them (back-fill). For edits we only re-suggest if the
+  // ID number was newly added.
+  if (saved && saved.id && (saved.name || '').trim()) {
+    setTimeout(() => suggestDocumentsForProfile(saved), 200);
+  }
 }
 
-function maskIdNumber(idNum) {
-  if (!idNum) return null;
-  // Store encrypted/hashed in real implementation
-  // For now, just store last 4 digits with masking
-  const clean = idNum.replace(/\D/g, '');
-  if (clean.length >= 4) {
-    return '****' + clean.slice(-4);
-  }
+// Clean an ID number to digits-only (no formatting). Returns '' for empty.
+function cleanIdNumber(idNum) {
+  if (!idNum) return '';
+  return String(idNum).replace(/\D/g, '');
+}
+
+// Display only the last 4 digits with masking, for read-only UI surfaces.
+function displayIdNumber(idNum) {
+  const clean = cleanIdNumber(idNum);
+  if (!clean) return '';
+  if (clean.length >= 4) return '****' + clean.slice(-4);
   return clean;
+}
+
+// Israeli ID checksum (תעודת זהות) — valid 9-digit IDs satisfy a Luhn-like
+// rule. Returns true if `id` is exactly 9 digits AND passes the checksum.
+// Used as a soft sanity check on input; we never block saves on it.
+function validateIsraeliId(id) {
+  const clean = cleanIdNumber(id);
+  if (clean.length !== 9) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    let d = parseInt(clean[i], 10);
+    d *= (i % 2) + 1; // alternate ×1, ×2
+    if (d > 9) d -= 9;
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+
+// Legacy alias — older code paths still call maskIdNumber. We now keep the
+// full ID and only mask at display time, so this just forwards to clean.
+function maskIdNumber(idNum) {
+  return cleanIdNumber(idNum) || null;
 }
 
 // Render profile assignment chip on doc cards

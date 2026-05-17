@@ -48,6 +48,9 @@ def _full_skeleton() -> dict[str, Any]:
         "amount_labels":     [],
         "document_period":   None,
         "summary":           None,
+        "person":                None,
+        "extracted_person_name": None,
+        "extracted_id_number":   None,
         # Classifier fields
         "doc_type_detected": None,
         "confidence":        None,

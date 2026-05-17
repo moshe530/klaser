@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, File, HTTPException, Query, Request, Upload
 from ..auth import AuthContext, AuthDep
 from ..limiter import limiter
 from ..models import DocumentCreate, DocumentOut, DocumentUpdate
-from ..services import ai_analyzer, storage
+from ..services import ai_analyzer, canonical_namer, profile_matcher, storage
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -240,6 +240,7 @@ def analyze_document(
     # Extract user categories, people, and account type from request body (optional)
     user_categories: list[str] | None = None
     user_people: list[dict] | None = None
+    user_profiles: list[dict] | None = None
     account_type: str = "personal"  # default to personal
     user_subcategories: dict[str, list[str]] | None = None
     if isinstance(payload, dict):
@@ -249,6 +250,12 @@ def analyze_document(
         people = payload.get("people")
         if isinstance(people, list):
             user_people = [p for p in people if isinstance(p, dict) and p.get("name")]
+        # Family profiles list (rich profile dicts: id, name, id_number).
+        # Used after the AI runs, by `profile_matcher`, to map the AI's
+        # extracted person/ID signals to a concrete `assigned_profile_id`.
+        profiles = payload.get("profiles")
+        if isinstance(profiles, list):
+            user_profiles = [p for p in profiles if isinstance(p, dict) and p.get("name")]
         # Account type: 'personal' or 'business' - affects AI prompts
         acct_type = payload.get("account_type")
         if acct_type in ("personal", "business"):
@@ -270,13 +277,32 @@ def analyze_document(
         "id", str(doc_id)
     ).eq("user_id", str(auth.user_id)).execute()
 
+    # Build the `people` list passed to the AI: prefer the rich
+    # family-profiles list (has both name + id_number) and fall back to
+    # the legacy simple-people list. We deduplicate by lowercased name.
+    ai_people: list[dict] = []
+    seen_names: set[str] = set()
+    for src in (user_profiles or [], user_people or []):
+        for p in src:
+            name = (p.get("name") or "").strip()
+            if not name:
+                continue
+            key = name.lower()
+            if key in seen_names:
+                continue
+            seen_names.add(key)
+            ai_people.append({
+                "name": name,
+                "id_number": (p.get("id_number") or "").strip(),
+            })
+
     try:
         data = storage.download_bytes(auth.client, doc["file_path"])
         result = ai_analyzer.analyze_file(
             data,
             doc.get("mime_type") or "application/pdf",
             categories=user_categories,
-            people=user_people,
+            people=ai_people or None,
             account_type=account_type,
             subcategories_map=user_subcategories,
         )
@@ -298,6 +324,49 @@ def analyze_document(
         "ai_data":    result,
         "ocr_status": "done",
     }
+
+    # ── CANONICALIZE merchant + name BEFORE writing fields ──────────────
+    # The AI is non-deterministic: it might spell the same merchant five
+    # different ways across five docs ("בזק", "Bezeq", "בזק בעמ"…). To
+    # keep the user's library tidy and make similar docs *look* similar,
+    # we pick the user's existing display variant (if any) and rebuild
+    # the doc name from a deterministic template.
+    ai_merchant = result.get("merchant")
+    canon_key = canonical_namer.canonicalize_merchant(ai_merchant)
+    if canon_key:
+        try:
+            siblings_res = (
+                auth.client.table(TABLE)
+                .select("name,merchant,category,document_period,purchase_date")
+                .eq("user_id", str(auth.user_id))
+                .neq("id", str(doc_id))
+                .not_.is_("merchant", "null")
+                .limit(50)
+                .execute()
+            )
+            siblings = siblings_res.data or []
+        except Exception:
+            siblings = []
+        alias = canonical_namer.pick_merchant_alias(ai_merchant, siblings)
+        if alias and alias != ai_merchant:
+            # Collapse merchant spelling to the existing canonical variant.
+            result["merchant"] = alias
+    else:
+        siblings = []
+
+    # Build a deterministic name from the extracted fields. We only
+    # override when:
+    #   - the template applies (recurring bills / payslip / etc.), AND
+    #   - the existing name is a placeholder OR this is the first run.
+    # User-edited names are preserved.
+    canonical_name = canonical_namer.build_canonical_name(
+        result,
+        merchant_alias=result.get("merchant"),
+    )
+    if canonical_name:
+        # Replace AI's varied name with the deterministic one so the
+        # generic field_map loop below writes the canonical version.
+        result["name"] = canonical_name
 
     # (a) User-editable extractor fields → fill-if-empty semantics
     field_map = {
@@ -352,6 +421,50 @@ def analyze_document(
         if meta_key in result:
             patch[meta_key] = result[meta_key]
 
+    # ── (c) AUTO-ASSIGN to a family profile based on extracted name + ID ──
+    # We never overwrite an existing 'manual' or 'confirmed' assignment —
+    # those represent explicit user choices that must be preserved across
+    # re-analyses.
+    extracted_name = result.get("extracted_person_name")
+    extracted_id   = result.get("extracted_id_number")
+    existing_status = doc.get("assignment_status")
+    user_protected = existing_status in ("manual", "confirmed")
+
+    # Always store the raw signals (even if no profile matched) — this
+    # powers the "we saw 'Dana' in your doc, add as profile?" CTA later.
+    if extracted_name:
+        patch["assignment_extracted_name"] = str(extracted_name).strip()[:120]
+    last4 = ""
+    if extracted_id:
+        digits = "".join(c for c in str(extracted_id) if c.isdigit())
+        if len(digits) >= 4:
+            last4 = digits[-4:]
+    if last4:
+        patch["assignment_extracted_id_last4"] = last4
+
+    if not user_protected and user_profiles:
+        matched, conf = profile_matcher.match_profile(
+            extracted_name, extracted_id, user_profiles
+        )
+        if matched and conf:
+            # 'low' is informational only — don't auto-write a profile_id
+            # that the user might not approve. The frontend can still
+            # discover low-confidence candidates via the dedicated
+            # /suggest endpoint when explicitly asked.
+            if conf in ("high", "medium"):
+                patch["assigned_profile_id"]     = matched.get("id")
+                patch["assigned_profile_name"]   = matched.get("name")
+                patch["assignment_confidence"]   = conf
+                patch["assignment_status"]       = (
+                    "auto" if conf == "high" else "suggested"
+                )
+            else:
+                patch["assignment_confidence"] = conf
+        elif not user_protected and existing_status not in ("auto", "suggested"):
+            # No match this run — clear any stale auto-assignment from a
+            # previous run so we don't leave wrong data behind.
+            pass
+
     res = (
         auth.client.table(TABLE)
         .update(patch)
@@ -362,3 +475,207 @@ def analyze_document(
     if not res.data:
         raise HTTPException(500, "Failed to update document with AI results")
     return res.data[0]
+
+
+# ============================================================
+# ASSIGNMENT — confirm a 'suggested' (medium-confidence) match
+# ============================================================
+@router.post("/{doc_id}/confirm-assignment", response_model=DocumentOut)
+def confirm_assignment(
+    doc_id: UUID,
+    auth: AuthContext = AuthDep,
+    payload: dict | None = Body(default=None),
+):
+    """User explicitly accepts or rejects a 'suggested' AI assignment.
+
+    Body: {"action": "confirm" | "reject", "profile_id"?: str, "profile_name"?: str}
+      - confirm: keeps the current assigned_profile_id; status → 'confirmed'.
+      - reject: clears assigned_profile_id; status → null. Optionally the
+        client may pass a different profile_id/name to *replace* the
+        suggestion instead of clearing it (combined reject + manual).
+    """
+    doc = _get_owned_doc(auth, doc_id)
+    action = (payload or {}).get("action") if isinstance(payload, dict) else None
+    if action not in ("confirm", "reject"):
+        raise HTTPException(400, "action must be 'confirm' or 'reject'")
+
+    if action == "confirm":
+        update = {
+            "assignment_status": "confirmed",
+        }
+    else:
+        # Reject — optional replacement profile (one-shot manual pick).
+        replacement_id = (payload or {}).get("profile_id")
+        replacement_name = (payload or {}).get("profile_name")
+        if replacement_id:
+            update = {
+                "assigned_profile_id":   str(replacement_id),
+                "assigned_profile_name": str(replacement_name or "")[:120] or None,
+                "assignment_status":     "manual",
+                "assignment_confidence": None,
+            }
+        else:
+            update = {
+                "assigned_profile_id":   None,
+                "assigned_profile_name": None,
+                "assignment_status":     None,
+                "assignment_confidence": None,
+            }
+
+    # Don't overwrite an unrelated doc — only proceed if the doc actually
+    # has a suggestion or was passed a replacement.
+    res = (
+        auth.client.table(TABLE)
+        .update(update)
+        .eq("id", str(doc_id))
+        .eq("user_id", str(auth.user_id))
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(500, "Failed to update assignment")
+    return res.data[0]
+
+
+# ============================================================
+# NAMING — retroactively unify names of existing similar documents.
+# ============================================================
+@router.post("/recanonicalize")
+def recanonicalize_documents(
+    auth: AuthContext = AuthDep,
+    payload: dict | None = Body(default=None),
+):
+    """Re-run the deterministic naming over the user's existing documents
+    so older docs match the same canonical pattern as freshly-analyzed
+    ones (e.g. "בזק — תקשורת — 2025-03"). Cheap — no AI calls; only
+    reads `merchant`/`category`/`document_period`/`purchase_date` and
+    writes a new `name` per row.
+
+    Body (optional):
+      {"dry_run": bool, "category"?: str}
+        - dry_run=true  → return preview without writing.
+        - category      → restrict to one category (e.g. "חשמל").
+    """
+    payload = payload or {}
+    dry_run = bool(payload.get("dry_run"))
+    only_category = payload.get("category")
+
+    q = (
+        auth.client.table(TABLE)
+        .select("id,name,merchant,category,sub_category,document_period,"
+                "purchase_date,warranty_end,document_type")
+        .eq("user_id", str(auth.user_id))
+    )
+    if isinstance(only_category, str) and only_category:
+        q = q.eq("category", only_category)
+    res = q.execute()
+    rows = res.data or []
+
+    # First pass: pick the dominant merchant alias per canonical key.
+    alias_by_canon: dict[str, str] = {}
+    counts: dict[tuple[str, str], int] = {}
+    for r in rows:
+        m = r.get("merchant")
+        if not m:
+            continue
+        c = canonical_namer.canonicalize_merchant(m)
+        if not c:
+            continue
+        counts[(c, m)] = counts.get((c, m), 0) + 1
+    for (c, m), n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0][1])):
+        alias_by_canon.setdefault(c, m)
+
+    # Second pass: rebuild names where the template applies.
+    changes: list[dict] = []
+    for r in rows:
+        merchant = r.get("merchant")
+        canon = canonical_namer.canonicalize_merchant(merchant) if merchant else ""
+        alias = alias_by_canon.get(canon) if canon else None
+        new_name = canonical_namer.build_canonical_name(
+            r, merchant_alias=alias or merchant,
+        )
+        if not new_name or new_name == r.get("name"):
+            continue
+        changes.append({
+            "id": str(r["id"]),
+            "old_name": r.get("name"),
+            "new_name": new_name,
+            "merchant_alias": alias,
+        })
+
+    if not dry_run:
+        for ch in changes:
+            update = {"name": ch["new_name"]}
+            if ch["merchant_alias"]:
+                update["merchant"] = ch["merchant_alias"]
+            try:
+                (
+                    auth.client.table(TABLE)
+                    .update(update)
+                    .eq("id", ch["id"])
+                    .eq("user_id", str(auth.user_id))
+                    .execute()
+                )
+            except Exception as e:  # pragma: no cover — best-effort bulk
+                ch["error"] = str(e)
+    return {
+        "changes": changes,
+        "total":   len(changes),
+        "applied": not dry_run,
+    }
+
+
+# ============================================================
+# ASSIGNMENT — bulk back-fill: find docs that may belong to a profile
+# ============================================================
+@router.post("/match-profile")
+def match_documents_for_profile(
+    auth: AuthContext = AuthDep,
+    payload: dict | None = Body(default=None),
+):
+    """Given a profile (name + optional id_number), scan the user's
+    existing documents and return ones that likely belong to that
+    profile based on AI signals stored in `ai_data` /
+    `assignment_extracted_*`. Used by the "we found 12 medical docs
+    that may be Dana's — review?" UX after a new profile is added.
+
+    Body: {"profile": {"id": str, "name": str, "id_number"?: str},
+           "min_confidence"?: "medium" | "low"}
+    Response: {
+       "matches": [{"document_id": str, "confidence": "high|medium|low",
+                    "name": str, "category": str}, ...]
+    }
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "Missing payload")
+    profile = payload.get("profile")
+    if not isinstance(profile, dict) or not profile.get("name"):
+        raise HTTPException(400, "profile.name is required")
+    min_conf = payload.get("min_confidence") or "medium"
+    if min_conf not in ("medium", "low"):
+        min_conf = "medium"
+
+    # Pull only docs that *could* match (medical/personal). Cheap pre-filter
+    # on category + presence of any extracted signal keeps the scan small.
+    res = (
+        auth.client.table(TABLE)
+        .select("id,name,category,ai_data,assigned_profile_id,"
+                "assignment_extracted_name,assignment_extracted_id_last4")
+        .eq("user_id", str(auth.user_id))
+        .is_("assigned_profile_id", "null")
+        .execute()
+    )
+    docs = res.data or []
+    pairs = profile_matcher.find_documents_for_profile(
+        profile, docs, min_confidence=min_conf,
+    )
+    return {
+        "matches": [
+            {
+                "document_id": str(d["id"]),
+                "confidence":  conf,
+                "name":        d.get("name"),
+                "category":    d.get("category"),
+            }
+            for d, conf in pairs
+        ]
+    }

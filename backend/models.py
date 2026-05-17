@@ -32,6 +32,16 @@ class DocumentBase(BaseModel):
     assigned_profile_id: Optional[str] = None
     assigned_profile_name: Optional[str] = None
 
+    # AI-driven assignment metadata (see migration 006).
+    # confidence: 'high' | 'medium' | 'low' | None
+    # status:     'auto' | 'suggested' | 'confirmed' | 'manual' | None
+    assignment_confidence: Optional[str] = None
+    assignment_status: Optional[str] = None
+    # Raw signals extracted from the document (used by back-fill UX and
+    # transparency banners). The ID column stores ONLY the last 4 digits.
+    assignment_extracted_name: Optional[str] = None
+    assignment_extracted_id_last4: Optional[str] = None
+
     # Extractor output (per-document details)
     document_type: Optional[str] = None
     merchant: Optional[str] = None
@@ -55,6 +65,10 @@ class DocumentUpdate(BaseModel):
     # Assignment to a family profile (see DocumentBase for the rationale).
     assigned_profile_id: Optional[str] = None
     assigned_profile_name: Optional[str] = None
+    # When the user manually edits assignment, the frontend sets status
+    # to 'manual' so re-runs of the AI don't override it.
+    assignment_status: Optional[str] = None
+    assignment_confidence: Optional[str] = None
     document_type: Optional[str] = None
     merchant: Optional[str] = None
     amount_candidates: Optional[list[float]] = None

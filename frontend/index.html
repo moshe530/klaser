@@ -1719,10 +1719,10 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
   </div>
 
   <div id="docpage-medical" class="docpage personal-only" style="display:none">
-    <div class="ph"><div class="ph-left"><h1>תיק רפואי</h1><p>לפי נפשות</p></div><div class="ph-actions"><button class="btn-sm" onclick="openModal('person')">+</button></div></div>
+    <div class="ph"><div class="ph-left"><h1>תיק רפואי</h1><p>לפי בני משפחה</p></div><div class="ph-actions"><button class="btn-sm" onclick="openProfileModal()">+ הוסף בן משפחה</button></div></div>
     <div class="filter-row" id="personFilter">
       <button class="chip active">כולם</button>
-      <button class="chip" onclick="addPerson()">+</button>
+      <button class="chip" onclick="openProfileModal()">+</button>
     </div>
     <div class="doc-list" id="medicalList"></div>
   </div>
@@ -2002,6 +2002,27 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
           <div class="avatar-circle" id="settingsAvatarPreview" style="width:48px;height:48px;font-size:20px;border-color:rgba(0,0,0,0.08);">?</div>
           <div class="up-colors" id="settingsColors" style="flex:1;min-width:200px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI helpers — bulk tidy-up actions that don't require analysis -->
+    <div class="settings-card">
+      <div class="sc-header">
+        <div>
+          <div class="sc-title">איחוד שמות מסמכים</div>
+          <div class="sc-sub">מאחד שמות של מסמכים דומים (אותו ספק/קטגוריה) לתבנית אחידה — בלי להפעיל AI מחדש.</div>
+        </div>
+      </div>
+      <div class="sc-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+          לדוגמה: שני חשבונות בזק יקבלו את אותו הפורמט<br>
+          <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">בזק — תקשורת — 2025-02</code> ו-
+          <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">בזק — תקשורת — 2025-03</code>.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="previewCanonicalNames()">תצוגה מקדימה</button>
+          <button class="btn-primary btn-sm" onclick="applyCanonicalNames()">החל על כל המסמכים</button>
         </div>
       </div>
     </div>

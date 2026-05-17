@@ -1,8 +1,11 @@
 // ─── Klaser Frontend Config ───
 // Supabase Auth עם Email + Password. ה-JWT נשלח ל-backend כ-Bearer token.
 window.KLASER_CONFIG = {
-  // פרודקשן (Render): 'https://klaser.onrender.com' | מקומי: 'http://localhost:8000'
-  API_URL: 'https://klaser.onrender.com',
+  // פרודקשן: מסלול יחסי /api מ-Vercel מבצע rewrite אל Render בצד-שרת —
+  //   כך הדפדפן לעולם לא פוגע ב-*.onrender.com (חסום ע"י NetFree).
+  //   ה-rewrite מוגדר ב-frontend/vercel.json.
+  // מקומי: 'http://localhost:8000'
+  API_URL: '/api',
 
   // Supabase Auth (ערכים פומביים — בטוחים ב-frontend)
   // EU region: eu-central-1 (Frankfurt) — migrated from ap-southeast-1
