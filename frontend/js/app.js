@@ -242,7 +242,21 @@ function makeCard(d) {
     aiMeta.push(`<span class="ai-badge ai-merchant">${d.merchant}</span>`);
   }
   if (d.document_period) {
-    aiMeta.push(`<span class="ai-badge ai-period">${d.document_period}</span>`);
+    // document_period is stored as {from, to} object; flatten to a readable
+    // YYYY-MM range. Showing the raw object renders as "[object Object]".
+    const dp = d.document_period;
+    let dpLabel = '';
+    if (typeof dp === 'string') {
+      dpLabel = dp;
+    } else if (dp && typeof dp === 'object') {
+      const f = (dp.from || '').slice(0, 7);  // "YYYY-MM"
+      const t = (dp.to || '').slice(0, 7);
+      if (f && t && f !== t) dpLabel = `${f} → ${t}`;
+      else dpLabel = f || t || '';
+    }
+    if (dpLabel) {
+      aiMeta.push(`<span class="ai-badge ai-period">${dpLabel}</span>`);
+    }
   }
   if (d.document_type) {
     aiMeta.push(`<span class="ai-badge ai-type">${d.document_type}</span>`);

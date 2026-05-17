@@ -219,12 +219,20 @@ def build_canonical_name(
         return None
 
     # ── Payslip: employer + month ──────────────────────────────────────
+    # Consistency matters more than richness here — even without an employer
+    # the name should still be deterministic ("תלוש שכר — 2026-04"), so
+    # two payslips from the same period collide instead of getting two
+    # different AI-generated names.
     if category in WORK_CATEGORIES:
         employer = _clean_for_name(result.get("merchant") or merchant_alias)
         if employer and period_label:
             return f"{category} — {employer} — {period_label}"
         if employer and year_label:
             return f"{category} — {employer} — {year_label}"
+        if period_label:
+            return f"{category} — {period_label}"
+        if year_label:
+            return f"{category} — {year_label}"
         return None
 
     # ── Medical: keep AI's name (per-doc variability is desired:
