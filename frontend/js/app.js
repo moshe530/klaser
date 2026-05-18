@@ -342,6 +342,7 @@ function makeCard(d) {
     <div class="doc-actions">
       <button class="ico-btn" data-act="view" title="הצג"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1.5 8s2-4 6.5-4 6.5 4 6.5 4-2 4-6.5 4S1.5 8 1.5 8z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg></button>
       <button class="ico-btn" data-act="edit" title="עריכה"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>
+      <button class="ico-btn" data-act="reanalyze" title="ניתוח מחדש"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8a6 6 0 1 1-1.8-4.3M14 2v3.5h-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>
       <button class="ico-btn danger" data-act="del" title="מחיקה"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 4h8M5.5 4V3h3v1M6 6.5v4M8 6.5v4M4 4l.5 6.5h5l.5-6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
     ${suggestedBanner}
@@ -1787,6 +1788,42 @@ async function runAnalyze(docId) {
         showToast(`🤖 המסמך שויך אוטומטית ל-${finalDoc.assigned_profile_name}`);
       }
     }
+
+    // ─── Auto-set sub_category to the family-member's name ─────────────
+    // If the doc was assigned to a profile (auto OR confirmed) AND that
+    // profile has a sub-branch registered in this category, point the
+    // doc's sub_category at that sub-branch. This makes "all docs of דנה"
+    // group together naturally inside each tab without the user having
+    // to do anything. Only runs when sub_category is empty or generic
+    // (we don't overwrite an explicit AI sub_category like "מרשמים").
+    if (
+      finalDoc &&
+      finalDoc.assigned_profile_name &&
+      finalDoc.category &&
+      ['auto', 'confirmed', 'manual'].includes(finalDoc.assignment_status || '')
+    ) {
+      const linkedCats = getProfileSubbranches()[finalDoc.assigned_profile_id || ''] || [];
+      const profileName = finalDoc.assigned_profile_name;
+      if (linkedCats.includes(finalDoc.category)) {
+        const aiSub = (finalDoc.sub_category || '').trim();
+        // Only override if AI didn't pick a doc-type sub-branch — we
+        // prefer NOT to clobber "תוצאות בדיקה" with a person name. But
+        // when AI returned no sub or a placeholder, we set the person.
+        if (!aiSub) {
+          try {
+            await KlaserAPI.updateDocument(docId, { sub_category: profileName });
+            const i2 = docs.findIndex(d => d.id === docId);
+            if (i2 >= 0) {
+              docs[i2].sub = profileName;
+              docs[i2].sub_category = profileName;
+              renderAll();
+            }
+          } catch (subErr) {
+            console.warn('sub_category sync failed', subErr);
+          }
+        }
+      }
+    }
     // Clear the 'done' badge after the CSS fade so future re-renders don't show it.
     setTimeout(() => {
       const i = docs.findIndex(d => d.id === docId);
@@ -1973,6 +2010,7 @@ document.addEventListener('click', (e) => {
     if (act === 'edit') openEdit(id);
     else if (act === 'del') delDoc(id);
     else if (act === 'view') openDocFile(id);
+    else if (act === 'reanalyze') retryAnalyze(id);
     return;
   }
   if (e.shiftKey) { delDoc(id); return; }
@@ -3064,6 +3102,186 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 const FAMILY_PROFILES_KEY = 'klaser_family_profiles';
 
+// Maps profile_id → array of category names where the profile's name is
+// registered as a sub-branch. Lets us:
+//   1. Rename a profile → rename matching sub-branches across all tabs.
+//   2. Delete a profile → drop those sub-branches without leaving orphans.
+//   3. Untick a tab in the modal → remove just that one mapping.
+//
+// Schema: { "fp_1234567890": ["רפואי", "תלוש שכר"], ... }
+const PROFILE_SUBBRANCHES_KEY = 'klaser_profile_subbranches';
+
+// Categories that benefit from per-family-member sub-branches (the default
+// pre-checked list when adding a profile). Other categories show as
+// unchecked options so the user can opt-in per-tab.
+const DEFAULT_PER_PERSON_CATEGORIES = [
+  'רפואי', 'תלוש שכר', 'מסמכים אישיים', 'רכב', 'אישורים',
+];
+
+function getProfileSubbranches() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_SUBBRANCHES_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function setProfileSubbranches(map) {
+  localStorage.setItem(PROFILE_SUBBRANCHES_KEY, JSON.stringify(map || {}));
+}
+
+// Read current sub-branches for a category. Centralized so we don't
+// duplicate the localStorage key shape across the file.
+function _readSubBranches(cat) {
+  try {
+    const raw = JSON.parse(localStorage.getItem('subBranches_' + cat) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch { return []; }
+}
+
+function _writeSubBranches(cat, list) {
+  // Always keep a trailing '+' marker if the rendering code expects it,
+  // otherwise just store the unique non-empty names.
+  const clean = Array.from(new Set((list || []).filter(s => s && s !== '+')));
+  localStorage.setItem('subBranches_' + cat, JSON.stringify(clean));
+}
+
+// Add `name` as a sub-branch in `cat` if not present. Returns true if
+// added (so caller can decide whether to re-render UIs).
+function _addSubBranchIfMissing(cat, name) {
+  const current = _readSubBranches(cat);
+  if (current.includes(name)) return false;
+  current.push(name);
+  _writeSubBranches(cat, current);
+  return true;
+}
+
+// Remove `name` from sub-branches of `cat`. Idempotent.
+function _removeSubBranch(cat, name) {
+  const current = _readSubBranches(cat);
+  const next = current.filter(s => s !== name);
+  if (next.length === current.length) return false;
+  _writeSubBranches(cat, next);
+  return true;
+}
+
+// Sync a profile's per-tab sub-branches: ensure `name` exists in every
+// `selectedCats` and remove from any cat that was previously linked but
+// is no longer selected. Also handles name-changes by removing the old
+// name from previously-linked cats.
+function syncProfileSubbranches(profile, selectedCats, oldName = null) {
+  if (!profile || !profile.id) return;
+  const map = getProfileSubbranches();
+  const previousCats = map[profile.id] || [];
+  const newCats = (selectedCats || []).filter(Boolean);
+  const newName = (profile.name || '').trim();
+  if (!newName) return;
+  const renaming = oldName && oldName !== newName;
+
+  // Cats removed → drop the (old) name from them.
+  for (const cat of previousCats) {
+    if (!newCats.includes(cat)) {
+      _removeSubBranch(cat, oldName || newName);
+    }
+  }
+  // Cats kept → if renaming, swap old → new in place.
+  if (renaming) {
+    for (const cat of previousCats) {
+      if (newCats.includes(cat)) {
+        _removeSubBranch(cat, oldName);
+        _addSubBranchIfMissing(cat, newName);
+      }
+    }
+  }
+  // Cats added → ensure name is present.
+  for (const cat of newCats) {
+    if (!previousCats.includes(cat)) {
+      _addSubBranchIfMissing(cat, newName);
+    }
+  }
+
+  // Persist mapping (drop key entirely if no cats selected).
+  if (newCats.length === 0) delete map[profile.id];
+  else map[profile.id] = newCats;
+  setProfileSubbranches(map);
+
+  // Re-render any UI that lists sub-branch chips.
+  if (typeof renderAllCategoryTabs === 'function') renderAllCategoryTabs();
+  if (typeof renderAll === 'function') renderAll();
+}
+
+// Drop ALL sub-branch traces of a profile. Called from deleteProfile().
+function dropProfileSubbranches(profileId, profileName) {
+  const map = getProfileSubbranches();
+  const cats = map[profileId];
+  if (cats && cats.length && profileName) {
+    cats.forEach(cat => _removeSubBranch(cat, profileName));
+  }
+  delete map[profileId];
+  setProfileSubbranches(map);
+  if (typeof renderAllCategoryTabs === 'function') renderAllCategoryTabs();
+}
+
+// Look up a profile by display name (case-sensitive after trim). Used to
+// resolve "this doc was assigned to דנה → does דנה also exist as a
+// sub-branch in the doc's category?" when auto-syncing sub_category.
+function findProfileByName(name) {
+  const target = (name || '').trim();
+  if (!target) return null;
+  return getFamilyProfiles().find(p => (p.name || '').trim() === target) || null;
+}
+
+// Render the "create a sub-branch named after this person, in these tabs"
+// section of the profile modal. We list every category the user has —
+// pre-checked for medical/payslip/etc. when creating a NEW profile, or
+// reflecting the saved selection when editing an existing one.
+function _renderProfileTabsSection(profile) {
+  const allCats = (typeof getCategoryNames === 'function') ? getCategoryNames() : [];
+  if (!allCats.length) return '';
+
+  // Editing? Use the saved per-profile selection. Creating? Default the
+  // medical-friendly cats to checked.
+  const map = getProfileSubbranches();
+  const savedSelection = profile && profile.id ? (map[profile.id] || []) : null;
+  const isChecked = (cat) => {
+    if (savedSelection !== null) return savedSelection.includes(cat);
+    return DEFAULT_PER_PERSON_CATEGORIES.includes(cat);
+  };
+
+  const items = allCats.map(cat => {
+    const checked = isChecked(cat) ? 'checked' : '';
+    const safeId = 'profileTab_' + cat.replace(/[^\u0590-\u05FFA-Za-z0-9]/g, '_');
+    return `
+      <label for="${safeId}" style="
+        display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+        background:var(--bg);cursor:pointer;font-size:14px;user-select:none;">
+        <input type="checkbox" id="${safeId}" data-profile-tab-cat="${cat}" ${checked}
+               style="width:18px;height:18px;accent-color:var(--accent);">
+        <span>${cat}</span>
+      </label>`;
+  }).join('');
+
+  return `
+    <div class="form-group" style="margin-top:8px;">
+      <label style="font-weight:600;">תתי-ענפים אוטומטיים</label>
+      <p style="font-size:12px;color:var(--text3);margin:4px 0 10px 0;line-height:1.5;">
+        סמן את הטאבים שבהם תרצה תת-ענף עם השם של בן המשפחה.
+        מסמכים ששויכו אליו יסווגו אוטומטית לתת-ענף הזה.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;">
+        ${items}
+      </div>
+    </div>
+  `;
+}
+
+// Read the profile-tabs checkboxes back from the modal DOM.
+function _readSelectedProfileTabs() {
+  const inputs = document.querySelectorAll('[data-profile-tab-cat]');
+  const out = [];
+  inputs.forEach(inp => {
+    if (inp.checked) out.push(inp.dataset.profileTabCat);
+  });
+  return out;
+}
+
 // App mode is DERIVED from account_type — no separate storage.
 // 'personal' account → 'family' mode; 'business' account → 'business' mode.
 function getAppMode() {
@@ -3181,8 +3399,12 @@ function updateProfile(id, updates) {
 
 async function deleteProfile(id) {
   const profiles = getFamilyProfiles();
+  // Capture the name BEFORE we drop the profile so we can clean any
+  // matching sub-branches across category tabs.
+  const removed = profiles.find(p => p.id === id);
   const filtered = profiles.filter(p => p.id !== id);
   setFamilyProfiles(filtered);
+  if (removed) dropProfileSubbranches(id, removed.name || '');
 
   // Unassign docs from this profile, both locally (optimistic) and on the
   // server. We fire-and-forget the API calls in parallel — if one fails
@@ -3557,6 +3779,8 @@ function openProfileModal(profileId = null) {
           <input class="form-input" type="text" id="profileEmoji" value="${profile?.emoji || ''}" placeholder="" maxlength="2">
         </div>
 
+        ${_renderProfileTabsSection(profile)}
+
         <div style="display:flex;gap:10px;margin-top:24px;">
           ${profile ? `<button class="btn-secondary" style="flex:1;" onclick="deleteProfile('${profile.id}');closeModal('profile');">מחק</button>` : ''}
           <button class="btn-primary" style="flex:2;" onclick="saveProfile('${profile?.id || ''}')">שמור</button>
@@ -3642,11 +3866,26 @@ function saveProfile(profileId) {
     type: document.getElementById('profileType')?.value || 'person'
   };
 
+  // Snapshot the previous name BEFORE the update so we can rename
+  // sub-branches in place if the user changed the name field.
+  const previousName = profileId
+    ? (getProfileById(profileId)?.name || '')
+    : '';
+
+  // Read selected tabs BEFORE closing the modal — once the DOM is gone,
+  // the checkbox state is lost.
+  const selectedTabs = _readSelectedProfileTabs();
+
   let saved;
   if (profileId) {
     saved = updateProfile(profileId, data);
   } else {
     saved = createProfile(data);
+  }
+
+  // Sync per-tab sub-branches in localStorage to match what the user picked.
+  if (saved && saved.id && (saved.name || '').trim()) {
+    syncProfileSubbranches(saved, selectedTabs, previousName || null);
   }
 
   window.tempProfilePhoto = null;
