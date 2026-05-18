@@ -20,3 +20,9 @@ build/
 # Private / legal documents — never commit
 *.pdf
 !frontend/**/*.pdf
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
