@@ -759,6 +759,18 @@ body.app-loading .app-loader{display:flex;}
   transition:max-height 0.3s ease;
 }
 .about-section.accordion.open .accordion-body{max-height:2000px;}
+/* In-app browser (About page) */
+.ib-bar{display:flex;gap:6px;align-items:center;margin-bottom:10px;direction:ltr;}
+.ib-btn{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:var(--radius-sm);width:34px;height:34px;cursor:pointer;font-size:15px;flex-shrink:0;}
+.ib-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ib-url{flex:1;min-width:0;height:34px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;direction:ltr;}
+.ib-url:focus{outline:none;border-color:var(--accent);}
+.ib-links{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.ib-links button{border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;}
+.ib-links button:hover{border-color:var(--accent);color:var(--accent);}
+.ib-frame{width:100%;height:520px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;display:block;}
+.about-section .ib-note{font-size:13px;color:var(--text3);margin-top:8px;}
+@media(max-width:600px){.ib-frame{height:420px;}}
 /* FAQ accordion (nested) */
 .faq-item{cursor:pointer;}
 .faq-item h3{display:flex;justify-content:space-between;align-items:center;}
@@ -2210,6 +2222,29 @@ body.locked .mobile-fab,body.app-loading .mobile-fab{display:none !important;}
           <h3>איך מקבלים התראות לפני תאריך פג תוקף? <span class="faq-arrow">+</span></h3>
           <div class="faq-answer"><p>המערכת שולחת התראות במייל ובפוש בהגדרות מותאמות אישית - 30, 14, 7 ו-1 ימים לפני פג תוקף.</p></div>
         </div>
+      </div>
+    </section>
+
+    <!-- In-app browser - Accordion -->
+    <section class="about-section accordion" onclick="toggleAccordion(this)">
+      <h2>דפדפן <span class="accordion-arrow">▼</span></h2>
+      <div class="accordion-body">
+        <form class="ib-bar" onsubmit="ibGo(document.getElementById('ibUrl').value);return false;">
+          <button type="button" class="ib-btn" onclick="ibBack()" title="אחורה">←</button>
+          <button type="button" class="ib-btn" onclick="ibForward()" title="קדימה">→</button>
+          <button type="button" class="ib-btn" onclick="ibReload()" title="רענון">⟳</button>
+          <input id="ibUrl" class="ib-url" type="text" inputmode="url" placeholder="הקלידו כתובת או חיפוש" autocomplete="off">
+          <button type="submit" class="ib-btn" title="מעבר">↵</button>
+          <button type="button" class="ib-btn" onclick="ibOpenExternal()" title="פתיחה בלשונית חדשה">↗</button>
+        </form>
+        <div class="ib-links">
+          <button type="button" onclick="ibGo('/terms')">תנאי שימוש</button>
+          <button type="button" onclick="ibGo('/privacy')">מדיניות פרטיות</button>
+          <button type="button" onclick="ibGo('/accessibility')">הצהרת נגישות</button>
+          <button type="button" onclick="ibGo('https://he.wikipedia.org')">ויקיפדיה</button>
+        </div>
+        <iframe id="ibFrame" class="ib-frame" src="about:blank" title="דפדפן" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        <p class="ib-note">חלק מהאתרים חוסמים הצגה בתוך אתר אחר. אם הדף נשאר ריק, לחצו על ↗ כדי לפתוח אותו בלשונית חדשה.</p>
       </div>
     </section>
 
