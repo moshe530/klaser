@@ -405,6 +405,54 @@ function toggleFaq(e, faqItem) {
   faqItem.classList.toggle('open');
 }
 
+// ─── IN-APP BROWSER (About page) ───
+// Cross-origin iframes don't expose their history, so we keep our own stack.
+const ibHistory = [];
+let ibIndex = -1;
+
+function ibNormalize(input) {
+  const v = (input || '').trim();
+  if (!v) return '';
+  if (v.startsWith('/')) return v;
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[^\s]+\.[^\s]{2,}$/.test(v)) return 'https://' + v;
+  return 'https://he.wikipedia.org/w/index.php?search=' + encodeURIComponent(v);
+}
+
+function ibLoad(url) {
+  const frame = document.getElementById('ibFrame');
+  const bar = document.getElementById('ibUrl');
+  if (!frame) return;
+  frame.src = url;
+  if (bar) bar.value = url;
+}
+
+function ibGo(input) {
+  const url = ibNormalize(input);
+  if (!url) return;
+  ibHistory.splice(ibIndex + 1);
+  ibHistory.push(url);
+  ibIndex = ibHistory.length - 1;
+  ibLoad(url);
+}
+
+function ibBack() {
+  if (ibIndex > 0) ibLoad(ibHistory[--ibIndex]);
+}
+
+function ibForward() {
+  if (ibIndex < ibHistory.length - 1) ibLoad(ibHistory[++ibIndex]);
+}
+
+function ibReload() {
+  if (ibIndex >= 0) ibLoad(ibHistory[ibIndex]);
+}
+
+function ibOpenExternal() {
+  const url = ibIndex >= 0 ? ibHistory[ibIndex] : ibNormalize(document.getElementById('ibUrl')?.value);
+  if (url) window.open(url, '_blank', 'noopener');
+}
+
 // Filter by document status (clicking on stats cards)
 function filterByStatus(statusFilter) {
   const list = document.getElementById('docList');
